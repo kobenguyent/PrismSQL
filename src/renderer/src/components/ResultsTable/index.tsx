@@ -82,6 +82,11 @@ export function ResultsTable({ result }: Props): JSX.Element {
     URL.revokeObjectURL(url)
   }
 
+  const toggleFilter = () => {
+    setShowFilter((prev) => !prev)
+    if (showFilter) setGlobalFilter('')
+  }
+
   if (result.error) {
     return (
       <div className="results-pane" style={{ minHeight: 80 }}>
@@ -120,7 +125,7 @@ export function ResultsTable({ result }: Props): JSX.Element {
           )}
           <button
             className={`icon-btn ${showFilter ? 'active' : ''}`}
-            onClick={() => { setShowFilter(!showFilter); if (showFilter) setGlobalFilter('') }}
+            onClick={toggleFilter}
             data-tooltip="Filter"
           >
             <Filter size={13} />

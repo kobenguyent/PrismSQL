@@ -88,10 +88,11 @@ export class MSSQLAdapter implements DatabaseAdapter {
          FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
          JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE ku ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME
          WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
-           AND tc.TABLE_SCHEMA = '${schema}' AND tc.TABLE_NAME = '${tableName}'
+           AND tc.TABLE_SCHEMA = @p0 AND tc.TABLE_NAME = @p1
        ) pk ON c.COLUMN_NAME = pk.COLUMN_NAME
-       WHERE c.TABLE_SCHEMA = '${schema}' AND c.TABLE_NAME = '${tableName}'
-       ORDER BY c.ORDINAL_POSITION`
+       WHERE c.TABLE_SCHEMA = @p0 AND c.TABLE_NAME = @p1
+       ORDER BY c.ORDINAL_POSITION`,
+      [schema, tableName]
     )
     return result.rows.map((r) => ({
       name: r['COLUMN_NAME'] as string,

@@ -189,8 +189,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
 
                 <span
                   className="connection-type-badge"
-                  style={{ color, borderColor: `${color}40`, background: `${color}15` }}
-                  // border is set via inline style
+                  style={{ color, background: `${color}15`, border: `1px solid ${color}40` }}
                 >
                   {conn.type === 'postgres' ? 'PG' : conn.type.toUpperCase().slice(0, 4)}
                 </span>
