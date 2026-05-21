@@ -21,6 +21,7 @@ jobs:
           node-version: 20
           cache: npm
 
+      # Skip postinstall scripts; tests mock all DB drivers so native modules are not needed
       - name: Install dependencies
         run: npm install --ignore-scripts
 
@@ -56,6 +57,8 @@ jobs:
           node-version: 20
           cache: npm
 
+      # Skip postinstall to avoid compiling native modules against Node.js headers;
+      # electron-rebuild below recompiles them against the correct Electron headers.
       - name: Install dependencies
         run: npm install --ignore-scripts
 
