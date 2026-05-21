@@ -1,0 +1,76 @@
+{
+  "name": "prismsql",
+  "version": "1.0.0",
+  "description": "A modern SQL database client with Apple glassmorphism UI",
+  "main": "out/main/index.js",
+  "author": {
+    "name": "kobenguyent",
+    "email": "kobenguyent@github.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/kobenguyent/PrismSQL",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "npm run build && electron-builder",
+    "rebuild:sqlite": "electron-rebuild -f -w better-sqlite3",
+    "install:dev": "npm install --ignore-scripts && npm run rebuild:sqlite",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^3.0.0",
+    "better-sqlite3": "^9.4.3",
+    "electron-log": "^5.1.2",
+    "immer": "^10.0.3",
+    "lucide-react": "^0.344.0",
+    "mssql": "^10.0.4",
+    "mysql2": "^3.9.1",
+    "pg": "^8.11.3",
+    "zustand": "^4.5.1"
+  },
+  "devDependencies": {
+    "@codemirror/lang-sql": "^6.7.1",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@electron-toolkit/preload": "^3.0.1",
+    "@tanstack/react-table": "^8.13.2",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/mssql": "^9.1.4",
+    "@types/pg": "^8.11.2",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@uiw/react-codemirror": "^4.21.24",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^29.1.4",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "electron-vite": "^2.1.0",
+    "vitest": "^1.4.0"
+  },
+  "build": {
+    "appId": "com.kobenguyent.prismsql",
+    "productName": "PrismSQL",
+    "copyright": "Copyright © 2024 kobenguyent",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    }
+  }
+}

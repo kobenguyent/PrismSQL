@@ -1,0 +1,114 @@
+import { Client, QueryResult as PgQueryResult } from 'pg'
+import { DatabaseAdapter } from '../adapter'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from '../types'
+
+export class PostgresAdapter implements DatabaseAdapter {
+  private client: Client | null = null
+  private config: ConnectionConfig | null = null
+
+  async connect(config: ConnectionConfig): Promise<void> {
+    this.config = config
+    this.client = new Client({
+      host: config.host || 'localhost',
+      port: config.port || 5432,
+      user: config.user || 'postgres',
+      password: config.password || '',
+      database: config.database || 'postgres',
+      ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
+      connectionTimeoutMillis: 10000
+    })
+    await this.client.connect()
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.client) {
+      await this.client.end()
+      this.client = null
+    }
+  }
+
+  async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
+    if (!this.client) throw new Error('Not connected')
+    const start = Date.now()
+    try {
+      const res: PgQueryResult = await this.client.query(sql, params)
+      const duration = Date.now() - start
+      const columns = res.fields.map((f) => ({
+        name: f.name,
+        type: f.dataTypeID?.toString() || 'unknown',
+        nullable: true,
+        primaryKey: false
+      }))
+      return {
+        columns,
+        rows: res.rows as Record<string, unknown>[],
+        rowCount: res.rowCount || res.rows.length,
+        duration
+      }
+    } catch (err) {
+      return {
+        columns: [],
+        rows: [],
+        rowCount: 0,
+        duration: Date.now() - start,
+        error: (err as Error).message
+      }
+    }
+  }
+
+  async getDatabases(): Promise<string[]> {
+    const result = await this.query(
+      `SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname`
+    )
+    return result.rows.map((r) => r['datname'] as string)
+  }
+
+  async getTables(database?: string): Promise<TableInfo[]> {
+    const result = await this.query(
+      `SELECT table_name, table_type, table_schema
+       FROM information_schema.tables
+       WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+       ORDER BY table_schema, table_name`
+    )
+    return result.rows.map((r) => ({
+      name: r['table_name'] as string,
+      type: (r['table_type'] as string) === 'VIEW' ? 'view' : 'table',
+      schema: r['table_schema'] as string
+    }))
+  }
+
+  async getColumns(table: string, database?: string): Promise<ColumnInfo[]> {
+    const [schema, tableName] = table.includes('.') ? table.split('.') : ['public', table]
+    const result = await this.query(
+      `SELECT c.column_name, c.data_type, c.is_nullable, c.column_default,
+              CASE WHEN pk.column_name IS NOT NULL THEN true ELSE false END AS is_primary_key
+       FROM information_schema.columns c
+       LEFT JOIN (
+         SELECT ku.column_name
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage ku ON tc.constraint_name = ku.constraint_name
+         WHERE tc.constraint_type = 'PRIMARY KEY'
+           AND tc.table_schema = $1 AND tc.table_name = $2
+       ) pk ON c.column_name = pk.column_name
+       WHERE c.table_schema = $1 AND c.table_name = $2
+       ORDER BY c.ordinal_position`,
+      [schema, tableName]
+    )
+    return result.rows.map((r) => ({
+      name: r['column_name'] as string,
+      type: r['data_type'] as string,
+      nullable: r['is_nullable'] === 'YES',
+      primaryKey: r['is_primary_key'] as boolean,
+      defaultValue: r['column_default'] as string | undefined
+    }))
+  }
+
+  async ping(): Promise<boolean> {
+    try {
+      await this.query('SELECT 1')
+      return true
+    } catch {
+      return false
+    }
+  }
+}
