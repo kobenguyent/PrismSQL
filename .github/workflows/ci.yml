@@ -59,7 +59,7 @@ jobs:
         run: npm run package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Allow ad-hoc signing (identity: "-") in pull request builds on macOS.
+          # Allow ad-hoc signing (identity: "-") in macOS CI builds.
           # CSC_FOR_PULL_REQUEST only affects signing; no certificate secrets are exposed.
           CSC_FOR_PULL_REQUEST: ${{ matrix.os == 'macos-latest' && 'true' || '' }}
 
