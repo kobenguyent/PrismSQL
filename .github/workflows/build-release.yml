@@ -30,13 +30,17 @@ jobs:
             exit 0
           fi
 
-          if [ "$(date -d "$latest_published_at" +%s)" -lt "$(date -d "$run_created_at" +%s)" ]; then
-            echo "No release published by triggering run; skipping build."
-            echo "tag_name=" >> "$GITHUB_OUTPUT"
+          release_published_ts="$(date -d "$latest_published_at" +%s)"
+          run_created_ts="$(date -d "$run_created_at" +%s)"
+
+          if [ "$release_published_ts" -ge "$run_created_ts" ]; then
+            echo "tag_name=$latest_tag" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          echo "tag_name=$latest_tag" >> "$GITHUB_OUTPUT"
+          echo "No release published by triggering run; skipping build."
+          echo "tag_name=" >> "$GITHUB_OUTPUT"
+          exit 0
 
   build:
     needs: resolve-release

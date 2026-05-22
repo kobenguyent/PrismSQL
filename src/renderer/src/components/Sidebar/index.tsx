@@ -227,8 +227,9 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   const applyTemplate = useCallback((sql: string) => {
     const state = useAppStore.getState()
     const activeTab = state.tabs.find((t) => t.id === state.activeTabId)
-    const targetTabId = activeTab?.tabType === 'query'
-      ? activeTab.id
+    const isQueryTab = activeTab?.tabType === 'query'
+    const targetTabId = isQueryTab
+      ? activeTab!.id
       : newTab(activeTab?.connectionId ?? null)
     const tab = useAppStore.getState().tabs.find((t) => t.id === targetTabId)
     const trimmedSql = (tab?.sql ?? '').trimEnd()
