@@ -151,7 +151,7 @@ export default function App(): JSX.Element {
             <div
               style={{ width: sidebarWidth, minWidth: sidebarWidth }}
             >
-              <Sidebar onNewConnection={() => handleOpenModal()} />
+              <Sidebar onNewConnection={() => handleOpenModal()} onEditConnection={handleOpenModal} />
             </div>
             {/* Resize handle */}
             <div className="resize-handle" onMouseDown={startResize} />

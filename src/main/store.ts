@@ -8,6 +8,7 @@ export interface SavedQueryRecord {
   name: string
   sql: string
   createdAt: number
+  category?: string
 }
 
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')

@@ -12,6 +12,7 @@ export interface ConnectionConfig {
   filename?: string
   ssl?: boolean
   color?: string
+  category?: string
 }
 
 export interface QueryResult {
@@ -55,6 +56,7 @@ export interface ColumnInfo {
 export interface QueryTab {
   id: string
   title: string
+  tabType: 'query' | 'table' | 'procedure'
   connectionId: string | null
   sql: string
   result: QueryResult | null
@@ -67,6 +69,7 @@ export interface SavedQuery {
   name: string
   sql: string
   createdAt: number
+  category?: string
 }
 
 export const DB_COLORS: Record<DatabaseType, string> = {

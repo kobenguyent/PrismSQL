@@ -12,6 +12,7 @@ export interface ConnectionConfig {
   filename?: string // for SQLite
   ssl?: boolean
   color?: string // connection indicator color
+  category?: string // grouping label
 }
 
 export interface QueryResult {

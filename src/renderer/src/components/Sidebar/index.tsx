@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import {
   Plus,
   ChevronRight,
@@ -13,14 +13,18 @@ import {
   Search,
   Code2,
   FunctionSquare,
-  BookOpen
+  BookOpen,
+  Pencil,
+  Check,
+  Folder
 } from 'lucide-react'
 import { useAppStore } from '../../store'
-import type { ConnectionConfig } from '../../types'
+import type { ConnectionConfig, SavedQuery } from '../../types'
 import { DB_COLORS } from '../../types'
 
 interface Props {
   onNewConnection: () => void
+  onEditConnection: (config: ConnectionConfig) => void
 }
 
 interface TreeState {
@@ -32,7 +36,12 @@ interface TreeState {
   dbSearch: Record<string, string> // key: `connId/dbName`, value: search text
 }
 
-export function Sidebar({ onNewConnection }: Props): JSX.Element {
+const UNGROUPED_CATEGORY_KEY = ''
+
+const normalizeCategoryKey = (category?: string | null): string => category?.trim() || UNGROUPED_CATEGORY_KEY
+const isUngroupedCategory = (categoryKey: string): boolean => categoryKey === UNGROUPED_CATEGORY_KEY
+
+export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
   const {
     connections,
     connectedIds,
@@ -47,10 +56,17 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     openTableInTab,
     openProcedureInTab,
     deleteSavedQuery,
-    openSavedQuery
+    openSavedQuery,
+    updateSavedQuery
   } = useAppStore()
 
   const [savedQueriesExpanded, setSavedQueriesExpanded] = useState(true)
+  const [renamingQueryId, setRenamingQueryId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [isRenameSubmitting, setIsRenameSubmitting] = useState(false)
+  const [expandedQueryCategories, setExpandedQueryCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
+  const [expandedConnCategories, setExpandedConnCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
+  const isRenameSubmittingRef = useRef(false)
 
   const [tree, setTree] = useState<TreeState>({
     expandedConnections: new Set(),
@@ -177,6 +193,41 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     e.stopPropagation()
   }
 
+  const cancelRename = useCallback(() => {
+    setRenamingQueryId(null)
+    setRenameValue('')
+  }, [])
+
+  const commitRename = useCallback(
+    async (query: SavedQuery) => {
+      if (isRenameSubmittingRef.current) {
+        return
+      }
+      const nextName = renameValue.trim()
+      if (!nextName || nextName === query.name) {
+        cancelRename()
+        return
+      }
+      isRenameSubmittingRef.current = true
+      setIsRenameSubmitting(true)
+      try {
+        await updateSavedQuery({ ...query, name: nextName })
+        cancelRename()
+      } catch (error) {
+        console.error('Failed to rename saved query', {
+          queryId: query.id,
+          queryName: query.name,
+          attemptedName: nextName,
+          error
+        })
+      } finally {
+        isRenameSubmittingRef.current = false
+        setIsRenameSubmitting(false)
+      }
+    },
+    [renameValue, updateSavedQuery, cancelRename]
+  )
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -202,88 +253,153 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
           </div>
         )}
 
-        {connections.map((conn) => {
-          const isConnected = connectedIds.has(conn.id)
-          const isExpanded = tree.expandedConnections.has(conn.id)
-          const connSchema = schema[conn.id]
-          const color = conn.color ?? DB_COLORS[conn.type]
+        {/* Group connections by category */}
+        {(() => {
+          const grouped: Record<string, ConnectionConfig[]> = {}
+          for (const conn of connections) {
+            const cat = normalizeCategoryKey(conn.category)
+            if (!grouped[cat]) grouped[cat] = []
+            grouped[cat].push(conn)
+          }
+          const categories = Object.keys(grouped).sort((a, b) => {
+            if (isUngroupedCategory(a)) return 1
+            if (isUngroupedCategory(b)) return -1
+            return a.localeCompare(b)
+          })
+          const hasManyCategories =
+            categories.length > 1 || (categories.length === 1 && !isUngroupedCategory(categories[0]))
 
-          return (
-            <div key={conn.id}>
-              {/* Connection row */}
-              <div
-                className={`connection-item ${isExpanded ? 'active' : ''}`}
-                onClick={() => toggleConnection(conn)}
-                onContextMenu={handleContextMenu}
-              >
-                <span
-                  className={`connection-dot ${isConnected ? 'connected' : ''}`}
-                  style={{ background: isConnected ? color : undefined }}
-                />
+          return categories.map((cat) => {
+            const catConns = grouped[cat]
+            const isCatExpanded = expandedConnCategories.has(cat)
+            const toggleCat = () => setExpandedConnCategories((prev) => {
+              const next = new Set(prev)
+              if (next.has(cat)) next.delete(cat)
+              else next.add(cat)
+              return next
+            })
 
-                <ChevronRight
-                  size={12}
-                  style={{
-                    transition: 'transform 200ms ease',
-                    transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                    color: 'var(--text-tertiary)',
-                    flexShrink: 0
-                  }}
-                />
-
-                <span className="connection-name">{conn.name}</span>
-
-                <span
-                  className="connection-type-badge"
-                  style={{ color, background: `${color}15`, border: `1px solid ${color}40` }}
-                >
-                  {conn.type === 'postgres' ? 'PG' : conn.type.toUpperCase().slice(0, 4)}
-                </span>
-
-                {/* Actions (shown on hover via CSS opacity trick) */}
-                <span style={{ display: 'flex', gap: 2 }} className="conn-actions">
+            return (
+              <div key={cat}>
+                {hasManyCategories && !isUngroupedCategory(cat) && (
                   <button
-                    className="icon-btn"
-                    style={{ width: 20, height: 20 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (isConnected) disconnect(conn.id)
-                      else connect(conn)
+                    type="button"
+                    className="tree-item"
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 10,
+                      color: 'var(--text-tertiary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      paddingLeft: 14,
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left'
                     }}
-                    title={isConnected ? 'Disconnect' : 'Connect'}
+                    onClick={toggleCat}
+                    aria-expanded={isCatExpanded}
                   >
-                    {isConnected ? <PowerOff size={10} /> : <Power size={10} />}
+                    {isCatExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                    <Folder size={10} style={{ opacity: 0.7 }} />
+                    <span>{cat}</span>
                   </button>
-                  <button
-                    className="icon-btn"
-                    style={{ width: 20, height: 20 }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteConnection(conn.id)
-                    }}
-                    title="Delete"
-                  >
-                    <Trash2 size={10} />
-                  </button>
-                </span>
-              </div>
+                )}
+                {(isUngroupedCategory(cat) || !hasManyCategories || isCatExpanded) && catConns.map((conn) => {
+                  const isConnected = connectedIds.has(conn.id)
+                  const isExpanded = tree.expandedConnections.has(conn.id)
+                  const connSchema = schema[conn.id]
+                  const color = conn.color ?? DB_COLORS[conn.type]
 
-              {/* Databases */}
-              {isExpanded && connSchema && (
-                <div>
-                  {connSchema.loadingDatabases ? (
-                    <div className="tree-item">
-                      <span className="spinner" />
-                      <span>Loading...</span>
-                    </div>
-                  ) : (
-                    connSchema.databases.map((dbName) => {
-                      const dbExpanded = (tree.expandedDatabases[conn.id] ?? new Set()).has(dbName)
-                      const allTables = connSchema.tables[dbName] ?? []
-                      const procedures = connSchema.procedures[dbName] ?? []
-                      const loadingTables = connSchema.loadingTables[dbName]
-                      const loadingProcedures = connSchema.loadingProcedures[dbName]
-                      const sectionKey = `${conn.id}/${dbName}`
+                  return (
+                    <div key={conn.id}>
+                      {/* Connection row */}
+                      <div
+                        className={`connection-item ${isExpanded ? 'active' : ''}`}
+                        onClick={() => toggleConnection(conn)}
+                        onContextMenu={handleContextMenu}
+                      >
+                        <span
+                          className={`connection-dot ${isConnected ? 'connected' : ''}`}
+                          style={{ background: isConnected ? color : undefined }}
+                        />
+
+                        <ChevronRight
+                          size={12}
+                          style={{
+                            transition: 'transform 200ms ease',
+                            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                            color: 'var(--text-tertiary)',
+                            flexShrink: 0
+                          }}
+                        />
+
+                        <span className="connection-name">{conn.name}</span>
+
+                        <span
+                          className="connection-type-badge"
+                          style={{ color, background: `${color}15`, border: `1px solid ${color}40` }}
+                        >
+                          {conn.type === 'postgres' ? 'PG' : conn.type.toUpperCase().slice(0, 4)}
+                        </span>
+
+                        {/* Actions (shown on hover via CSS opacity trick) */}
+                        <span style={{ display: 'flex', gap: 2 }} className="conn-actions">
+                          <button
+                            className="icon-btn"
+                            style={{ width: 20, height: 20 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isConnected) disconnect(conn.id)
+                              else connect(conn)
+                            }}
+                            title={isConnected ? 'Disconnect' : 'Connect'}
+                          >
+                            {isConnected ? <PowerOff size={10} /> : <Power size={10} />}
+                          </button>
+                          <button
+                            className="icon-btn"
+                            style={{ width: 20, height: 20 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onEditConnection(conn)
+                            }}
+                            title="Edit"
+                          >
+                            <Pencil size={10} />
+                          </button>
+                          <button
+                            className="icon-btn"
+                            style={{ width: 20, height: 20 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteConnection(conn.id)
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </span>
+                      </div>
+
+                      {/* Databases */}
+                      {isExpanded && connSchema && (
+                        <div>
+                          {connSchema.loadingDatabases ? (
+                            <div className="tree-item">
+                              <span className="spinner" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : (
+                            connSchema.databases.map((dbName) => {
+                              const dbExpanded = (tree.expandedDatabases[conn.id] ?? new Set()).has(dbName)
+                              const allTables = connSchema.tables[dbName] ?? []
+                              const procedures = connSchema.procedures[dbName] ?? []
+                              const loadingTables = connSchema.loadingTables[dbName]
+                              const loadingProcedures = connSchema.loadingProcedures[dbName]
+                              const sectionKey = `${conn.id}/${dbName}`
                       const expandedSections = tree.expandedSections[sectionKey] ?? new Set<string>()
                       const searchText = (tree.dbSearch[sectionKey] ?? '').toLowerCase()
 
@@ -566,9 +682,13 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
                   )}
                 </div>
               )}
-            </div>
-          )
-        })}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })
+        })()}
 
         {/* Saved Queries section */}
         <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8 }}>
@@ -591,27 +711,142 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
                   No saved queries
                 </div>
               ) : (
-                savedQueries.map((q) => (
-                  <div
-                    key={q.id}
-                    className="tree-item tree-item-indent-1"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                    onClick={() => openSavedQuery(q)}
-                  >
-                    <Code2 size={11} style={{ flexShrink: 0 }} />
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {q.name}
-                    </span>
-                    <button
-                      className="icon-btn"
-                      style={{ width: 20, height: 20, flexShrink: 0 }}
-                      onClick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id) }}
-                      data-tooltip="Delete"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))
+                (() => {
+                  const grouped: Record<string, SavedQuery[]> = {}
+                  for (const q of savedQueries) {
+                    const cat = normalizeCategoryKey(q.category)
+                    if (!grouped[cat]) grouped[cat] = []
+                    grouped[cat].push(q)
+                  }
+                  const categories = Object.keys(grouped).sort((a, b) => {
+                    if (isUngroupedCategory(a)) return 1
+                    if (isUngroupedCategory(b)) return -1
+                    return a.localeCompare(b)
+                  })
+                  const hasManyCategories =
+                    categories.length > 1 ||
+                    (categories.length === 1 && !isUngroupedCategory(categories[0]))
+
+                  return categories.map((cat) => {
+                    const catQueries = grouped[cat]
+                    const isCatExpanded = expandedQueryCategories.has(cat)
+                    const toggleCat = () =>
+                      setExpandedQueryCategories((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(cat)) next.delete(cat)
+                        else next.add(cat)
+                        return next
+                      })
+
+                    return (
+                      <div key={cat}>
+                        {hasManyCategories && !isUngroupedCategory(cat) && (
+                          <button
+                            type="button"
+                            className="tree-item tree-item-indent-1"
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 10,
+                              color: 'var(--text-tertiary)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                              width: '100%',
+                              border: 'none',
+                              background: 'transparent',
+                              textAlign: 'left'
+                            }}
+                            onClick={toggleCat}
+                            aria-expanded={isCatExpanded}
+                          >
+                            {isCatExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                            <Folder size={10} style={{ opacity: 0.7 }} />
+                            <span>{cat}</span>
+                          </button>
+                        )}
+                        {(isUngroupedCategory(cat) || !hasManyCategories || isCatExpanded) &&
+                          catQueries.map((q) => (
+                            <div
+                              key={q.id}
+                              className="tree-item tree-item-indent-1"
+                              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                              onClick={() => renamingQueryId !== q.id && openSavedQuery(q)}
+                            >
+                              <Code2 size={11} style={{ flexShrink: 0 }} />
+                              {renamingQueryId === q.id ? (
+                                <input
+                                  autoFocus
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  disabled={isRenameSubmitting}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      void commitRename(q)
+                                    } else if (e.key === 'Escape') {
+                                      e.preventDefault()
+                                      cancelRename()
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const nextFocused = e.relatedTarget
+                                    if (
+                                      nextFocused instanceof Node &&
+                                      e.currentTarget.parentElement?.contains(nextFocused)
+                                    ) {
+                                      return
+                                    }
+                                    void commitRename(q)
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    fontSize: 'var(--font-size-xs)',
+                                    background: 'var(--bg-tertiary)',
+                                    border: '1px solid var(--accent)',
+                                    borderRadius: 3,
+                                    padding: '1px 4px',
+                                    color: 'var(--text-primary)',
+                                    outline: 'none'
+                                  }}
+                                />
+                              ) : (
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {q.name}
+                                </span>
+                              )}
+                              <button
+                                className="icon-btn"
+                                style={{ width: 20, height: 20, flexShrink: 0 }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (renamingQueryId === q.id) {
+                                    void commitRename(q)
+                                  } else {
+                                    setRenamingQueryId(q.id)
+                                    setRenameValue(q.name)
+                                  }
+                                }}
+                                title={renamingQueryId === q.id ? 'Save name' : 'Rename'}
+                                disabled={isRenameSubmitting}
+                              >
+                                {renamingQueryId === q.id ? <Check size={10} /> : <Pencil size={10} />}
+                              </button>
+                              <button
+                                className="icon-btn"
+                                style={{ width: 20, height: 20, flexShrink: 0 }}
+                                onClick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id) }}
+                                title="Delete"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )
+                  })
+                })()
               )}
             </div>
           )}

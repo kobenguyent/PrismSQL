@@ -72,7 +72,12 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
     }
     setSaving(true)
     try {
-      const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
+      const normalizedCategory = config.category?.trim()
+      const fullConfig: ConnectionConfig = {
+        id: editConfig?.id ?? genId(),
+        ...config,
+        category: normalizedCategory || undefined
+      }
       await saveConnection(fullConfig)
       const result = await connect(fullConfig)
       if (result.success) {
@@ -144,6 +149,18 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
               onChange={(e) => update('name', e.target.value)}
               placeholder={`My ${DB_TYPES.find((d) => d.value === config.type)?.label} DB`}
               autoFocus
+            />
+          </div>
+
+          {/* Category */}
+          <div className="form-group">
+            <label className="form-label">Category (optional)</label>
+            <input
+              className="form-input"
+              type="text"
+              value={config.category ?? ''}
+              onChange={(e) => update('category', e.target.value || undefined)}
+              placeholder="e.g. Production, Staging, Local…"
             />
           </div>
 
