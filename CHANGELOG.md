@@ -1,3 +1,12 @@
+## [1.2.2](https://github.com/kobenguyent/PrismSQL/compare/v1.2.1...v1.2.2) (2026-05-22)
+
+
+### Bug Fixes
+
+* connection error handling and status bar persistence ([f6dc441](https://github.com/kobenguyent/PrismSQL/commit/f6dc4417800a59842676f884c516873f9bbcc7bf))
+* semantic-release not triggering on GitHub merge commits ([0bc1316](https://github.com/kobenguyent/PrismSQL/commit/0bc131666f21680a2d9371bf1a2d0482e8fa3066))
+* sidebar resize layout and add knowledge graph ([e6c80dc](https://github.com/kobenguyent/PrismSQL/commit/e6c80dcd4c6f1ee5524b4986bcc15c56a73907e5))
+
 ## [1.2.1](https://github.com/kobenguyent/PrismSQL/compare/v1.2.0...v1.2.1) (2026-05-22)
 
 
