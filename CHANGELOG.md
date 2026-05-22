@@ -1,3 +1,12 @@
+## [1.2.1](https://github.com/kobenguyent/PrismSQL/compare/v1.2.0...v1.2.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* address sidebar/category review feedback ([ca257a8](https://github.com/kobenguyent/PrismSQL/commit/ca257a8e264a6d728ce167e07f39e396d4ff8cc2))
+* harden saved query rename interactions ([9e86c6f](https://github.com/kobenguyent/PrismSQL/commit/9e86c6fdd5849ba8d01196716dc42b1bc3d7040b))
+* trim categories on save and improve rename logging ([603767e](https://github.com/kobenguyent/PrismSQL/commit/603767e497d895b62152904dc73cc9778f7f49ae))
+
 # [1.2.0](https://github.com/kobenguyent/PrismSQL/compare/v1.1.0...v1.2.0) (2026-05-22)
 
 
