@@ -5,7 +5,8 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   flexRender,
-  type SortingState
+  type SortingState,
+  type ColumnFiltersState
 } from '@tanstack/react-table'
 import { ArrowUp, ArrowDown, Download, Filter } from 'lucide-react'
 import type { QueryResult } from '../../types'
@@ -31,7 +32,7 @@ function formatCell(value: unknown): string {
 
 export function ResultsTable({ result }: Props): JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [showFilter, setShowFilter] = useState(false)
 
   const columns = useMemo(
@@ -40,6 +41,7 @@ export function ResultsTable({ result }: Props): JSX.Element {
         id: col.name,
         accessorKey: col.name,
         header: col.name,
+        filterFn: 'includesString' as const,
         cell: (info: { getValue: () => unknown }) => {
           const v = info.getValue()
           return <span className={cellClass(v)}>{formatCell(v)}</span>
@@ -51,9 +53,9 @@ export function ResultsTable({ result }: Props): JSX.Element {
   const table = useReactTable({
     data: result.rows,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, columnFilters },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel()
@@ -82,7 +84,7 @@ export function ResultsTable({ result }: Props): JSX.Element {
 
   const toggleFilter = () => {
     setShowFilter((prev) => !prev)
-    if (showFilter) setGlobalFilter('')
+    if (showFilter) setColumnFilters([])
   }
 
   if (result.error) {
@@ -111,20 +113,10 @@ export function ResultsTable({ result }: Props): JSX.Element {
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          {showFilter && (
-            <input
-              className="results-filter-input"
-              type="text"
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              placeholder="Filter results..."
-              autoFocus
-            />
-          )}
           <button
             className={`icon-btn ${showFilter ? 'active' : ''}`}
             onClick={toggleFilter}
-            data-tooltip="Filter"
+            data-tooltip="Filter columns"
           >
             <Filter size={13} />
           </button>
@@ -165,6 +157,23 @@ export function ResultsTable({ result }: Props): JSX.Element {
                   ))}
                 </tr>
               ))}
+              {showFilter && (
+                <tr className="filter-row">
+                  <th style={{ width: 50 }} />
+                  {table.getHeaderGroups()[0]?.headers.map((header) => (
+                    <th key={header.id} style={{ padding: '2px 4px' }}>
+                      <input
+                        className="column-filter-input"
+                        type="text"
+                        value={(header.column.getFilterValue() as string) ?? ''}
+                        onChange={(e) => header.column.setFilterValue(e.target.value || undefined)}
+                        placeholder={`Filter ${header.column.id}…`}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </th>
+                  ))}
+                </tr>
+              )}
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row, idx) => (
