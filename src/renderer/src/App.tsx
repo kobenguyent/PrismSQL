@@ -240,7 +240,7 @@ export default function App(): JSX.Element {
         <button
           className="icon-btn"
           onClick={() => setShowPrivacy(true)}
-          data-tooltip="Privacy &amp; Data Collection"
+          data-tooltip="Privacy & Data Collection"
           style={{ width: 20, height: 20 }}
         >
           <Shield size={12} />
