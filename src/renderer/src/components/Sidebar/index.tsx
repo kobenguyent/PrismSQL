@@ -226,10 +226,10 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
 
   const applyTemplate = useCallback((sql: string) => {
     const state = useAppStore.getState()
-    let targetTabId = state.activeTabId
-    if (!targetTabId) {
-      targetTabId = newTab()
-    }
+    const activeTab = state.tabs.find((t) => t.id === state.activeTabId)
+    const targetTabId = activeTab?.tabType === 'query'
+      ? activeTab.id
+      : newTab(activeTab?.connectionId ?? null)
     const tab = useAppStore.getState().tabs.find((t) => t.id === targetTabId)
     const trimmedSql = (tab?.sql ?? '').trimEnd()
     const nextSql = trimmedSql ? `${trimmedSql}\n\n${sql}` : sql
@@ -734,7 +734,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
           })
         })()}
 
-        {/* Saved Queries section */}
+        {/* SQL Templates section */}
         <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8 }}>
           <div
             className="connection-item"

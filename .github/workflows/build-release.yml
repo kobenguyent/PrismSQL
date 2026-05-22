@@ -1,14 +1,46 @@
 name: Build Release
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
 
 permissions:
   contents: write
 
 jobs:
+  resolve-release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.resolve.outputs.tag_name }}
+    steps:
+      - name: Resolve released tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          latest_tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq '.tagName')"
+          latest_published_at="$(gh release view --repo "$GITHUB_REPOSITORY" --json publishedAt --jq '.publishedAt')"
+          run_created_at="${{ github.event.workflow_run.created_at }}"
+
+          if [ -z "$latest_tag" ] || [ "$latest_published_at" = "null" ]; then
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$(date -d "$latest_published_at" +%s)" -lt "$(date -d "$run_created_at" +%s)" ]; then
+            echo "No release published by triggering run; skipping build."
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "tag_name=$latest_tag" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: resolve-release
+    if: ${{ needs.resolve-release.outputs.tag_name != '' }}
     name: Build (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -20,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ needs.resolve-release.outputs.tag_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -47,7 +79,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           for f in dist/*.AppImage dist/*.deb; do
-            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "${f}" --clobber
+            [ -f "$f" ] && gh release upload "${{ needs.resolve-release.outputs.tag_name }}" "${f}" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +88,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           for f in dist/*.dmg dist/*.zip; do
-            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "${f}" --clobber
+            [ -f "$f" ] && gh release upload "${{ needs.resolve-release.outputs.tag_name }}" "${f}" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +98,7 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem dist\*.exe | ForEach-Object {
-            gh release upload "${{ github.event.release.tag_name }}" $_.FullName --clobber
+            gh release upload "${{ needs.resolve-release.outputs.tag_name }}" $_.FullName --clobber
           }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
