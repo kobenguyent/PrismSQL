@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/kobenguyent/PrismSQL/compare/v1.1.0...v1.2.0) (2026-05-22)
+
+
+### Bug Fixes
+
+* address code review — JSX data-tooltip ampersand, release workflow comment ([681ab84](https://github.com/kobenguyent/PrismSQL/commit/681ab84530b4621aa966906422b72a2ed79f8dc6))
+
+
+### Features
+
+* a11y theme fixes, flash screen, version injection, privacy info, docs ([e85ac51](https://github.com/kobenguyent/PrismSQL/commit/e85ac514df1ce0e96009a2cae3e9710b0357527d))
+
 # [1.1.0](https://github.com/kobenguyent/PrismSQL/compare/v1.0.0...v1.1.0) (2026-05-22)
 
 
