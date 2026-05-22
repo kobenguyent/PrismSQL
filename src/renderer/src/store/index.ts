@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { enableMapSet } from 'immer'
 import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo } from '../types'
+
+// Required for Immer to handle Set and Map mutations inside producers
+enableMapSet()
 
 // Use window.db API (injected by preload)
 declare global {
