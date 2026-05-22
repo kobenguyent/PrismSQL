@@ -73,8 +73,6 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     connections,
     connectedIds,
     schema,
-    tabs,
-    activeTabId,
     savedQueries,
     connect,
     disconnect,
@@ -227,7 +225,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   }
 
   const applyTemplate = useCallback((sql: string) => {
-    let targetTabId = activeTabId
+    let targetTabId = useAppStore.getState().activeTabId
     if (!targetTabId) {
       newTab()
       targetTabId = useAppStore.getState().activeTabId
@@ -236,11 +234,12 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
       setStatus('Unable to open a query tab', 'error')
       return
     }
-    const existingSql = tabs.find((t) => t.id === targetTabId)?.sql ?? ''
-    const nextSql = existingSql.trim() ? `${existingSql.trimEnd()}\n\n${sql}` : sql
+    const existingSql = useAppStore.getState().tabs.find((t) => t.id === targetTabId)?.sql ?? ''
+    const trimmedSql = existingSql.trimEnd()
+    const nextSql = trimmedSql ? `${trimmedSql}\n\n${sql}` : sql
     updateTabSql(targetTabId, nextSql)
     setStatus('SQL template inserted', 'success')
-  }, [activeTabId, newTab, setStatus, tabs, updateTabSql])
+  }, [newTab, setStatus, updateTabSql])
 
   const cancelRename = useCallback(() => {
     setRenamingQueryId(null)
