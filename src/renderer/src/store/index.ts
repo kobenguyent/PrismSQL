@@ -164,8 +164,6 @@ export const useAppStore = create<AppState>()(
         })
         get().setStatus(`Connected to ${config.name}`, 'success')
         await get().loadDatabases(config.id)
-      } else {
-        get().setStatus(`Connection failed: ${result.error}`, 'error')
       }
       return result
     },
@@ -505,6 +503,16 @@ export const useAppStore = create<AppState>()(
         s.statusMessage = msg
         s.statusType = type
       })
+      // Auto-clear error and success messages so they don't persist forever
+      if (msg !== null && (type === 'error' || type === 'success')) {
+        setTimeout(() => {
+          set((s) => {
+            if (s.statusMessage === msg) {
+              s.statusMessage = null
+            }
+          })
+        }, 6000)
+      }
     }
   }))
 )
