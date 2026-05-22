@@ -149,7 +149,7 @@ export default function App(): JSX.Element {
         {!isSidebarCollapsed && (
           <>
             <div
-              style={{ width: sidebarWidth, minWidth: sidebarWidth }}
+              style={{ width: sidebarWidth, minWidth: sidebarWidth, flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
             >
               <Sidebar onNewConnection={() => handleOpenModal()} onEditConnection={handleOpenModal} />
             </div>

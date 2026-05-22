@@ -5,6 +5,9 @@ Antigravity, and other coding assistants.
 
 ## Contents
 
+- `graph.md`: **start here for any structural or cross-cutting task** — full
+  knowledge graph of every module, IPC channel, data flow, type dependency,
+  invariant, and file-to-concept lookup table.
 - `product-knowledge.md`: what PrismSQL is, who it serves, and its core flows.
 - `rules.md`: coding, testing, Git, and PR rules for agents.
 - `skills.md`: repeatable agent skills and workflows for this repo.
