@@ -161,6 +161,24 @@
   color: var(--text-primary);
 }
 
+/* ── Light Theme: CodeMirror token a11y fixes ───────────────── */
+/* Ensures SQL variable names and other tokens have legible contrast
+   on the light background instead of inheriting near-white colors. */
+.theme-light .cm-editor .cm-variableName            { color: #6d28d9 !important; }
+.theme-light .cm-editor .cm-variableName.cm-special { color: #b45309 !important; }
+.theme-light .cm-editor .cm-typeName                { color: #0369a1 !important; }
+.theme-light .cm-editor .cm-keyword                 { color: #1e40af !important; font-weight: 600; }
+.theme-light .cm-editor .cm-string                  { color: #15803d !important; }
+.theme-light .cm-editor .cm-string2                 { color: #166534 !important; }
+.theme-light .cm-editor .cm-number                  { color: #1d4ed8 !important; }
+.theme-light .cm-editor .cm-comment                 { color: #6b7280 !important; font-style: italic; }
+.theme-light .cm-editor .cm-operator                { color: #374151 !important; }
+.theme-light .cm-editor .cm-punctuation             { color: #374151 !important; }
+.theme-light .cm-editor .cm-atom                    { color: #7c3aed !important; }
+.theme-light .cm-editor .cm-def                     { color: #0f172a !important; }
+.theme-light .cm-editor .cm-property                { color: #0369a1 !important; }
+.theme-light .cm-editor .cm-builtin                 { color: #1e40af !important; }
+
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -493,19 +511,20 @@ html, body, #root {
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px;
+  gap: 5px;
+  padding: 0 10px;
   cursor: pointer;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: background var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
   position: relative;
-  min-width: 120px;
-  max-width: 200px;
+  min-width: 100px;
+  max-width: 180px;
   margin-top: 6px;
   border: 1px solid transparent;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
+  overflow: hidden;
 }
 .tab:hover { background: var(--glass-bg-light); color: var(--text-primary); }
 .tab.active {
@@ -513,12 +532,24 @@ html, body, #root {
   border-color: var(--glass-border);
   border-bottom-color: transparent;
   color: var(--text-primary);
+  font-weight: 600;
+}
+.tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 .tab-name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 .tab-close {
   display: inline-flex;

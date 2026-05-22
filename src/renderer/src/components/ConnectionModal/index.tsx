@@ -147,6 +147,18 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             />
           </div>
 
+          {/* Category */}
+          <div className="form-group">
+            <label className="form-label">Category (optional)</label>
+            <input
+              className="form-input"
+              type="text"
+              value={config.category ?? ''}
+              onChange={(e) => update('category', e.target.value || undefined)}
+              placeholder="e.g. Production, Staging, Local…"
+            />
+          </div>
+
           {isSQLite ? (
             /* SQLite: file path */
             <div className="form-group">

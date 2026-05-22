@@ -16,6 +16,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
   const isLightTheme = useIsLightTheme()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
+  const [saveCategory, setSaveCategory] = useState('')
 
   const handleRunQuery = useCallback(() => {
     if (!tab.isRunning) {
@@ -65,9 +66,10 @@ export function QueryEditor({ tab }: Props): JSX.Element {
 
   const handleSave = async () => {
     if (!saveName.trim()) return
-    await saveCurrentQuery(tab.id, saveName.trim())
+    await saveCurrentQuery(tab.id, saveName.trim(), saveCategory.trim() || undefined)
     setShowSaveModal(false)
     setSaveName('')
+    setSaveCategory('')
   }
 
   return (
@@ -104,7 +106,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         {/* Save button */}
         <button
           className="icon-btn"
-          onClick={() => { setSaveName(tab.title || ''); setShowSaveModal(true) }}
+          onClick={() => { setSaveName(tab.title || ''); setSaveCategory(''); setShowSaveModal(true) }}
           disabled={!tab.sql.trim()}
           data-tooltip="Save query"
           style={{ flexShrink: 0 }}
@@ -162,6 +164,16 @@ export function QueryEditor({ tab }: Props): JSX.Element {
                   placeholder="My query…"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category (optional)</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={saveCategory}
+                  onChange={(e) => setSaveCategory(e.target.value)}
+                  placeholder="e.g. Analytics, Reporting…"
                 />
               </div>
             </div>

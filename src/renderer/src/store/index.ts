@@ -99,9 +99,10 @@ interface AppState {
 
   // Saved query actions
   loadSavedQueries(): Promise<void>
-  saveCurrentQuery(tabId: string, name: string): Promise<void>
+  saveCurrentQuery(tabId: string, name: string, category?: string): Promise<void>
   deleteSavedQuery(id: string): Promise<void>
   openSavedQuery(query: SavedQuery): void
+  updateSavedQuery(query: SavedQuery): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -265,6 +266,7 @@ export const useAppStore = create<AppState>()(
       const tab: QueryTab = {
         id,
         title: 'Query',
+        tabType: 'query',
         connectionId: connectionId || get().tabs[get().tabs.length - 1]?.connectionId || null,
         sql: '',
         result: null,
@@ -375,6 +377,7 @@ export const useAppStore = create<AppState>()(
       const tab: QueryTab = {
         id,
         title: tableName,
+        tabType: 'table',
         connectionId,
         sql,
         result: null,
@@ -410,6 +413,7 @@ export const useAppStore = create<AppState>()(
       const tab: QueryTab = {
         id,
         title: proc.name,
+        tabType: 'procedure',
         connectionId,
         sql,
         result: null,
@@ -428,14 +432,15 @@ export const useAppStore = create<AppState>()(
       })
     },
 
-    saveCurrentQuery: async (tabId, name) => {
+    saveCurrentQuery: async (tabId, name, category) => {
       const tab = get().tabs.find((t) => t.id === tabId)
       if (!tab || !tab.sql.trim()) return
       const query: SavedQuery = {
         id: genId(),
         name,
         sql: tab.sql,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        ...(category ? { category } : {})
       }
       await window.db.saveQuery(query)
       await get().loadSavedQueries()
@@ -449,6 +454,14 @@ export const useAppStore = create<AppState>()(
       })
     },
 
+    updateSavedQuery: async (query) => {
+      await window.db.saveQuery(query)
+      set((s) => {
+        const idx = s.savedQueries.findIndex((q) => q.id === query.id)
+        if (idx >= 0) s.savedQueries[idx] = query
+      })
+    },
+
     openSavedQuery: (query) => {
       const id = genId()
       const { tabs, activeTabId } = get()
@@ -456,6 +469,7 @@ export const useAppStore = create<AppState>()(
       const tab: QueryTab = {
         id,
         title: query.name,
+        tabType: 'query',
         connectionId: activeTab?.connectionId || null,
         sql: query.sql,
         result: null,

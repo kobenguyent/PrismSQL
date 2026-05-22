@@ -10,6 +10,7 @@ export interface SavedQueryRecord {
   name: string
   sql: string
   createdAt: number
+  category?: string
 }
 
 const dbAPI = {
