@@ -1,6 +1,6 @@
 import mssql from 'mssql'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 export class MSSQLAdapter implements DatabaseAdapter {
   private pool: mssql.ConnectionPool | null = null
@@ -104,6 +104,20 @@ export class MSSQLAdapter implements DatabaseAdapter {
       nullable: r['IS_NULLABLE'] === 'YES',
       primaryKey: r['IS_PRIMARY_KEY'] === 1,
       defaultValue: r['COLUMN_DEFAULT'] as string | undefined
+    }))
+  }
+
+  async getProcedures(_database?: string): Promise<ProcedureInfo[]> {
+    // MSSQL routines are scoped to the connected database; the database param is not needed
+    const result = await this.query(
+      `SELECT SPECIFIC_NAME, ROUTINE_SCHEMA, ROUTINE_TYPE
+       FROM INFORMATION_SCHEMA.ROUTINES
+       ORDER BY ROUTINE_SCHEMA, SPECIFIC_NAME`
+    )
+    return result.rows.map((r) => ({
+      name: r['SPECIFIC_NAME'] as string,
+      schema: r['ROUTINE_SCHEMA'] as string,
+      type: (r['ROUTINE_TYPE'] as string) === 'FUNCTION' ? 'function' : 'procedure'
     }))
   }
 

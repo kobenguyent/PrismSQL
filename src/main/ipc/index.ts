@@ -79,4 +79,12 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
       return manager.getColumns(connectionId, table, database)
     }
   )
+
+  // Get procedures / functions list
+  ipcMain.handle(
+    'db:get-procedures',
+    async (_event: IpcMainInvokeEvent, connectionId: string, database?: string) => {
+      return manager.getProcedures(connectionId, database)
+    }
+  )
 }

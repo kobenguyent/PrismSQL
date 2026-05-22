@@ -1,7 +1,19 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
-import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo } from '../types'
+import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType } from '../types'
+
+function quoteIdentifier(name: string, dbType: DatabaseType): string {
+  switch (dbType) {
+    case 'mssql':
+      return `[${name}]`
+    case 'mysql':
+    case 'mariadb':
+      return `\`${name}\``
+    default:
+      return `"${name}"`
+  }
+}
 
 // Required for Immer to handle Set and Map mutations inside producers
 enableMapSet()
@@ -21,6 +33,7 @@ declare global {
       getDatabases(connectionId: string): Promise<string[]>
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
+      getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
     }
   }
 }
@@ -33,8 +46,10 @@ interface SchemaNode {
   databases: string[]
   tables: Record<string, TableInfo[]>
   columns: Record<string, ColumnInfo[]>
+  procedures: Record<string, ProcedureInfo[]>
   loadingDatabases: boolean
   loadingTables: Record<string, boolean>
+  loadingProcedures: Record<string, boolean>
 }
 
 interface AppState {
@@ -62,6 +77,7 @@ interface AppState {
   loadDatabases(connectionId: string): Promise<void>
   loadTables(connectionId: string, database: string): Promise<void>
   loadColumns(connectionId: string, table: string, database?: string): Promise<void>
+  loadProcedures(connectionId: string, database: string): Promise<void>
 
   // Tab actions
   newTab(connectionId?: string | null): void
@@ -71,6 +87,8 @@ interface AppState {
   updateTabConnection(tabId: string, connectionId: string): void
   runQuery(tabId: string): Promise<void>
   insertSnippet(tabId: string, snippet: string): void
+  openTableInTab(connectionId: string, tableName: string, database: string, schema?: string): Promise<void>
+  openProcedureInTab(connectionId: string, proc: ProcedureInfo): void
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -89,7 +107,6 @@ export const useAppStore = create<AppState>()(
     isSidebarCollapsed: false,
     statusMessage: null,
     statusType: 'info',
-
     loadConnections: async () => {
       const connections = await window.db.getConnections()
       set((s) => {
@@ -121,8 +138,10 @@ export const useAppStore = create<AppState>()(
               databases: [],
               tables: {},
               columns: {},
+              procedures: {},
               loadingDatabases: false,
-              loadingTables: {}
+              loadingTables: {},
+              loadingProcedures: {}
             }
           }
         })
@@ -200,6 +219,29 @@ export const useAppStore = create<AppState>()(
           }
         })
       } catch {}
+    },
+
+    loadProcedures: async (connectionId, database) => {
+      set((s) => {
+        if (s.schema[connectionId]) {
+          s.schema[connectionId].loadingProcedures[database] = true
+        }
+      })
+      try {
+        const procedures = await window.db.getProcedures(connectionId, database)
+        set((s) => {
+          if (s.schema[connectionId]) {
+            s.schema[connectionId].procedures[database] = procedures
+            s.schema[connectionId].loadingProcedures[database] = false
+          }
+        })
+      } catch {
+        set((s) => {
+          if (s.schema[connectionId]) {
+            s.schema[connectionId].loadingProcedures[database] = false
+          }
+        })
+      }
     },
 
     newTab: (connectionId = null) => {
@@ -303,6 +345,65 @@ export const useAppStore = create<AppState>()(
       })
     },
 
+    openTableInTab: async (connectionId, tableName, database, schema) => {
+      const conn = get().connections.find((c) => c.id === connectionId)
+      const dbType: DatabaseType = conn?.type ?? 'postgres'
+      const q = (n: string) => quoteIdentifier(n, dbType)
+      const qualifiedName = schema ? `${q(schema)}.${q(tableName)}` : q(tableName)
+      const sql =
+        dbType === 'mssql'
+          ? `SELECT TOP 100 * FROM ${qualifiedName};`
+          : `SELECT * FROM ${qualifiedName} LIMIT 100;`
+      const id = genId()
+      const tab: QueryTab = {
+        id,
+        title: tableName,
+        connectionId,
+        sql,
+        result: null,
+        isRunning: false,
+        isSaved: false
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+      await get().runQuery(id)
+    },
+
+    openProcedureInTab: (connectionId, proc) => {
+      const conn = get().connections.find((c) => c.id === connectionId)
+      const dbType: DatabaseType = conn?.type ?? 'postgres'
+      const q = (n: string) => quoteIdentifier(n, dbType)
+      const qualifiedName = proc.schema ? `${q(proc.schema)}.${q(proc.name)}` : q(proc.name)
+
+      let sql: string
+      if (proc.type === 'function') {
+        // Stub — add parameters as needed before running
+        sql = `-- Function: ${qualifiedName}\nSELECT ${qualifiedName}();`
+      } else if (dbType === 'mssql') {
+        // Stub — add parameters as needed before running
+        sql = `-- Procedure: ${qualifiedName}\nEXEC ${qualifiedName};`
+      } else {
+        // Stub — add parameters as needed before running
+        sql = `-- Procedure: ${qualifiedName}\nCALL ${qualifiedName}();`
+      }
+
+      const id = genId()
+      const tab: QueryTab = {
+        id,
+        title: proc.name,
+        connectionId,
+        sql,
+        result: null,
+        isRunning: false,
+        isSaved: false
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+    },
     setSidebarWidth: (w) => {
       set((s) => {
         s.sidebarWidth = w

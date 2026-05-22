@@ -1,6 +1,6 @@
 import mysql, { Connection, RowDataPacket, FieldPacket } from 'mysql2/promise'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 export class MySQLAdapter implements DatabaseAdapter {
   private connection: Connection | null = null
@@ -97,6 +97,23 @@ export class MySQLAdapter implements DatabaseAdapter {
       primaryKey: r['COLUMN_KEY'] === 'PRI',
       defaultValue: r['COLUMN_DEFAULT'] as string | undefined,
       comment: r['COLUMN_COMMENT'] as string | undefined
+    }))
+  }
+
+  async getProcedures(database?: string): Promise<ProcedureInfo[]> {
+    const db = database || this.config?.database
+    if (!db) return []
+    const result = await this.query(
+      `SELECT ROUTINE_NAME, ROUTINE_SCHEMA, ROUTINE_TYPE
+       FROM information_schema.ROUTINES
+       WHERE ROUTINE_SCHEMA = ?
+       ORDER BY ROUTINE_NAME`,
+      [db]
+    )
+    return result.rows.map((r) => ({
+      name: r['ROUTINE_NAME'] as string,
+      schema: r['ROUTINE_SCHEMA'] as string,
+      type: (r['ROUTINE_TYPE'] as string) === 'FUNCTION' ? 'function' : 'procedure'
     }))
   }
 

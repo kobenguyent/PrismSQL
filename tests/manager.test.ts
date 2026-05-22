@@ -17,6 +17,7 @@ vi.mock('../src/main/db/adapters/mysql', () => ({
     async getDatabases() { return ['testdb'] }
     async getTables() { return [{ name: 'users', type: 'table' }] }
     async getColumns() { return [] }
+    async getProcedures() { return [{ name: 'sp_test', schema: 'testdb', type: 'procedure' }] }
     async ping() { return true }
   }
 }))
@@ -29,6 +30,7 @@ vi.mock('../src/main/db/adapters/postgres', () => ({
     async getDatabases() { return ['postgres'] }
     async getTables() { return [] }
     async getColumns() { return [] }
+    async getProcedures() { return [{ name: 'my_func', schema: 'public', type: 'function', specificName: 'my_func_12345' }] }
     async ping() { return true }
   }
 }))
@@ -41,6 +43,7 @@ vi.mock('../src/main/db/adapters/sqlite', () => ({
     async getDatabases() { return ['main'] }
     async getTables() { return [] }
     async getColumns() { return [] }
+    async getProcedures() { return [] }
     async ping() { return true }
   }
 }))
@@ -53,6 +56,7 @@ vi.mock('../src/main/db/adapters/mssql', () => ({
     async getDatabases() { return ['master'] }
     async getTables() { return [] }
     async getColumns() { return [] }
+    async getProcedures() { return [] }
     async ping() { return true }
   }
 }))
@@ -163,5 +167,52 @@ describe('ConnectionManager', () => {
     const result = await manager.connect(config)
     expect(result.success).toBe(true)
     expect(manager.isConnected('conn-5')).toBe(true)
+  })
+
+  it('getProcedures returns list for connected ID', async () => {
+    const config = {
+      id: 'conn-6',
+      name: 'Test MySQL Procedures',
+      type: 'mysql' as const,
+      host: 'localhost'
+    }
+    await manager.connect(config)
+    const procs = await manager.getProcedures('conn-6')
+    expect(Array.isArray(procs)).toBe(true)
+    expect(procs.length).toBeGreaterThan(0)
+    expect(procs[0]).toHaveProperty('name')
+    expect(procs[0]).toHaveProperty('type')
+  })
+
+  it('getProcedures throws when not connected', async () => {
+    await expect(manager.getProcedures('no-such-id')).rejects.toThrow('Not connected')
+  })
+
+  it('getProcedures returns empty array for SQLite', async () => {
+    const config = {
+      id: 'conn-7',
+      name: 'Test SQLite Procedures',
+      type: 'sqlite' as const,
+      filename: ':memory:'
+    }
+    await manager.connect(config)
+    const procs = await manager.getProcedures('conn-7')
+    expect(Array.isArray(procs)).toBe(true)
+    expect(procs).toHaveLength(0)
+  })
+
+  it('getProcedures returns specificName for Postgres routines', async () => {
+    const config = {
+      id: 'conn-8',
+      name: 'Test PG Procedures',
+      type: 'postgres' as const,
+      host: 'localhost'
+    }
+    await manager.connect(config)
+    const procs = await manager.getProcedures('conn-8')
+    expect(Array.isArray(procs)).toBe(true)
+    expect(procs.length).toBeGreaterThan(0)
+    expect(procs[0]).toHaveProperty('specificName')
+    expect(procs[0].specificName).toBe('my_func_12345')
   })
 })
