@@ -34,8 +34,11 @@
 
 - Branch naming: `fix/<short-description>`, `feature/<short-description>`,
   `docs/<short-description>`, or `chore/<short-description>`.
-- Commit message style: terse imperative or noun phrase, for example
-  `fix failed connection persistence`.
-- PR title style: same scope as the branch, for example
-  `fix failed connection persistence`.
+- Commit message style: Conventional Commits format, for example
+  `fix: prevent failed connection from persisting to sidebar`.
+- PR title style: must be a valid Conventional Commit (`type: description`
+  or `type(scope): description`), for example
+  `fix: failed connection persistence`. The CI workflow enforces this
+  automatically. Valid types: `fix`, `feat`, `ci`, `chore`, `docs`,
+  `refactor`, `perf`, `test`.
 - Keep dependency upgrades separate from product bug fixes.
