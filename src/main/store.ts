@@ -18,6 +18,8 @@ export interface AppSettings {
 const DEFAULT_SETTINGS: AppSettings = {
   queryLimit: 100
 }
+const MIN_QUERY_LIMIT = 1
+const MAX_QUERY_LIMIT = 10000
 
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
@@ -101,9 +103,23 @@ export function loadSettings(): AppSettings {
     const p = getSettingsPath()
     if (!fs.existsSync(p)) return { ...DEFAULT_SETTINGS }
     const data = fs.readFileSync(p, 'utf-8')
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(data) }
+    return sanitizeSettings(JSON.parse(data) as unknown)
   } catch {
     return { ...DEFAULT_SETTINGS }
+  }
+}
+
+function sanitizeQueryLimit(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return DEFAULT_SETTINGS.queryLimit
+  return Math.max(MIN_QUERY_LIMIT, Math.min(MAX_QUERY_LIMIT, Math.floor(n)))
+}
+
+export function sanitizeSettings(settings: unknown): AppSettings {
+  if (!settings || typeof settings !== 'object') return { ...DEFAULT_SETTINGS }
+  const source = settings as Partial<AppSettings>
+  return {
+    queryLimit: sanitizeQueryLimit(source.queryLimit)
   }
 }
 
@@ -111,7 +127,7 @@ export function saveSettings(settings: AppSettings): void {
   try {
     const p = getSettingsPath()
     fs.mkdirSync(path.dirname(p), { recursive: true })
-    fs.writeFileSync(p, JSON.stringify(settings, null, 2), 'utf-8')
+    fs.writeFileSync(p, JSON.stringify(sanitizeSettings(settings), null, 2), 'utf-8')
   } catch (err) {
     console.error('Failed to save settings:', err)
   }

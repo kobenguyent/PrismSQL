@@ -1,6 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { ConnectionManager } from '../db/manager'
-import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries, loadSettings, saveSettings } from '../store'
+import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries, loadSettings, saveSettings, sanitizeSettings } from '../store'
 import { ConnectionConfig } from '../db/types'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
@@ -117,7 +117,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   })
 
   ipcMain.handle('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
-    saveSettings(settings)
+    saveSettings(sanitizeSettings(settings))
     return { success: true }
   })
 

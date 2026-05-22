@@ -13,6 +13,14 @@ import type { ConnectionConfig } from './types'
 
 // Read version from package.json (injected by Vite at build time)
 const APP_VERSION = __APP_VERSION__
+const MAX_STATUS_VERSION_LENGTH = 28
+
+function formatServerVersion(version: string): string {
+  const numeric = version.match(/\d+(?:\.\d+)*/)
+  if (numeric) return `v${numeric[0]}`
+  if (version.length <= MAX_STATUS_VERSION_LENGTH) return version
+  return `${version.slice(0, MAX_STATUS_VERSION_LENGTH)}…`
+}
 
 export default function App(): JSX.Element {
   const {
@@ -268,6 +276,7 @@ export default function App(): JSX.Element {
             : null
           if (!conn || !connectedIds.has(conn.id)) return null
           const version = connectionVersions[conn.id]
+          const displayVersion = version ? formatServerVersion(version) : null
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 'var(--font-size-xs)' }}>
               <span
@@ -283,9 +292,9 @@ export default function App(): JSX.Element {
                   · {conn.database}
                 </span>
               )}
-              {version && version !== 'Unknown' && (
+              {displayVersion && version !== 'Unknown' && (
                 <span style={{ color: 'var(--text-tertiary)' }}>
-                  · v{version.split(' ')[0]}
+                  · {displayVersion}
                 </span>
               )}
             </span>

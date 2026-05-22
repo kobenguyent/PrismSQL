@@ -191,7 +191,9 @@ export const useAppStore = create<AppState>()(
         // Fetch server version in background
         window.db.getServerVersion(config.id).then(({ version }) => {
           set((s) => {
-            s.connectionVersions[config.id] = version
+            if (s.connectedIds.has(config.id)) {
+              s.connectionVersions[config.id] = version
+            }
           })
         }).catch(() => {/* ignore */})
       }

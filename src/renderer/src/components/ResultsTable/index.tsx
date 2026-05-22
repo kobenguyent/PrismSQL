@@ -77,10 +77,14 @@ function CellViewerModal({
 }): JSX.Element {
   const str = formatCell(value)
   const [copied, setCopied] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
   const copy = () => {
     navigator.clipboard.writeText(str).then(() => {
       setCopied(true)
+      setCopyError(null)
       setTimeout(() => setCopied(false), 1500)
+    }).catch((err: Error) => {
+      setCopyError(err.message || 'Unable to copy to clipboard')
     })
   }
   return (
@@ -114,6 +118,9 @@ function CellViewerModal({
           <button className="btn btn-secondary" onClick={copy}>
             {copied ? '✓ Copied' : 'Copy'}
           </button>
+          {copyError && (
+            <span style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)' }}>{copyError}</span>
+          )}
           <button className="btn btn-primary" onClick={onClose}>Close</button>
         </div>
       </div>
@@ -126,12 +133,14 @@ function EditConfirmModal({
   sql,
   onConfirm,
   onCancel,
-  error
+  error,
+  isUpdating
 }: {
   sql: string
   onConfirm: () => void
   onCancel: () => void
   error: string | null
+  isUpdating: boolean
 }): JSX.Element {
   return (
     <div className="modal-overlay" onClick={onCancel}>
@@ -172,7 +181,9 @@ function EditConfirmModal({
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm}>Execute Update</button>
+          <button className="btn btn-danger" onClick={onConfirm} disabled={isUpdating}>
+            {isUpdating ? 'Executing…' : 'Execute Update'}
+          </button>
         </div>
       </div>
     </div>
@@ -211,10 +222,11 @@ export function ResultsTable({
   // Load PK columns when in table mode
   useEffect(() => {
     if (!canEdit || !connectionId || !tableName) return
-    window.db.getColumns(connectionId, tableName, database).then((cols) => {
+    const qualifiedTableName = schema ? `${schema}.${tableName}` : tableName
+    window.db.getColumns(connectionId, qualifiedTableName, database).then((cols) => {
       setPkColumns(cols.filter((c) => c.primaryKey))
     }).catch(() => setPkColumns([]))
-  }, [canEdit, connectionId, tableName, database])
+  }, [canEdit, connectionId, tableName, database, schema])
 
   // Focus edit input when editing starts
   useEffect(() => {
@@ -225,19 +237,22 @@ export function ResultsTable({
   }, [editingCell])
 
   function quoteId(name: string): string {
-    if (!conn) return `"${name}"`
+    if (!conn) return `"${name.replace(/"/g, '""')}"`
     switch (conn.type) {
-      case 'mssql': return `[${name}]`
+      case 'mssql': return `[${name.replace(/]/g, ']]')}]`
       case 'mysql':
-      case 'mariadb': return `\`${name}\``
-      default: return `"${name}"`
+      case 'mariadb': return `\`${name.replace(/`/g, '``')}\``
+      default: return `"${name.replace(/"/g, '""')}"`
     }
   }
 
   function quoteValue(val: unknown): string {
     if (val === null || val === undefined) return 'NULL'
     if (typeof val === 'number' || typeof val === 'bigint') return String(val)
-    if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE'
+    if (typeof val === 'boolean') {
+      if (conn?.type === 'mssql') return val ? '1' : '0'
+      return val ? 'TRUE' : 'FALSE'
+    }
     // Escape single quotes and backslashes to prevent SQL injection
     const str = String(val).replace(/\\/g, '\\\\').replace(/'/g, "''")
     return `'${str}'`
@@ -285,7 +300,7 @@ export function ResultsTable({
   }
 
   async function executeUpdate() {
-    if (!pendingUpdate || !connectionId) return
+    if (!pendingUpdate || !connectionId || isUpdating) return
     setIsUpdating(true)
     setUpdateError(null)
     try {
@@ -339,7 +354,7 @@ export function ResultsTable({
           )
         }
       })),
-    [result.columns, editingCell, editValue, canEdit]
+    [result.columns, editingCell, editValue, canEdit, pkColumns, schema, database, tableName, conn?.type]
   )
 
   const table = useReactTable({
@@ -558,10 +573,10 @@ export function ResultsTable({
           sql={pendingUpdate.sql}
           onConfirm={executeUpdate}
           onCancel={() => { setPendingUpdate(null); setUpdateError(null) }}
-          error={isUpdating ? 'Executing…' : updateError}
+          error={updateError}
+          isUpdating={isUpdating}
         />
       )}
     </div>
   )
 }
-
