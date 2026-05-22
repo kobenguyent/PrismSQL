@@ -10,17 +10,10 @@ import { ConnectionModal } from './components/ConnectionModal'
 import { SettingsModal } from './components/SettingsModal'
 import { QueryHistoryPanel } from './components/QueryHistory'
 import type { ConnectionConfig } from './types'
+import { formatServerVersion } from './utils/version'
 
 // Read version from package.json (injected by Vite at build time)
 const APP_VERSION = __APP_VERSION__
-const MAX_STATUS_VERSION_LENGTH = 28
-
-function formatServerVersion(version: string): string {
-  const numeric = version.match(/\d+(?:\.\d+)*/)
-  if (numeric) return `v${numeric[0]}`
-  if (version.length <= MAX_STATUS_VERSION_LENGTH) return version
-  return `${version.slice(0, MAX_STATUS_VERSION_LENGTH)}…`
-}
 
 export default function App(): JSX.Element {
   const {

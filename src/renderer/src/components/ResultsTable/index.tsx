@@ -9,7 +9,7 @@ import {
   type ColumnFiltersState
 } from '@tanstack/react-table'
 import { ArrowUp, ArrowDown, Download, Filter, Maximize2, RefreshCw, Edit2 } from 'lucide-react'
-import type { QueryResult, ColumnInfo } from '../../types'
+import type { QueryResult, ColumnInfo, DatabaseType } from '../../types'
 import { useAppStore } from '../../store'
 
 interface Props {
@@ -34,6 +34,47 @@ function formatCell(value: unknown): string {
   if (value instanceof Date) return value.toISOString()
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
+}
+
+export function quoteIdentifierForDb(name: string, dbType?: DatabaseType): string {
+  switch (dbType) {
+    case 'mssql': return `[${name.replace(/]/g, ']]')}]`
+    case 'mysql':
+    case 'mariadb': return `\`${name.replace(/`/g, '``')}\``
+    default: return `"${name.replace(/"/g, '""')}"`
+  }
+}
+
+export function quoteValueForDb(val: unknown, dbType?: DatabaseType): string {
+  if (val === null || val === undefined) return 'NULL'
+  if (typeof val === 'number' || typeof val === 'bigint') return String(val)
+  if (typeof val === 'boolean') {
+    if (dbType === 'mssql') return val ? '1' : '0'
+    return val ? 'TRUE' : 'FALSE'
+  }
+  // Escape single quotes and backslashes to prevent SQL injection
+  const str = String(val).replace(/\\/g, '\\\\').replace(/'/g, "''")
+  return `'${str}'`
+}
+
+export function buildInlineUpdateSql(
+  row: Record<string, unknown>,
+  col: string,
+  newVal: string,
+  pkColumns: ColumnInfo[],
+  tableName: string,
+  database?: string,
+  schema?: string,
+  dbType?: DatabaseType
+): string | null {
+  if (pkColumns.length === 0) return null
+  const q = (name: string) => quoteIdentifierForDb(name, dbType)
+  const v = (value: unknown) => quoteValueForDb(value, dbType)
+  const qualifier = schema ?? database
+  const tableRef = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
+  const setCl = `${q(col)} = ${v(newVal)}`
+  const whereCl = pkColumns.map((pk) => `${q(pk.name)} = ${v(row[pk.name])}`).join(' AND ')
+  return `UPDATE ${tableRef}\nSET ${setCl}\nWHERE ${whereCl};`
 }
 
 const TRUNCATE_LEN = 100
@@ -236,39 +277,21 @@ export function ResultsTable({
     }
   }, [editingCell])
 
-  function quoteId(name: string): string {
-    if (!conn) return `"${name.replace(/"/g, '""')}"`
-    switch (conn.type) {
-      case 'mssql': return `[${name.replace(/]/g, ']]')}]`
-      case 'mysql':
-      case 'mariadb': return `\`${name.replace(/`/g, '``')}\``
-      default: return `"${name.replace(/"/g, '""')}"`
-    }
-  }
-
-  function quoteValue(val: unknown): string {
-    if (val === null || val === undefined) return 'NULL'
-    if (typeof val === 'number' || typeof val === 'bigint') return String(val)
-    if (typeof val === 'boolean') {
-      if (conn?.type === 'mssql') return val ? '1' : '0'
-      return val ? 'TRUE' : 'FALSE'
-    }
-    // Escape single quotes and backslashes to prevent SQL injection
-    const str = String(val).replace(/\\/g, '\\\\').replace(/'/g, "''")
-    return `'${str}'`
-  }
-
   function buildUpdateSql(
     row: Record<string, unknown>,
     col: string,
     newVal: string
   ): string | null {
-    if (pkColumns.length === 0) return null
-    const qualifier = schema ?? database
-    const tableRef = qualifier ? `${quoteId(qualifier)}.${quoteId(tableName!)}` : quoteId(tableName!)
-    const setCl = `${quoteId(col)} = ${quoteValue(newVal)}`
-    const whereCl = pkColumns.map((pk) => `${quoteId(pk.name)} = ${quoteValue(row[pk.name])}`).join(' AND ')
-    return `UPDATE ${tableRef}\nSET ${setCl}\nWHERE ${whereCl};`
+    return buildInlineUpdateSql(
+      row,
+      col,
+      newVal,
+      pkColumns,
+      tableName!,
+      database,
+      schema,
+      conn?.type
+    )
   }
 
   function handleCellDoubleClick(rowIdx: number, col: string, value: unknown) {
