@@ -6,6 +6,17 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 ![Electron](https://img.shields.io/badge/electron-29-60a5fa?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-4ade80?style=flat-square)
 
+## 📸 Screenshots
+
+### Main window — query editor & results
+![Main window](docs/screenshots/main-window.svg)
+
+### Schema browser — collapsible tree with column types
+![Schema browser](docs/screenshots/schema-browser.svg)
+
+### Connection modal — add, test and save connections
+![Connection modal](docs/screenshots/connection-modal.svg)
+
 ## ✨ Features
 
 - **Apple Glassmorphism UI** — frosted-glass panels, backdrop blur, vibrancy (macOS), acrylic (Windows 11)
