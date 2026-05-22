@@ -40,6 +40,33 @@ const UNGROUPED_CATEGORY_KEY = ''
 
 const normalizeCategoryKey = (category?: string | null): string => category?.trim() || UNGROUPED_CATEGORY_KEY
 const isUngroupedCategory = (categoryKey: string): boolean => categoryKey === UNGROUPED_CATEGORY_KEY
+const SQL_TEMPLATES = [
+  {
+    id: 'select-all',
+    name: 'Select all rows',
+    sql: 'SELECT *\nFROM your_table\nLIMIT 100;'
+  },
+  {
+    id: 'insert-row',
+    name: 'Insert row',
+    sql: 'INSERT INTO your_table (column1, column2)\nVALUES (value1, value2);'
+  },
+  {
+    id: 'update-row',
+    name: 'Update rows',
+    sql: 'UPDATE your_table\nSET column1 = value1\nWHERE condition;'
+  },
+  {
+    id: 'delete-row',
+    name: 'Delete rows',
+    sql: 'DELETE FROM your_table\nWHERE condition;'
+  },
+  {
+    id: 'count-rows',
+    name: 'Count rows',
+    sql: 'SELECT COUNT(*) AS total_rows\nFROM your_table;'
+  }
+]
 
 export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
   const {
@@ -57,9 +84,13 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     openProcedureInTab,
     deleteSavedQuery,
     openSavedQuery,
-    updateSavedQuery
+    updateSavedQuery,
+    newTab,
+    updateTabSql,
+    setStatus
   } = useAppStore()
 
+  const [templatesExpanded, setTemplatesExpanded] = useState(true)
   const [savedQueriesExpanded, setSavedQueriesExpanded] = useState(true)
   const [renamingQueryId, setRenamingQueryId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -192,6 +223,20 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     e.preventDefault()
     e.stopPropagation()
   }
+
+  const applyTemplate = useCallback((sql: string) => {
+    const state = useAppStore.getState()
+    const activeTab = state.tabs.find((t) => t.id === state.activeTabId)
+    const isQueryTab = activeTab?.tabType === 'query'
+    const targetTabId = isQueryTab
+      ? activeTab!.id
+      : newTab(activeTab?.connectionId ?? null)
+    const tab = useAppStore.getState().tabs.find((t) => t.id === targetTabId)
+    const trimmedSql = (tab?.sql ?? '').trimEnd()
+    const nextSql = trimmedSql ? `${trimmedSql}\n\n${sql}` : sql
+    updateTabSql(targetTabId, nextSql)
+    setStatus('SQL template inserted', 'success')
+  }, [newTab, setStatus, updateTabSql])
 
   const cancelRename = useCallback(() => {
     setRenamingQueryId(null)
@@ -690,7 +735,39 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
           })
         })()}
 
-        {/* Saved Queries section */}
+        {/* SQL Templates section */}
+        <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8 }}>
+          <div
+            className="connection-item"
+            onClick={() => setTemplatesExpanded((v) => !v)}
+            style={{ padding: '8px 14px' }}
+          >
+            {templatesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <Code2 size={13} style={{ color: 'var(--accent)' }} />
+            <span className="connection-name" style={{ fontWeight: 600 }}>SQL Templates</span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+              {SQL_TEMPLATES.length}
+            </span>
+          </div>
+          {templatesExpanded && (
+            <div>
+              {SQL_TEMPLATES.map((template) => (
+                <div
+                  key={template.id}
+                  className="tree-item tree-item-indent-1"
+                  title="Insert template into active tab"
+                  onClick={() => applyTemplate(template.sql)}
+                >
+                  <Code2 size={11} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {template.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8 }}>
           <div
             className="connection-item"

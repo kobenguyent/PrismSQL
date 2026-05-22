@@ -87,7 +87,7 @@ interface AppState {
   loadProcedures(connectionId: string, database: string): Promise<void>
 
   // Tab actions
-  newTab(connectionId?: string | null): void
+  newTab(connectionId?: string | null): string
   closeTab(tabId: string): void
   setActiveTab(tabId: string): void
   updateTabSql(tabId: string, sql: string): void
@@ -275,6 +275,7 @@ export const useAppStore = create<AppState>()(
         s.tabs.push(tab)
         s.activeTabId = id
       })
+      return id
     },
 
     closeTab: (tabId) => {
