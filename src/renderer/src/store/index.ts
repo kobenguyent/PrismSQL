@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
-import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery } from '../types'
+import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery, QueryHistoryEntry, AppSettings } from '../types'
 
 function quoteIdentifier(name: string, dbType: DatabaseType): string {
   switch (dbType) {
@@ -37,6 +37,9 @@ declare global {
       getSavedQueries(): Promise<SavedQuery[]>
       saveQuery(query: SavedQuery): Promise<{ success: boolean }>
       deleteQuery(id: string): Promise<{ success: boolean }>
+      getServerVersion(connectionId: string): Promise<{ version: string }>
+      getSettings(): Promise<AppSettings>
+      saveSettings(settings: AppSettings): Promise<{ success: boolean }>
     }
   }
 }
@@ -60,6 +63,7 @@ interface AppState {
   connections: ConnectionConfig[]
   connectedIds: Set<string>
   schema: Record<string, SchemaNode>
+  connectionVersions: Record<string, string>
 
   // Tabs
   tabs: QueryTab[]
@@ -67,6 +71,12 @@ interface AppState {
 
   // Saved queries
   savedQueries: SavedQuery[]
+
+  // Query history (in-memory)
+  queryHistory: QueryHistoryEntry[]
+
+  // Settings
+  settings: AppSettings
 
   // UI state
   sidebarWidth: number
@@ -104,6 +114,15 @@ interface AppState {
   openSavedQuery(query: SavedQuery): void
   updateSavedQuery(query: SavedQuery): Promise<void>
 
+  // History actions
+  addToHistory(entry: QueryHistoryEntry): void
+  clearHistory(): void
+  openHistoryEntry(entry: QueryHistoryEntry): void
+
+  // Settings actions
+  loadSettings(): Promise<void>
+  updateSettings(s: Partial<AppSettings>): Promise<void>
+
   // UI actions
   setSidebarWidth(w: number): void
   setSidebarCollapsed(v: boolean): void
@@ -116,9 +135,12 @@ export const useAppStore = create<AppState>()(
     connections: [],
     connectedIds: new Set(),
     schema: {},
+    connectionVersions: {},
     tabs: [],
     activeTabId: null,
     savedQueries: [],
+    queryHistory: [],
+    settings: { queryLimit: 100 },
     sidebarWidth: 280,
     isSidebarCollapsed: false,
     theme: 'dark' as 'dark' | 'light' | 'system',
@@ -164,6 +186,12 @@ export const useAppStore = create<AppState>()(
         })
         get().setStatus(`Connected to ${config.name}`, 'success')
         await get().loadDatabases(config.id)
+        // Fetch server version in background
+        window.db.getServerVersion(config.id).then(({ version }) => {
+          set((s) => {
+            s.connectionVersions[config.id] = version
+          })
+        }).catch(() => {/* ignore */})
       }
       return result
     },
@@ -173,6 +201,7 @@ export const useAppStore = create<AppState>()(
       set((s) => {
         s.connectedIds.delete(id)
         delete s.schema[id]
+        delete s.connectionVersions[id]
       })
       const conn = get().connections.find((c) => c.id === id)
       get().setStatus(`Disconnected from ${conn?.name}`, 'info')
@@ -336,6 +365,17 @@ export const useAppStore = create<AppState>()(
             t.isRunning = false
           }
         })
+        const conn = get().connections.find((c) => c.id === tab.connectionId)
+        get().addToHistory({
+          id: genId(),
+          sql: tab.sql,
+          connectionId: tab.connectionId,
+          connectionName: conn?.name ?? 'Unknown',
+          timestamp: Date.now(),
+          duration: result.duration,
+          rowCount: result.rowCount,
+          error: result.error
+        })
         if (result.error) {
           get().setStatus(result.error, 'error')
         } else {
@@ -348,6 +388,17 @@ export const useAppStore = create<AppState>()(
         set((s) => {
           const t = s.tabs.find((t) => t.id === tabId)
           if (t) t.isRunning = false
+        })
+        const conn = get().connections.find((c) => c.id === tab.connectionId)
+        get().addToHistory({
+          id: genId(),
+          sql: tab.sql,
+          connectionId: tab.connectionId,
+          connectionName: conn?.name ?? 'Unknown',
+          timestamp: Date.now(),
+          duration: 0,
+          rowCount: 0,
+          error: (err as Error).message
         })
         get().setStatus((err as Error).message, 'error')
       }
@@ -368,10 +419,12 @@ export const useAppStore = create<AppState>()(
       const q = (n: string) => quoteIdentifier(n, dbType)
       const qualifier = schema ?? database
       const qualifiedName = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
+      const { settings } = get()
+      const limit = settings.queryLimit || 100
       const sql =
         dbType === 'mssql'
-          ? `SELECT TOP 100 * FROM ${qualifiedName};`
-          : `SELECT * FROM ${qualifiedName} LIMIT 100;`
+          ? `SELECT TOP ${limit} * FROM ${qualifiedName};`
+          : `SELECT * FROM ${qualifiedName} LIMIT ${limit};`
       const id = genId()
       const tab: QueryTab = {
         id,
@@ -381,7 +434,9 @@ export const useAppStore = create<AppState>()(
         sql,
         result: null,
         isRunning: false,
-        isSaved: false
+        isSaved: false,
+        database,
+        schema
       }
       set((s) => {
         s.tabs.push(tab)
@@ -479,6 +534,61 @@ export const useAppStore = create<AppState>()(
         s.tabs.push(tab)
         s.activeTabId = id
       })
+    },
+
+    addToHistory: (entry) => {
+      set((s) => {
+        s.queryHistory.unshift(entry)
+        // Keep at most 200 entries
+        if (s.queryHistory.length > 200) {
+          s.queryHistory.length = 200
+        }
+      })
+    },
+
+    clearHistory: () => {
+      set((s) => {
+        s.queryHistory = []
+      })
+    },
+
+    openHistoryEntry: (entry) => {
+      const id = genId()
+      const { tabs, activeTabId } = get()
+      const activeTab = tabs.find((t) => t.id === activeTabId)
+      const tab: QueryTab = {
+        id,
+        title: 'History Query',
+        tabType: 'query',
+        connectionId: entry.connectionId ?? activeTab?.connectionId ?? null,
+        sql: entry.sql,
+        result: null,
+        isRunning: false,
+        isSaved: false
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+    },
+
+    loadSettings: async () => {
+      try {
+        const s = await window.db.getSettings()
+        set((state) => {
+          state.settings = s
+        })
+      } catch {/* ignore */}
+    },
+
+    updateSettings: async (partial) => {
+      const next = { ...get().settings, ...partial }
+      set((s) => {
+        s.settings = next
+      })
+      try {
+        await window.db.saveSettings(next)
+      } catch {/* ignore */}
     },
 
     setSidebarWidth: (w) => {

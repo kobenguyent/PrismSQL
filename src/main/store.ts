@@ -11,8 +11,17 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export interface AppSettings {
+  queryLimit: number
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  queryLimit: 100
+}
+
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
+const getSettingsPath = (): string => path.join(app.getPath('userData'), 'settings.json')
 
 /** Prefix used to distinguish safeStorage-encrypted values from plaintext. */
 const ENCRYPTED_PREFIX = 'enc:'
@@ -84,5 +93,26 @@ export function writeSavedQueries(queries: SavedQueryRecord[]): void {
     fs.writeFileSync(p, JSON.stringify(queries, null, 2), 'utf-8')
   } catch (err) {
     console.error('Failed to save queries:', err)
+  }
+}
+
+export function loadSettings(): AppSettings {
+  try {
+    const p = getSettingsPath()
+    if (!fs.existsSync(p)) return { ...DEFAULT_SETTINGS }
+    const data = fs.readFileSync(p, 'utf-8')
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(data) }
+  } catch {
+    return { ...DEFAULT_SETTINGS }
+  }
+}
+
+export function saveSettings(settings: AppSettings): void {
+  try {
+    const p = getSettingsPath()
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(settings, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('Failed to save settings:', err)
   }
 }

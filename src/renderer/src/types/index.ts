@@ -62,6 +62,8 @@ export interface QueryTab {
   result: QueryResult | null
   isRunning: boolean
   isSaved: boolean
+  database?: string
+  schema?: string
 }
 
 export interface SavedQuery {
@@ -70,6 +72,21 @@ export interface SavedQuery {
   sql: string
   createdAt: number
   category?: string
+}
+
+export interface QueryHistoryEntry {
+  id: string
+  sql: string
+  connectionId: string | null
+  connectionName: string
+  timestamp: number
+  duration: number
+  rowCount: number
+  error?: string
+}
+
+export interface AppSettings {
+  queryLimit: number
 }
 
 export const DB_COLORS: Record<DatabaseType, string> = {

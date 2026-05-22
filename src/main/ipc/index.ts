@@ -1,6 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { ConnectionManager } from '../db/manager'
-import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries } from '../store'
+import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries, loadSettings, saveSettings } from '../store'
 import { ConnectionConfig } from '../db/types'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
@@ -109,5 +109,24 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     const queries = loadSavedQueries().filter((q) => q.id !== id)
     writeSavedQueries(queries)
     return { success: true }
+  })
+
+  // Settings
+  ipcMain.handle('settings:get', async () => {
+    return loadSettings()
+  })
+
+  ipcMain.handle('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
+    saveSettings(settings)
+    return { success: true }
+  })
+
+  // Server version
+  ipcMain.handle('db:get-server-version', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+    try {
+      return { version: await manager.getServerVersion(connectionId) }
+    } catch (err) {
+      return { version: 'Unknown' }
+    }
   })
 }

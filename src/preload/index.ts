@@ -13,6 +13,10 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export interface AppSettings {
+  queryLimit: number
+}
+
 const dbAPI = {
   getConnections: (): Promise<ConnectionConfig[]> => ipcRenderer.invoke('db:get-connections'),
   saveConnection: (config: ConnectionConfig): Promise<{ success: boolean }> =>
@@ -38,7 +42,12 @@ const dbAPI = {
   getSavedQueries: (): Promise<SavedQueryRecord[]> => ipcRenderer.invoke('queries:get'),
   saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('queries:save', query),
-  deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id)
+  deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id),
+  getServerVersion: (connectionId: string): Promise<{ version: string }> =>
+    ipcRenderer.invoke('db:get-server-version', connectionId),
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
+  saveSettings: (settings: AppSettings): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('settings:save', settings)
 }
 
 if (process.contextIsolated) {

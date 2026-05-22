@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,11 +8,17 @@ import {
   type SortingState,
   type ColumnFiltersState
 } from '@tanstack/react-table'
-import { ArrowUp, ArrowDown, Download, Filter } from 'lucide-react'
-import type { QueryResult } from '../../types'
+import { ArrowUp, ArrowDown, Download, Filter, Maximize2, RefreshCw, Edit2 } from 'lucide-react'
+import type { QueryResult, ColumnInfo } from '../../types'
+import { useAppStore } from '../../store'
 
 interface Props {
   result: QueryResult
+  connectionId?: string | null
+  tableName?: string
+  database?: string
+  schema?: string
+  onRefresh?: () => void
 }
 
 function cellClass(value: unknown): string {
@@ -30,10 +36,263 @@ function formatCell(value: unknown): string {
   return String(value)
 }
 
-export function ResultsTable({ result }: Props): JSX.Element {
+const TRUNCATE_LEN = 100
+
+/** Cell value display — truncated with expand-on-click */
+function CellDisplay({
+  value,
+  onExpand
+}: {
+  value: unknown
+  onExpand: (val: unknown) => void
+}): JSX.Element {
+  const str = formatCell(value)
+  const isLong = str.length > TRUNCATE_LEN || str.includes('\n')
+  const display = isLong ? str.slice(0, TRUNCATE_LEN).replace(/\n/g, '↵') + '…' : str
+  return (
+    <span
+      className={cellClass(value)}
+      style={isLong ? { cursor: 'pointer' } : undefined}
+      title={isLong ? 'Click to expand' : undefined}
+      onClick={isLong ? (e) => { e.stopPropagation(); onExpand(value) } : undefined}
+    >
+      {display}
+      {isLong && (
+        <Maximize2
+          size={10}
+          style={{ marginLeft: 4, opacity: 0.5, display: 'inline', verticalAlign: 'middle' }}
+        />
+      )}
+    </span>
+  )
+}
+
+/** Full-value viewer modal */
+function CellViewerModal({
+  value,
+  onClose
+}: {
+  value: unknown
+  onClose: () => void
+}): JSX.Element {
+  const str = formatCell(value)
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard.writeText(str).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
+        <div className="modal-header">
+          <span className="modal-title">Cell Value</span>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <pre
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--text-primary)',
+              background: 'rgba(0,0,0,0.2)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '12px 14px',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              maxHeight: '50vh',
+              overflowY: 'auto',
+              margin: 0
+            }}
+          >
+            {str}
+          </pre>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={copy}>
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+          <button className="btn btn-primary" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Inline-edit confirmation dialog */
+function EditConfirmModal({
+  sql,
+  onConfirm,
+  onCancel,
+  error
+}: {
+  sql: string
+  onConfirm: () => void
+  onCancel: () => void
+  error: string | null
+}): JSX.Element {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580 }}>
+        <div className="modal-header">
+          <span className="modal-title">Confirm Update</span>
+          <button className="icon-btn" onClick={onCancel}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+            The following SQL will be executed. Please review before confirming.
+          </p>
+          <pre
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--text-primary)',
+              background: 'rgba(0,0,0,0.2)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 12px',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              margin: 0
+            }}
+          >
+            {sql}
+          </pre>
+          {error && (
+            <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-warning)' }}>
+            ⚠ This operation directly modifies database data and cannot be undone automatically.
+            Ensure your WHERE clause identifies the correct row(s).
+          </p>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-danger" onClick={onConfirm}>Execute Update</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ResultsTable({
+  result,
+  connectionId,
+  tableName,
+  database,
+  schema,
+  onRefresh
+}: Props): JSX.Element {
+  const { connections } = useAppStore()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [showFilter, setShowFilter] = useState(false)
+
+  // Cell viewer
+  const [expandedValue, setExpandedValue] = useState<unknown>(null)
+  const [showViewer, setShowViewer] = useState(false)
+
+  // Inline editing state
+  const [pkColumns, setPkColumns] = useState<ColumnInfo[]>([])
+  const [editingCell, setEditingCell] = useState<{ rowIdx: number; col: string; original: unknown } | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [pendingUpdate, setPendingUpdate] = useState<{ sql: string; row: Record<string, unknown> } | null>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  const conn = connectionId ? connections.find((c) => c.id === connectionId) : null
+  const canEdit = !!(connectionId && tableName && conn)
+
+  // Load PK columns when in table mode
+  useEffect(() => {
+    if (!canEdit || !connectionId || !tableName) return
+    window.db.getColumns(connectionId, tableName, database).then((cols) => {
+      setPkColumns(cols.filter((c) => c.primaryKey))
+    }).catch(() => setPkColumns([]))
+  }, [canEdit, connectionId, tableName, database])
+
+  // Focus edit input when editing starts
+  useEffect(() => {
+    if (editingCell && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.select()
+    }
+  }, [editingCell])
+
+  function quoteId(name: string): string {
+    if (!conn) return `"${name}"`
+    switch (conn.type) {
+      case 'mssql': return `[${name}]`
+      case 'mysql':
+      case 'mariadb': return `\`${name}\``
+      default: return `"${name}"`
+    }
+  }
+
+  function quoteValue(val: unknown): string {
+    if (val === null || val === undefined) return 'NULL'
+    if (typeof val === 'number' || typeof val === 'bigint') return String(val)
+    if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE'
+    const str = String(val).replace(/'/g, "''")
+    return `'${str}'`
+  }
+
+  function buildUpdateSql(row: Record<string, unknown>, col: string, newVal: string): string {
+    const qualifier = schema ?? database
+    const tableRef = qualifier ? `${quoteId(qualifier)}.${quoteId(tableName!)}` : quoteId(tableName!)
+    const setCl = `${quoteId(col)} = ${quoteValue(newVal)}`
+    const whereParts = pkColumns.map((pk) => `${quoteId(pk.name)} = ${quoteValue(row[pk.name])}`)
+    const whereCl = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1 /* WARNING: no primary key found */'
+    return `UPDATE ${tableRef}\nSET ${setCl}\nWHERE ${whereCl};`
+  }
+
+  function handleCellDoubleClick(rowIdx: number, col: string, value: unknown) {
+    if (!canEdit) return
+    setEditingCell({ rowIdx, col, original: value })
+    setEditValue(value === null || value === undefined ? '' : String(value))
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>, row: Record<string, unknown>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commitEdit(row)
+    } else if (e.key === 'Escape') {
+      setEditingCell(null)
+    }
+  }
+
+  function commitEdit(row: Record<string, unknown>) {
+    if (!editingCell) return
+    const sql = buildUpdateSql(row, editingCell.col, editValue)
+    setPendingUpdate({ sql, row })
+    setUpdateError(null)
+    setEditingCell(null)
+  }
+
+  async function executeUpdate() {
+    if (!pendingUpdate || !connectionId) return
+    setIsUpdating(true)
+    setUpdateError(null)
+    try {
+      const res = await window.db.query(connectionId, pendingUpdate.sql)
+      if (res.error) {
+        setUpdateError(res.error)
+        setIsUpdating(false)
+        return
+      }
+      setPendingUpdate(null)
+      setIsUpdating(false)
+      onRefresh?.()
+    } catch (err) {
+      setUpdateError((err as Error).message)
+      setIsUpdating(false)
+    }
+  }
 
   const columns = useMemo(
     () =>
@@ -42,12 +301,35 @@ export function ResultsTable({ result }: Props): JSX.Element {
         accessorKey: col.name,
         header: col.name,
         filterFn: 'includesString' as const,
-        cell: (info: { getValue: () => unknown }) => {
+        cell: (info: { getValue: () => unknown; row: { index: number; original: Record<string, unknown> } }) => {
           const v = info.getValue()
-          return <span className={cellClass(v)}>{formatCell(v)}</span>
+          const rowIdx = info.row.index
+          const isEditing = editingCell?.rowIdx === rowIdx && editingCell?.col === col.name
+          if (isEditing) {
+            return (
+              <input
+                ref={editInputRef}
+                className="cell-edit-input"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => handleEditKeyDown(e, info.row.original)}
+                onBlur={() => commitEdit(info.row.original)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )
+          }
+          return (
+            <span
+              onDoubleClick={canEdit ? () => handleCellDoubleClick(rowIdx, col.name, v) : undefined}
+              style={canEdit ? { cursor: 'text', display: 'block' } : undefined}
+              title={canEdit ? 'Double-click to edit' : undefined}
+            >
+              <CellDisplay value={v} onExpand={(val) => { setExpandedValue(val); setShowViewer(true) }} />
+            </span>
+          )
         }
       })),
-    [result.columns]
+    [result.columns, editingCell, editValue, canEdit]
   )
 
   const table = useReactTable({
@@ -116,9 +398,23 @@ export function ResultsTable({ result }: Props): JSX.Element {
               · horizontal view
             </span>
           )}
+          {canEdit && (
+            <span style={{ marginLeft: 6, color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
+              · <Edit2 size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> double-click to edit
+            </span>
+          )}
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+          {onRefresh && (
+            <button
+              className="icon-btn"
+              onClick={onRefresh}
+              data-tooltip="Refresh"
+            >
+              <RefreshCw size={13} />
+            </button>
+          )}
           {!isSingleRow && (
             <button
               className={`icon-btn ${showFilter ? 'active' : ''}`}
@@ -164,7 +460,7 @@ export function ResultsTable({ result }: Props): JSX.Element {
                       {col.name}
                     </td>
                     <td className={cellClass(value)}>
-                      {formatCell(value)}
+                      <CellDisplay value={value} onExpand={(val) => { setExpandedValue(val); setShowViewer(true) }} />
                     </td>
                   </tr>
                 )
@@ -237,6 +533,25 @@ export function ResultsTable({ result }: Props): JSX.Element {
           </table>
         )}
       </div>
+
+      {/* Cell value viewer modal */}
+      {showViewer && (
+        <CellViewerModal
+          value={expandedValue}
+          onClose={() => setShowViewer(false)}
+        />
+      )}
+
+      {/* Update confirmation modal */}
+      {pendingUpdate && (
+        <EditConfirmModal
+          sql={pendingUpdate.sql}
+          onConfirm={executeUpdate}
+          onCancel={() => { setPendingUpdate(null); setUpdateError(null) }}
+          error={isUpdating ? 'Executing…' : updateError}
+        />
+      )}
     </div>
   )
 }
+
