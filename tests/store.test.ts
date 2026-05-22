@@ -3,10 +3,15 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 
-// We need to mock `electron` because store.ts calls `app.getPath`
+// We need to mock `electron` because store.ts calls `app.getPath` and `safeStorage`
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn(() => os.tmpdir())
+  },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => false),
+    encryptString: vi.fn((s: string) => Buffer.from(s)),
+    decryptString: vi.fn((buf: Buffer) => buf.toString())
   }
 }))
 
@@ -43,7 +48,7 @@ describe('Connection Store (persistence)', () => {
     expect(loaded[1].type).toBe('mysql')
   })
 
-  it('saveConnections does not persist plaintext passwords', async () => {
+  it('saveConnections persists passwords so saved connections can reconnect', async () => {
     const { saveConnections } = await import('../src/main/store')
     saveConnections([
       {
@@ -56,7 +61,31 @@ describe('Connection Store (persistence)', () => {
     ])
 
     const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as Array<Record<string, unknown>>
-    expect(raw[0]).not.toHaveProperty('password')
+    expect(raw[0]).toHaveProperty('password', 'super-secret')
+  })
+
+  it('saveConnections encrypts passwords when safeStorage is available and loadConnections decrypts them', async () => {
+    const electron = await import('electron')
+    const mockSafe = electron.safeStorage as {
+      isEncryptionAvailable: ReturnType<typeof vi.fn>
+      encryptString: ReturnType<typeof vi.fn>
+      decryptString: ReturnType<typeof vi.fn>
+    }
+    // Simulate encryption being available
+    mockSafe.isEncryptionAvailable.mockReturnValueOnce(true)
+    mockSafe.encryptString.mockReturnValueOnce(Buffer.from('ENCRYPTED'))
+    mockSafe.decryptString.mockReturnValueOnce('super-secret')
+
+    const { loadConnections, saveConnections } = await import('../src/main/store')
+    saveConnections([{ id: 'c1', name: 'Enc', type: 'postgres', host: 'localhost', password: 'super-secret' }])
+
+    const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as Array<Record<string, unknown>>
+    // Stored password should carry the enc: prefix, not plaintext
+    expect(raw[0].password as string).toMatch(/^enc:/)
+
+    // loadConnections should decrypt it back to the original value
+    const loaded = loadConnections()
+    expect(loaded[0].password).toBe('super-secret')
   })
 
   it('loadConnections returns empty array on malformed JSON', async () => {

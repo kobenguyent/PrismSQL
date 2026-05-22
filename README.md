@@ -59,6 +59,12 @@ npm install --ignore-scripts
 npm run rebuild:sqlite
 ```
 
+> **macOS — running a downloaded release:** The distributed app is not notarized with an Apple Developer certificate. After copying `PrismSQL.app` to `/Applications`, strip the quarantine attribute so Gatekeeper allows it to open:
+>
+> ```bash
+> xattr -cr /Applications/PrismSQL.app
+> ```
+
 ### Development
 
 ```bash

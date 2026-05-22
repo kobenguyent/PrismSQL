@@ -31,7 +31,7 @@ const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
 })
 
 export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
-  const { saveConnection, connect, setStatus } = useAppStore()
+  const { saveConnection, connect } = useAppStore()
 
   const [config, setConfig] = useState<Omit<ConnectionConfig, 'id'>>(() =>
     editConfig ? { ...editConfig } : defaultConfig()
@@ -67,16 +67,25 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
 
   const handleSave = useCallback(async () => {
     if (!config.name.trim()) {
-      setStatus('Connection name is required', 'warning')
+      setTestResult({ success: false, error: 'Connection name is required' })
       return
     }
     setSaving(true)
-    const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
-    await saveConnection(fullConfig)
-    await connect(fullConfig)
-    setSaving(false)
-    onClose()
-  }, [config, editConfig, saveConnection, connect, setStatus, onClose])
+    try {
+      const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
+      await saveConnection(fullConfig)
+      const result = await connect(fullConfig)
+      if (result.success) {
+        onClose()
+      } else {
+        setTestResult({ success: false, error: result.error ?? 'Connection failed' })
+      }
+    } catch (err) {
+      setTestResult({ success: false, error: (err as Error).message })
+    } finally {
+      setSaving(false)
+    }
+  }, [config, editConfig, saveConnection, connect, setTestResult, onClose])
 
   const isSQLite = config.type === 'sqlite'
 
