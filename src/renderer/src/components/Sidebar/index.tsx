@@ -217,6 +217,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
         console.error('Failed to rename saved query', {
           queryId: query.id,
           queryName: query.name,
+          attemptedName: nextName,
           error
         })
       } finally {
