@@ -1,14 +1,14 @@
-import mysql, { Connection, RowDataPacket, FieldPacket } from 'mysql2/promise'
+import mysql, { Pool, RowDataPacket, FieldPacket } from 'mysql2/promise'
 import { DatabaseAdapter } from '../adapter'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 export class MySQLAdapter implements DatabaseAdapter {
-  private connection: Connection | null = null
+  private pool: Pool | null = null
   private config: ConnectionConfig | null = null
 
   async connect(config: ConnectionConfig): Promise<void> {
     this.config = config
-    this.connection = await mysql.createConnection({
+    this.pool = mysql.createPool({
       host: config.host || 'localhost',
       port: config.port || 3306,
       user: config.user || 'root',
@@ -16,22 +16,28 @@ export class MySQLAdapter implements DatabaseAdapter {
       database: config.database,
       ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
       multipleStatements: true,
-      connectTimeout: 10000
+      connectTimeout: 10000,
+      waitForConnections: true,
+      connectionLimit: 5,
+      queueLimit: 0
     })
+    // Verify connectivity eagerly so errors surface at connect time
+    const conn = await this.pool.getConnection()
+    conn.release()
   }
 
   async disconnect(): Promise<void> {
-    if (this.connection) {
-      await this.connection.end()
-      this.connection = null
+    if (this.pool) {
+      await this.pool.end()
+      this.pool = null
     }
   }
 
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
-    if (!this.connection) throw new Error('Not connected')
+    if (!this.pool) throw new Error('Not connected')
     const start = Date.now()
     try {
-      const [rows, fields] = await this.connection.execute<RowDataPacket[]>(sql, params)
+      const [rows, fields] = await this.pool.execute<RowDataPacket[]>(sql, params)
       const duration = Date.now() - start
       const resultRows = Array.isArray(rows) ? rows : []
       const rowCount = Array.isArray(rows)
