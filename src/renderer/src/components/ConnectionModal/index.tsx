@@ -154,7 +154,10 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
               className="form-input"
               type="text"
               value={config.category ?? ''}
-              onChange={(e) => update('category', e.target.value || undefined)}
+              onChange={(e) => {
+                const nextCategory = e.target.value.trim()
+                update('category', nextCategory || undefined)
+              }}
               placeholder="e.g. Production, Staging, Local…"
             />
           </div>

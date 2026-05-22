@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import {
   Plus,
   ChevronRight,
@@ -36,6 +36,11 @@ interface TreeState {
   dbSearch: Record<string, string> // key: `connId/dbName`, value: search text
 }
 
+const UNGROUPED_CATEGORY_KEY = ''
+
+const normalizeCategoryKey = (category?: string): string => category?.trim() || UNGROUPED_CATEGORY_KEY
+const isUngroupedCategory = (categoryKey: string): boolean => categoryKey === UNGROUPED_CATEGORY_KEY
+
 export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
   const {
     connections,
@@ -58,8 +63,10 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   const [savedQueriesExpanded, setSavedQueriesExpanded] = useState(true)
   const [renamingQueryId, setRenamingQueryId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [expandedQueryCategories, setExpandedQueryCategories] = useState<Set<string>>(new Set(['__ungrouped__']))
-  const [expandedConnCategories, setExpandedConnCategories] = useState<Set<string>>(new Set(['__ungrouped__']))
+  const [isRenameSubmitting, setIsRenameSubmitting] = useState(false)
+  const [expandedQueryCategories, setExpandedQueryCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
+  const [expandedConnCategories, setExpandedConnCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
+  const suppressRenameBlurRef = useRef(false)
 
   const [tree, setTree] = useState<TreeState>({
     expandedConnections: new Set(),
@@ -186,6 +193,34 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     e.stopPropagation()
   }
 
+  const cancelRename = useCallback(() => {
+    setRenamingQueryId(null)
+    setRenameValue('')
+  }, [])
+
+  const commitRename = useCallback(
+    async (query: SavedQuery) => {
+      const nextName = renameValue.trim()
+      if (!nextName || nextName === query.name) {
+        cancelRename()
+        return
+      }
+      if (isRenameSubmitting) {
+        return
+      }
+      setIsRenameSubmitting(true)
+      try {
+        await updateSavedQuery({ ...query, name: nextName })
+        cancelRename()
+      } catch (error) {
+        console.error('Failed to rename saved query', error)
+      } finally {
+        setIsRenameSubmitting(false)
+      }
+    },
+    [renameValue, isRenameSubmitting, updateSavedQuery, cancelRename]
+  )
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -215,16 +250,17 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
         {(() => {
           const grouped: Record<string, ConnectionConfig[]> = {}
           for (const conn of connections) {
-            const cat = conn.category?.trim() || '__ungrouped__'
+            const cat = normalizeCategoryKey(conn.category)
             if (!grouped[cat]) grouped[cat] = []
             grouped[cat].push(conn)
           }
           const categories = Object.keys(grouped).sort((a, b) => {
-            if (a === '__ungrouped__') return 1
-            if (b === '__ungrouped__') return -1
+            if (isUngroupedCategory(a)) return 1
+            if (isUngroupedCategory(b)) return -1
             return a.localeCompare(b)
           })
-          const hasManyCategories = categories.length > 1 || (categories.length === 1 && categories[0] !== '__ungrouped__')
+          const hasManyCategories =
+            categories.length > 1 || (categories.length === 1 && !isUngroupedCategory(categories[0]))
 
           return categories.map((cat) => {
             const catConns = grouped[cat]
@@ -238,18 +274,33 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
 
             return (
               <div key={cat}>
-                {hasManyCategories && cat !== '__ungrouped__' && (
-                  <div
+                {hasManyCategories && !isUngroupedCategory(cat) && (
+                  <button
+                    type="button"
                     className="tree-item"
-                    style={{ fontWeight: 600, fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none', paddingLeft: 14 }}
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 10,
+                      color: 'var(--text-tertiary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      paddingLeft: 14,
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      textAlign: 'left'
+                    }}
                     onClick={toggleCat}
+                    aria-expanded={isCatExpanded}
                   >
                     {isCatExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
                     <Folder size={10} style={{ opacity: 0.7 }} />
                     <span>{cat}</span>
-                  </div>
+                  </button>
                 )}
-                {(cat === '__ungrouped__' || !hasManyCategories || isCatExpanded) && catConns.map((conn) => {
+                {(isUngroupedCategory(cat) || !hasManyCategories || isCatExpanded) && catConns.map((conn) => {
                   const isConnected = connectedIds.has(conn.id)
                   const isExpanded = tree.expandedConnections.has(conn.id)
                   const connSchema = schema[conn.id]
@@ -656,18 +707,18 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                 (() => {
                   const grouped: Record<string, SavedQuery[]> = {}
                   for (const q of savedQueries) {
-                    const cat = q.category?.trim() || '__ungrouped__'
+                    const cat = normalizeCategoryKey(q.category)
                     if (!grouped[cat]) grouped[cat] = []
                     grouped[cat].push(q)
                   }
                   const categories = Object.keys(grouped).sort((a, b) => {
-                    if (a === '__ungrouped__') return 1
-                    if (b === '__ungrouped__') return -1
+                    if (isUngroupedCategory(a)) return 1
+                    if (isUngroupedCategory(b)) return -1
                     return a.localeCompare(b)
                   })
                   const hasManyCategories =
                     categories.length > 1 ||
-                    (categories.length === 1 && categories[0] !== '__ungrouped__')
+                    (categories.length === 1 && !isUngroupedCategory(categories[0]))
 
                   return categories.map((cat) => {
                     const catQueries = grouped[cat]
@@ -682,8 +733,9 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
 
                     return (
                       <div key={cat}>
-                        {hasManyCategories && cat !== '__ungrouped__' && (
-                          <div
+                        {hasManyCategories && !isUngroupedCategory(cat) && (
+                          <button
+                            type="button"
                             className="tree-item tree-item-indent-1"
                             style={{
                               fontWeight: 600,
@@ -692,16 +744,21 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               cursor: 'pointer',
-                              userSelect: 'none'
+                              userSelect: 'none',
+                              width: '100%',
+                              border: 'none',
+                              background: 'transparent',
+                              textAlign: 'left'
                             }}
                             onClick={toggleCat}
+                            aria-expanded={isCatExpanded}
                           >
                             {isCatExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
                             <Folder size={10} style={{ opacity: 0.7 }} />
                             <span>{cat}</span>
-                          </div>
+                          </button>
                         )}
-                        {(cat === '__ungrouped__' || !hasManyCategories || isCatExpanded) &&
+                        {(isUngroupedCategory(cat) || !hasManyCategories || isCatExpanded) &&
                           catQueries.map((q) => (
                             <div
                               key={q.id}
@@ -716,17 +773,22 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                                   value={renameValue}
                                   onChange={(e) => setRenameValue(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
+                                  disabled={isRenameSubmitting}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                      if (renameValue.trim()) updateSavedQuery({ ...q, name: renameValue.trim() })
-                                      setRenamingQueryId(null)
+                                      e.preventDefault()
+                                      void commitRename(q)
                                     } else if (e.key === 'Escape') {
-                                      setRenamingQueryId(null)
+                                      e.preventDefault()
+                                      cancelRename()
                                     }
                                   }}
                                   onBlur={() => {
-                                    if (renameValue.trim()) updateSavedQuery({ ...q, name: renameValue.trim() })
-                                    setRenamingQueryId(null)
+                                    if (suppressRenameBlurRef.current) {
+                                      suppressRenameBlurRef.current = false
+                                      return
+                                    }
+                                    void commitRename(q)
                                   }}
                                   style={{
                                     flex: 1,
@@ -747,17 +809,23 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                               <button
                                 className="icon-btn"
                                 style={{ width: 20, height: 20, flexShrink: 0 }}
+                                onMouseDown={(e) => {
+                                  if (renamingQueryId === q.id) {
+                                    suppressRenameBlurRef.current = true
+                                    e.preventDefault()
+                                  }
+                                }}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (renamingQueryId === q.id) {
-                                    if (renameValue.trim()) updateSavedQuery({ ...q, name: renameValue.trim() })
-                                    setRenamingQueryId(null)
+                                    void commitRename(q)
                                   } else {
                                     setRenamingQueryId(q.id)
                                     setRenameValue(q.name)
                                   }
                                 }}
                                 title={renamingQueryId === q.id ? 'Save name' : 'Rename'}
+                                disabled={isRenameSubmitting}
                               >
                                 {renamingQueryId === q.id ? <Check size={10} /> : <Pencil size={10} />}
                               </button>
