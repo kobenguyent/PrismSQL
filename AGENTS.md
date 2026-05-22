@@ -9,8 +9,10 @@ This repository uses repo-local guidance for AI coding agents. Start with:
 
 ## Required Workflow
 
-1. Read the relevant `docs/ai/*.md` file before changing code.
-2. Keep PRs narrowly scoped.
+1. Read `docs/ai/graph.md` first — it is the complete relationship map of every
+   module, IPC channel, data flow, and invariant in the codebase.
+2. Then read any other relevant `docs/ai/*.md` file before changing code.
+3. Keep PRs narrowly scoped.
 3. Do not stage unrelated local changes.
 4. Run the smallest relevant test first, then the full suite before completion.
 5. For bug fixes, capture the root cause, the fix, and verification evidence.
