@@ -85,7 +85,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
     } finally {
       setSaving(false)
     }
-  }, [config, editConfig, saveConnection, connect, setStatus, onClose])
+  }, [config, editConfig, saveConnection, connect, setStatus, setTestResult, onClose])
 
   const isSQLite = config.type === 'sqlite'
 
