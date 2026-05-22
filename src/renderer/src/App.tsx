@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -8,6 +8,9 @@ import { QueryEditor } from './components/QueryEditor'
 import { ResultsTable } from './components/ResultsTable'
 import { ConnectionModal } from './components/ConnectionModal'
 import type { ConnectionConfig } from './types'
+
+// Read version from package.json (injected by Vite at build time)
+const APP_VERSION = __APP_VERSION__
 
 export default function App(): JSX.Element {
   const {
@@ -30,6 +33,7 @@ export default function App(): JSX.Element {
 
   const [showConnectionModal, setShowConnectionModal] = useState(false)
   const [editingConnection, setEditingConnection] = useState<ConnectionConfig | null>(null)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   // Resize state
   const isResizing = useRef(false)
@@ -46,13 +50,6 @@ export default function App(): JSX.Element {
     loadConnections()
     loadSavedQueries()
   }, [loadConnections, loadSavedQueries])
-
-  // Add initial tab if no tabs
-  useEffect(() => {
-    if (tabs.length === 0) {
-      newTab()
-    }
-  }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -190,12 +187,32 @@ export default function App(): JSX.Element {
                 )}
               </div>
             </div>
-          ) : (
-            /* Welcome screen */
+          ) : connections.length > 0 ? (
+            /* Connections exist – prompt user to pick one */
             <div className="welcome-screen">
               <div className="welcome-card">
                 <div className="welcome-logo">P</div>
                 <div className="welcome-title">PrismSQL</div>
+                <div className="welcome-sub">
+                  You have {connections.length} saved connection{connections.length !== 1 ? 's' : ''}.
+                  Select one from the sidebar to start querying, or open a new tab.
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button className="btn btn-primary" onClick={() => newTab()}>
+                    <Database size={14} /> New Query Tab
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => handleOpenModal()}>
+                    <Database size={14} /> Add Connection
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* No connections yet – first-run welcome */
+            <div className="welcome-screen">
+              <div className="welcome-card">
+                <div className="welcome-logo">P</div>
+                <div className="welcome-title">Welcome to PrismSQL</div>
                 <div className="welcome-sub">
                   A modern SQL client with a beautiful glassmorphism interface.
                   Connect to MySQL, PostgreSQL, SQLite, or SQL Server.
@@ -218,8 +235,24 @@ export default function App(): JSX.Element {
           {connectedIds.size} connection{connectedIds.size !== 1 ? 's' : ''} active
         </span>
         <span style={{ color: 'var(--text-tertiary)' }}>
-          PrismSQL v1.0.0
+          Built by JosephThien – KobeT · © {new Date().getFullYear()} · v{APP_VERSION}
         </span>
+        <button
+          className="icon-btn"
+          onClick={() => setShowPrivacy(true)}
+          data-tooltip="Privacy & Data Collection"
+          style={{ width: 20, height: 20 }}
+        >
+          <Shield size={12} />
+        </button>
+        <button
+          className="icon-btn"
+          onClick={() => window.open('https://kobenguyent.github.io/PrismSQL/', '_blank')}
+          data-tooltip="Documentation"
+          style={{ width: 20, height: 20 }}
+        >
+          <Info size={12} />
+        </button>
       </div>
 
       {/* Connection modal */}
@@ -228,6 +261,43 @@ export default function App(): JSX.Element {
           onClose={() => setShowConnectionModal(false)}
           editConfig={editingConnection}
         />
+      )}
+
+      {/* Privacy modal */}
+      {showPrivacy && (
+        <div className="modal-overlay" onClick={() => setShowPrivacy(false)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <span className="modal-title">Privacy &amp; Data Collection</span>
+              <button className="icon-btn" onClick={() => setShowPrivacy(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ gap: 12, lineHeight: 1.65, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+              <p>
+                <strong style={{ color: 'var(--text-primary)' }}>PrismSQL does not collect any personal data.</strong>
+              </p>
+              <p>
+                All database connection credentials and saved queries are stored locally on your
+                machine using the operating system's user-data directory. No information is ever
+                sent to external servers by PrismSQL itself.
+              </p>
+              <p>
+                PrismSQL does <em>not</em> include analytics, telemetry, crash-reporting services,
+                or any third-party tracking. Network traffic is only ever initiated by the database
+                connections you explicitly configure.
+              </p>
+              <p>
+                Built by <strong style={{ color: 'var(--text-primary)' }}>JosephThien – KobeT</strong>.
+                Licensed under the MIT License.
+              </p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
+                © {new Date().getFullYear()} kobenguyent. All rights reserved.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowPrivacy(false)}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

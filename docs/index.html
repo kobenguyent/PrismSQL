@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrismSQL – Modern SQL Client</title>
+  <meta name="description" content="PrismSQL is a beautiful, modern SQL database client for desktop built with Electron, React, and an Apple-inspired glassmorphism UI." />
+  <meta property="og:title" content="PrismSQL – Modern SQL Client" />
+  <meta property="og:description" content="Connect to MySQL, PostgreSQL, SQLite, and SQL Server with a beautiful glassmorphism interface." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08080f;
+      --bg2: #0d0d1a;
+      --accent: #7b7bea;
+      --accent2: #a78bfa;
+      --accent-dim: rgba(123,123,234,0.15);
+      --glass: rgba(20,20,40,0.70);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-hover: rgba(30,30,60,0.80);
+      --text: rgba(245,245,250,0.94);
+      --text2: rgba(245,245,250,0.55);
+      --text3: rgba(245,245,250,0.28);
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+      --info: #60a5fa;
+      --mysql: #f97316;
+      --postgres: #60a5fa;
+      --sqlite: #4ade80;
+      --mssql: #f87171;
+      --mariadb: #c084fc;
+      --font: 'Inter', -apple-system, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+      --glow: 0 0 40px rgba(123,123,234,0.2);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient blobs ── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 700px; height: 700px;
+      top: -200px; left: -200px;
+      background: radial-gradient(circle, rgba(103,72,200,0.11) 0%, transparent 70%);
+    }
+    body::after {
+      width: 600px; height: 600px;
+      bottom: -200px; right: -100px;
+      background: radial-gradient(circle, rgba(50,100,220,0.09) 0%, transparent 70%);
+    }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,8,15,0.82);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .nav-inner {
+      max-width: 1080px; margin: 0 auto; padding: 0 24px;
+      height: 58px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-logo {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: white;
+      box-shadow: 0 0 12px rgba(123,123,234,0.4);
+    }
+    .nav-name { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-link {
+      color: var(--text2); text-decoration: none; font-size: 13px; font-weight: 500;
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      transition: background 150ms, color 150ms;
+    }
+    .nav-link:hover { background: var(--glass); color: var(--text); }
+    .btn-nav {
+      background: var(--accent); color: white; text-decoration: none;
+      font-size: 13px; font-weight: 600; padding: 7px 16px;
+      border-radius: var(--radius-sm); transition: background 150ms, box-shadow 150ms;
+    }
+    .btn-nav:hover { background: #9898f2; box-shadow: var(--glow); }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-dim); border: 1px solid rgba(123,123,234,0.3);
+      color: #a5a5f7; font-size: 12px; font-weight: 600;
+      padding: 5px 14px; border-radius: 999px; margin-bottom: 32px;
+      letter-spacing: 0.3px;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .hero h1 {
+      font-size: clamp(42px, 7vw, 72px); font-weight: 800;
+      letter-spacing: -2px; line-height: 1.08;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 22px;
+    }
+    .hero p {
+      font-size: clamp(16px, 2.5vw, 19px); color: var(--text2);
+      max-width: 580px; margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent); color: white; text-decoration: none;
+      font-size: 15px; font-weight: 600; padding: 12px 28px;
+      border-radius: var(--radius-sm); transition: all 150ms;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: #9898f2; box-shadow: var(--glow); transform: translateY(-1px); }
+    .btn-ghost {
+      background: var(--glass); color: var(--text);
+      border: 1px solid var(--glass-border); text-decoration: none;
+      font-size: 15px; font-weight: 500; padding: 12px 24px;
+      border-radius: var(--radius-sm); transition: all 150ms;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-ghost:hover { background: var(--glass-hover); transform: translateY(-1px); }
+
+    /* ── Screenshots ── */
+    .screenshots { padding: 0 0 80px; }
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .screenshot-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 250ms, box-shadow 250ms;
+    }
+    .screenshot-card:hover { transform: translateY(-3px); box-shadow: var(--shadow), var(--glow); }
+    .screenshot-card img { width: 100%; display: block; }
+    .screenshot-caption {
+      padding: 12px 16px;
+      font-size: 12px; color: var(--text3);
+      border-top: 1px solid var(--glass-border);
+      font-family: var(--mono);
+    }
+    .screenshots-sub {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    /* ── Section shared ── */
+    section { padding: 80px 0; }
+    .section-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px); font-weight: 800;
+      letter-spacing: -0.8px; line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .section-sub {
+      font-size: 16px; color: var(--text2); max-width: 560px;
+      line-height: 1.7; margin-bottom: 48px;
+    }
+    .divider {
+      border: none; border-top: 1px solid var(--glass-border);
+    }
+
+    /* ── Features grid ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .feature-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: transform 200ms, border-color 200ms;
+    }
+    .feature-card:hover { transform: translateY(-2px); border-color: rgba(123,123,234,0.3); }
+    .feature-icon {
+      font-size: 28px; margin-bottom: 14px;
+      display: block;
+    }
+    .feature-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    /* ── Database support ── */
+    .db-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .db-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      box-shadow: var(--shadow);
+      transition: transform 200ms, border-color 200ms;
+      text-align: center;
+    }
+    .db-card:hover { transform: translateY(-2px); }
+    .db-dot {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: white;
+    }
+    .db-card h3 { font-size: 14px; font-weight: 700; }
+    .db-card p { font-size: 12px; color: var(--text2); }
+    .db-card .port {
+      font-size: 11px; font-family: var(--mono);
+      background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+      padding: 2px 8px; border-radius: 999px; color: var(--text3);
+    }
+
+    /* ── Install / Code ── */
+    .code-block {
+      background: rgba(5,5,15,0.85);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .code-block .comment { color: #4e5560; }
+    .code-block .cmd { color: var(--success); }
+    .code-block .arg { color: var(--text2); }
+    .code-block .prompt { color: var(--accent); user-select: none; }
+
+    /* ── Keyboard shortcuts ── */
+    .shortcut-table {
+      width: 100%; border-collapse: collapse;
+    }
+    .shortcut-table th {
+      text-align: left; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text3); padding: 8px 12px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .shortcut-table td {
+      padding: 10px 12px; font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .shortcut-table tr:last-child td { border-bottom: none; }
+    .shortcut-table tr:hover td { background: rgba(123,123,234,0.04); }
+    kbd {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px; padding: 2px 7px; font-family: var(--mono);
+      font-size: 11px; white-space: nowrap;
+    }
+
+    /* ── Privacy ── */
+    .privacy-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 32px 36px;
+      box-shadow: var(--shadow);
+    }
+    .privacy-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .privacy-row:last-child { border-bottom: none; }
+    .privacy-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+    .privacy-row h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .privacy-row p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--glass-border);
+      padding: 40px 0;
+      text-align: center;
+    }
+    .footer-brand {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .footer-logo {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: white;
+    }
+    footer p { font-size: 13px; color: var(--text3); line-height: 1.8; }
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Tech stack ── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .tech-pill {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12px; font-weight: 600;
+      text-align: center;
+      transition: border-color 150ms;
+    }
+    .tech-pill:hover { border-color: rgba(123,123,234,0.35); }
+    .tech-pill span { display: block; font-size: 10px; font-weight: 400; color: var(--text3); margin-top: 2px; }
+
+    /* Responsive */
+    @media (max-width: 720px) {
+      .screenshots-grid { grid-template-columns: 1fr; }
+      .screenshots-sub { flex-direction: row; }
+      .nav-links { display: none; }
+      .hero { padding: 70px 0 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <div class="nav-logo">P</div>
+        <span class="nav-name">PrismSQL</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#databases" class="nav-link">Databases</a>
+        <a href="#install" class="nav-link">Install</a>
+        <a href="#privacy" class="nav-link">Privacy</a>
+        <a href="https://github.com/kobenguyent/PrismSQL" class="btn-nav" target="_blank" rel="noopener">
+          ★ GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-badge">
+        <span></span>
+        Open Source · Free Forever
+      </div>
+      <h1>Beautiful SQL<br>for every database</h1>
+      <p>
+        PrismSQL is a modern desktop SQL client with an Apple-inspired glassmorphism interface.
+        Connect to MySQL, PostgreSQL, SQLite, or SQL Server — all from one beautiful app.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/kobenguyent/PrismSQL/releases/latest" class="btn-primary" target="_blank" rel="noopener">
+          ⬇ Download Latest
+        </a>
+        <a href="https://github.com/kobenguyent/PrismSQL" class="btn-ghost" target="_blank" rel="noopener">
+          View Source
+        </a>
+      </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section class="screenshots">
+      <div class="screenshots-grid">
+        <div class="screenshot-card">
+          <img src="screenshots/main-window.png" alt="PrismSQL main window showing sidebar, query editor and results panel" loading="lazy" />
+          <div class="screenshot-caption">// Main window — sidebar · query editor · results panel</div>
+        </div>
+        <div class="screenshots-sub">
+          <div class="screenshot-card">
+            <img src="screenshots/query-editor.png" alt="PrismSQL query editor with SQL syntax highlighting" loading="lazy" />
+            <div class="screenshot-caption">// SQL editor with syntax highlighting</div>
+          </div>
+          <div class="screenshot-card">
+            <img src="screenshots/connection-modal.png" alt="PrismSQL connection modal" loading="lazy" />
+            <div class="screenshot-caption">// Add &amp; test connections</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Features -->
+    <section id="features">
+      <div class="section-eyebrow">Features</div>
+      <h2 class="section-title">Everything you need,<br>nothing you don't.</h2>
+      <p class="section-sub">
+        Built from the ground up for developers who care about their tools. Fast, beautiful, and open source.
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🪟</span>
+          <h3>Apple Glassmorphism UI</h3>
+          <p>Frosted-glass panels, backdrop blur, and vibrancy — a UI that looks as good as it works. Dark and light themes included.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🗄️</span>
+          <h3>Multi-Database Support</h3>
+          <p>Connect to MySQL, MariaDB, PostgreSQL, SQLite, and SQL Server from the same app with native drivers.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🗂️</span>
+          <h3>Multi-Tab Query Editor</h3>
+          <p>CodeMirror 6 SQL editor with syntax highlighting, autocompletion, bracket matching, and keyboard shortcuts.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🌲</span>
+          <h3>Schema Browser</h3>
+          <p>Expandable tree: connections → databases → tables/views → columns with types and PK flags. Click any table to query it instantly.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <h3>Results Grid</h3>
+          <p>Sortable columns, global filter, per-column filtering, CSV export, and row count + query duration in the status bar.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💾</span>
+          <h3>Saved Queries</h3>
+          <p>Save, name, and re-open any query at any time. All queries are stored locally — no cloud account needed.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⌨️</span>
+          <h3>Keyboard-First</h3>
+          <p><kbd>⌘ Enter</kbd> to run, <kbd>⌘ T</kbd> for new tab. Resize panes with drag handles. Everything is reachable from the keyboard.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔐</span>
+          <h3>Fully Local</h3>
+          <p>No accounts, no cloud sync, no telemetry. Your connection credentials and queries never leave your machine.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🌐</span>
+          <h3>Cross-Platform</h3>
+          <p>macOS, Windows, and Linux — all supported and built in CI. Download a pre-built release or compile from source.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Databases -->
+    <section id="databases">
+      <div class="section-eyebrow">Supported Databases</div>
+      <h2 class="section-title">One app.<br>All your databases.</h2>
+      <p class="section-sub">
+        PrismSQL uses native, battle-tested drivers for every database it supports.
+      </p>
+      <div class="db-grid">
+        <div class="db-card">
+          <div class="db-dot" style="background:linear-gradient(135deg,#f97316,#fb923c)">My</div>
+          <h3>MySQL</h3>
+          <p>mysql2 driver</p>
+          <span class="port">:3306</span>
+        </div>
+        <div class="db-card">
+          <div class="db-dot" style="background:linear-gradient(135deg,#c084fc,#a855f7)">Ma</div>
+          <h3>MariaDB</h3>
+          <p>mysql2 driver</p>
+          <span class="port">:3306</span>
+        </div>
+        <div class="db-card">
+          <div class="db-dot" style="background:linear-gradient(135deg,#60a5fa,#3b82f6)">PG</div>
+          <h3>PostgreSQL</h3>
+          <p>pg driver</p>
+          <span class="port">:5432</span>
+        </div>
+        <div class="db-card">
+          <div class="db-dot" style="background:linear-gradient(135deg,#4ade80,#22c55e)">SQ</div>
+          <h3>SQLite</h3>
+          <p>better-sqlite3</p>
+          <span class="port">file</span>
+        </div>
+        <div class="db-card">
+          <div class="db-dot" style="background:linear-gradient(135deg,#f87171,#ef4444)">MS</div>
+          <h3>SQL Server</h3>
+          <p>mssql driver</p>
+          <span class="port">:1433</span>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Install -->
+    <section id="install">
+      <div class="section-eyebrow">Getting Started</div>
+      <h2 class="section-title">Up and running<br>in minutes.</h2>
+      <p class="section-sub">
+        Download a pre-built release for your platform, or build from source.
+      </p>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text2)">Option 1 — Download a release</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:40px;">
+        <a href="https://github.com/kobenguyent/PrismSQL/releases/latest" class="btn-primary" target="_blank" rel="noopener" style="font-size:13px;padding:9px 20px;">
+          🍎 macOS (.dmg)
+        </a>
+        <a href="https://github.com/kobenguyent/PrismSQL/releases/latest" class="btn-primary" target="_blank" rel="noopener" style="font-size:13px;padding:9px 20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+          🪟 Windows (.exe)
+        </a>
+        <a href="https://github.com/kobenguyent/PrismSQL/releases/latest" class="btn-primary" target="_blank" rel="noopener" style="font-size:13px;padding:9px 20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);">
+          🐧 Linux (.AppImage / .deb)
+        </a>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text2)">Option 2 — Build from source</h3>
+      <div class="code-block">
+        <div><span class="comment"># Clone the repository</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">git clone</span> <span class="arg">https://github.com/kobenguyent/PrismSQL.git</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">cd</span> <span class="arg">PrismSQL</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment"># Install dependencies (skipping native compilation)</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm install</span> <span class="arg">--ignore-scripts</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment"># Rebuild SQLite against Electron headers</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">rebuild:sqlite</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment"># Start in development mode</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">dev</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment"># Or package a production build</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">package</span></div>
+      </div>
+
+      <div style="margin-top:32px;">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--text2)">Keyboard shortcuts</h3>
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);">
+          <table class="shortcut-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Shortcut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Run query</td>
+                <td><kbd>⌘ Enter</kbd> / <kbd>Ctrl Enter</kbd></td>
+              </tr>
+              <tr>
+                <td>New query tab</td>
+                <td><kbd>⌘ T</kbd> / <kbd>Ctrl T</kbd></td>
+              </tr>
+              <tr>
+                <td>Toggle sidebar</td>
+                <td>Click the sidebar icon in the titlebar</td>
+              </tr>
+              <tr>
+                <td>Toggle theme</td>
+                <td>Click the moon / sun / monitor icon in the titlebar</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Privacy -->
+    <section id="privacy">
+      <div class="section-eyebrow">Privacy &amp; Data Collection</div>
+      <h2 class="section-title">Your data stays<br>on your machine.</h2>
+      <p class="section-sub">
+        PrismSQL was built with a strict privacy-first philosophy. Here's exactly what happens with your data.
+      </p>
+      <div class="privacy-card">
+        <div class="privacy-row">
+          <div class="privacy-icon">✅</div>
+          <div>
+            <h4>No personal data collected</h4>
+            <p>PrismSQL does not collect, transmit, or store any personal data on external servers. There are no analytics services, telemetry pipelines, or crash-reporting integrations included in the app.</p>
+          </div>
+        </div>
+        <div class="privacy-row">
+          <div class="privacy-icon">💾</div>
+          <div>
+            <h4>Local-only storage</h4>
+            <p>All connection credentials and saved queries are stored locally in your operating system's user-data directory using a plain JSON file. The data never leaves your machine via PrismSQL.</p>
+          </div>
+        </div>
+        <div class="privacy-row">
+          <div class="privacy-icon">🌐</div>
+          <div>
+            <h4>Network traffic only to your databases</h4>
+            <p>The only outbound network traffic PrismSQL initiates is the database connections you explicitly configure. No background requests are made to any PrismSQL or third-party servers.</p>
+          </div>
+        </div>
+        <div class="privacy-row">
+          <div class="privacy-icon">🔓</div>
+          <div>
+            <h4>Fully open source</h4>
+            <p>You can audit every line of code on <a href="https://github.com/kobenguyent/PrismSQL" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a>. If you find anything that concerns you, please open an issue.</p>
+          </div>
+        </div>
+        <div class="privacy-row">
+          <div class="privacy-icon">🏛️</div>
+          <div>
+            <h4>MIT License</h4>
+            <p>PrismSQL is released under the MIT License. You are free to use, modify, and distribute it for any purpose, including commercial use.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Tech stack -->
+    <section>
+      <div class="section-eyebrow">Tech Stack</div>
+      <h2 class="section-title">Built on solid<br>foundations.</h2>
+      <p class="section-sub">
+        PrismSQL uses the best available tools for every layer of the stack.
+      </p>
+      <div class="tech-grid">
+        <div class="tech-pill">Electron 29<span>Shell</span></div>
+        <div class="tech-pill">React 18<span>UI Framework</span></div>
+        <div class="tech-pill">TypeScript<span>Language</span></div>
+        <div class="tech-pill">electron-vite<span>Build tool</span></div>
+        <div class="tech-pill">Zustand + Immer<span>State management</span></div>
+        <div class="tech-pill">CodeMirror 6<span>SQL editor</span></div>
+        <div class="tech-pill">@tanstack/react-table<span>Data grid</span></div>
+        <div class="tech-pill">lucide-react<span>Icons</span></div>
+        <div class="tech-pill">mysql2<span>MySQL / MariaDB</span></div>
+        <div class="tech-pill">pg<span>PostgreSQL</span></div>
+        <div class="tech-pill">better-sqlite3<span>SQLite</span></div>
+        <div class="tech-pill">mssql<span>SQL Server</span></div>
+        <div class="tech-pill">Vitest<span>Tests</span></div>
+        <div class="tech-pill">semantic-release<span>CI / releases</span></div>
+      </div>
+    </section>
+
+  </div><!-- /wrap -->
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-brand">
+      <div class="footer-logo">P</div>
+      <strong>PrismSQL</strong>
+    </div>
+    <p>
+      Built with ❤️ by <strong>JosephThien – KobeT</strong><br />
+      © <script>document.write(new Date().getFullYear())</script> kobenguyent · MIT License<br />
+      <a href="https://github.com/kobenguyent/PrismSQL" target="_blank" rel="noopener">GitHub</a> ·
+      <a href="https://github.com/kobenguyent/PrismSQL/issues" target="_blank" rel="noopener">Report an issue</a> ·
+      <a href="#privacy">Privacy</a>
+    </p>
+  </footer>
+
+</body>
+</html>

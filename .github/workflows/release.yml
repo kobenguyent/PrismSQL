@@ -33,3 +33,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      # Build after versioning so the app reads the correct version from package.json.
+      # This produces the compiled renderer/main bundles with the bumped version string.
+      # Distributable installers for each platform are built by the separate CI workflow.
+      - name: Build app (post-release)
+        run: npx electron-vite build
