@@ -76,6 +76,14 @@ npm run package      # build + create OS-specific installer
 
 Packaged output lands in `dist/`.
 
+> **macOS note:** CI builds are unsigned (no Apple Developer certificate). macOS Gatekeeper may block the app with *"PrismSQL is damaged and can't be opened"*. To open it anyway, remove the quarantine attribute after mounting the DMG and copying the app to `/Applications`:
+>
+> ```bash
+> xattr -cr /Applications/PrismSQL.app
+> ```
+>
+> Alternatively, right-click the app in Finder and choose **Open**, then confirm in the dialog.
+
 ## 🗂️ Project Structure
 
 ```
