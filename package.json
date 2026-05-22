@@ -65,8 +65,9 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": ["dmg", "zip"],
-      "identity": null,
-      "gatekeeperAssess": false
+      "identity": "-",
+      "gatekeeperAssess": false,
+      "hardenedRuntime": false
     },
     "win": {
       "target": ["nsis", "portable"]
