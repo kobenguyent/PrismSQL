@@ -8,14 +8,14 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 
 ## 📸 Screenshots
 
-### Main window — query editor & results
-![Main window](docs/screenshots/main-window.svg)
+### Main window — sidebar, query editor & results panel
+![Main window](docs/screenshots/main-window.png)
 
-### Schema browser — collapsible tree with column types
-![Schema browser](docs/screenshots/schema-browser.svg)
+### Query editor — CodeMirror SQL with syntax highlighting
+![Query editor](docs/screenshots/query-editor.png)
 
 ### Connection modal — add, test and save connections
-![Connection modal](docs/screenshots/connection-modal.svg)
+![Connection modal](docs/screenshots/connection-modal.png)
 
 ## ✨ Features
 
