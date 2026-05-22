@@ -103,7 +103,8 @@ export class PostgresAdapter implements DatabaseAdapter {
     }))
   }
 
-  async getProcedures(database?: string): Promise<ProcedureInfo[]> {
+  async getProcedures(_database?: string): Promise<ProcedureInfo[]> {
+    // Postgres routines are scoped to the connected database; the database param is not needed
     const result = await this.query(
       `SELECT routine_name, routine_schema, routine_type
        FROM information_schema.routines

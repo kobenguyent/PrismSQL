@@ -76,6 +76,7 @@ interface AppState {
   runQuery(tabId: string): Promise<void>
   insertSnippet(tabId: string, snippet: string): void
   openTableInTab(connectionId: string, tableName: string, database: string, schema?: string): Promise<void>
+  openProcedureInTab(connectionId: string, procName: string, procSchema?: string): void
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -351,6 +352,23 @@ export const useAppStore = create<AppState>()(
       await get().runQuery(id)
     },
 
+    openProcedureInTab: (connectionId, procName, procSchema) => {
+      const qualifiedName = procSchema ? `${procSchema}.${procName}` : procName
+      const id = genId()
+      const tab: QueryTab = {
+        id,
+        title: procName,
+        connectionId,
+        sql: `-- Routine: ${qualifiedName}\nCALL ${qualifiedName}();`,
+        result: null,
+        isRunning: false,
+        isSaved: false
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+    },
     setSidebarWidth: (w) => {
       set((s) => {
         s.sidebarWidth = w

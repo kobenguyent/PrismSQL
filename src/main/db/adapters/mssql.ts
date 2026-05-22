@@ -107,7 +107,8 @@ export class MSSQLAdapter implements DatabaseAdapter {
     }))
   }
 
-  async getProcedures(database?: string): Promise<ProcedureInfo[]> {
+  async getProcedures(_database?: string): Promise<ProcedureInfo[]> {
+    // MSSQL routines are scoped to the connected database; the database param is not needed
     const result = await this.query(
       `SELECT SPECIFIC_NAME, ROUTINE_SCHEMA, ROUTINE_TYPE
        FROM INFORMATION_SCHEMA.ROUTINES

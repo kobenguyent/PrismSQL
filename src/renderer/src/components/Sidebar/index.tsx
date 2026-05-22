@@ -43,9 +43,7 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     loadColumns,
     loadProcedures,
     openTableInTab,
-    insertSnippet,
-    activeTabId,
-    newTab
+    openProcedureInTab
   } = useAppStore()
 
   const [tree, setTree] = useState<TreeState>({
@@ -163,16 +161,9 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
 
   const handleOpenProcedure = useCallback(
     (connId: string, procName: string, procSchema?: string) => {
-      const qualifiedName = procSchema ? `${procSchema}.${procName}` : procName
-      const snippet = `-- Procedure: ${qualifiedName}\nCALL ${qualifiedName}();`
-      if (activeTabId) {
-        insertSnippet(activeTabId, snippet)
-      } else {
-        newTab(connId)
-        // insertSnippet will be called after tab creation via a follow-up
-      }
+      openProcedureInTab(connId, procName, procSchema)
     },
-    [activeTabId, insertSnippet, newTab]
+    [openProcedureInTab]
   )
 
   const handleContextMenu = (e: React.MouseEvent) => {
