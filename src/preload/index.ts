@@ -5,6 +5,13 @@ import type { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInf
 
 export type { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo }
 
+export interface SavedQueryRecord {
+  id: string
+  name: string
+  sql: string
+  createdAt: number
+}
+
 const dbAPI = {
   getConnections: (): Promise<ConnectionConfig[]> => ipcRenderer.invoke('db:get-connections'),
   saveConnection: (config: ConnectionConfig): Promise<{ success: boolean }> =>
@@ -26,7 +33,11 @@ const dbAPI = {
   getColumns: (connectionId: string, table: string, database?: string): Promise<ColumnInfo[]> =>
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
-    ipcRenderer.invoke('db:get-procedures', connectionId, database)
+    ipcRenderer.invoke('db:get-procedures', connectionId, database),
+  getSavedQueries: (): Promise<SavedQueryRecord[]> => ipcRenderer.invoke('queries:get'),
+  saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('queries:save', query),
+  deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id)
 }
 
 if (process.contextIsolated) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor } from 'lucide-react'
 import { useAppStore } from './store'
 import { Sidebar } from './components/Sidebar'
 import { TabBar } from './components/TabBar'
@@ -18,10 +18,13 @@ export default function App(): JSX.Element {
     statusType,
     sidebarWidth,
     isSidebarCollapsed,
+    theme,
     loadConnections,
+    loadSavedQueries,
     newTab,
     setSidebarWidth,
-    setSidebarCollapsed
+    setSidebarCollapsed,
+    setTheme
   } = useAppStore()
 
   const [showConnectionModal, setShowConnectionModal] = useState(false)
@@ -40,7 +43,8 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     loadConnections()
-  }, [loadConnections])
+    loadSavedQueries()
+  }, [loadConnections, loadSavedQueries])
 
   // Add initial tab if no tabs
   useEffect(() => {
@@ -105,13 +109,15 @@ export default function App(): JSX.Element {
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
 
+  const isLightTheme = theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
+
   const handleOpenModal = (config?: ConnectionConfig) => {
     setEditingConnection(config ?? null)
     setShowConnectionModal(true)
   }
 
   return (
-    <div className="app-root">
+    <div className={`app-root${isLightTheme ? ' theme-light' : ''}`}>
       {/* Title bar */}
       <div className="titlebar">
         <div className="titlebar-brand">
@@ -119,6 +125,16 @@ export default function App(): JSX.Element {
           <span className="titlebar-name">PrismSQL</span>
         </div>
         <div className="titlebar-actions">
+          <button
+            className="icon-btn"
+            onClick={() => {
+              const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
+              setTheme(next)
+            }}
+            data-tooltip={`Theme: ${theme}`}
+          >
+            {theme === 'dark' ? <Moon size={15} /> : theme === 'light' ? <Sun size={15} /> : <Monitor size={15} />}
+          </button>
           <button
             className={`icon-btn ${isSidebarCollapsed ? '' : 'active'}`}
             onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}

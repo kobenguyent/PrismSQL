@@ -3,7 +3,15 @@ import path from 'path'
 import fs from 'fs'
 import { ConnectionConfig } from './db/types'
 
+export interface SavedQueryRecord {
+  id: string
+  name: string
+  sql: string
+  createdAt: number
+}
+
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
+const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
 
 /** Prefix used to distinguish safeStorage-encrypted values from plaintext. */
 const ENCRYPTED_PREFIX = 'enc:'
@@ -54,5 +62,26 @@ export function saveConnections(connections: ConnectionConfig[]): void {
     fs.writeFileSync(storePath, JSON.stringify(persisted, null, 2), 'utf-8')
   } catch (err) {
     console.error('Failed to save connections:', err)
+  }
+}
+
+export function loadSavedQueries(): SavedQueryRecord[] {
+  try {
+    const p = getSavedQueriesPath()
+    if (!fs.existsSync(p)) return []
+    const data = fs.readFileSync(p, 'utf-8')
+    return JSON.parse(data) as SavedQueryRecord[]
+  } catch {
+    return []
+  }
+}
+
+export function writeSavedQueries(queries: SavedQueryRecord[]): void {
+  try {
+    const p = getSavedQueriesPath()
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(queries, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('Failed to save queries:', err)
   }
 }

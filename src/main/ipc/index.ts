@@ -1,6 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { ConnectionManager } from '../db/manager'
-import { loadConnections, saveConnections } from '../store'
+import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries } from '../store'
 import { ConnectionConfig } from '../db/types'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
@@ -87,4 +87,27 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
       return manager.getProcedures(connectionId, database)
     }
   )
+
+  // Saved queries
+  ipcMain.handle('queries:get', async () => {
+    return loadSavedQueries()
+  })
+
+  ipcMain.handle('queries:save', async (_event: IpcMainInvokeEvent, query: { id: string; name: string; sql: string; createdAt: number }) => {
+    const queries = loadSavedQueries()
+    const idx = queries.findIndex((q) => q.id === query.id)
+    if (idx >= 0) {
+      queries[idx] = query
+    } else {
+      queries.push(query)
+    }
+    writeSavedQueries(queries)
+    return { success: true }
+  })
+
+  ipcMain.handle('queries:delete', async (_event: IpcMainInvokeEvent, id: string) => {
+    const queries = loadSavedQueries().filter((q) => q.id !== id)
+    writeSavedQueries(queries)
+    return { success: true }
+  })
 }

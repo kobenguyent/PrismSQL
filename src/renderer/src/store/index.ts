@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
-import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType } from '../types'
+import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery } from '../types'
 
 function quoteIdentifier(name: string, dbType: DatabaseType): string {
   switch (dbType) {
@@ -34,6 +34,9 @@ declare global {
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
+      getSavedQueries(): Promise<SavedQuery[]>
+      saveQuery(query: SavedQuery): Promise<{ success: boolean }>
+      deleteQuery(id: string): Promise<{ success: boolean }>
     }
   }
 }
@@ -62,9 +65,13 @@ interface AppState {
   tabs: QueryTab[]
   activeTabId: string | null
 
+  // Saved queries
+  savedQueries: SavedQuery[]
+
   // UI state
   sidebarWidth: number
   isSidebarCollapsed: boolean
+  theme: 'dark' | 'light' | 'system'
   statusMessage: string | null
   statusType: 'info' | 'success' | 'error' | 'warning'
 
@@ -90,9 +97,16 @@ interface AppState {
   openTableInTab(connectionId: string, tableName: string, database: string, schema?: string): Promise<void>
   openProcedureInTab(connectionId: string, proc: ProcedureInfo): void
 
+  // Saved query actions
+  loadSavedQueries(): Promise<void>
+  saveCurrentQuery(tabId: string, name: string): Promise<void>
+  deleteSavedQuery(id: string): Promise<void>
+  openSavedQuery(query: SavedQuery): void
+
   // UI actions
   setSidebarWidth(w: number): void
   setSidebarCollapsed(v: boolean): void
+  setTheme(t: 'dark' | 'light' | 'system'): void
   setStatus(msg: string | null, type?: AppState['statusType']): void
 }
 
@@ -103,8 +117,10 @@ export const useAppStore = create<AppState>()(
     schema: {},
     tabs: [],
     activeTabId: null,
+    savedQueries: [],
     sidebarWidth: 280,
     isSidebarCollapsed: false,
+    theme: 'dark' as 'dark' | 'light' | 'system',
     statusMessage: null,
     statusType: 'info',
     loadConnections: async () => {
@@ -404,8 +420,52 @@ export const useAppStore = create<AppState>()(
         s.activeTabId = id
       })
     },
-    setSidebarWidth: (w) => {
+    loadSavedQueries: async () => {
+      const queries = await window.db.getSavedQueries()
       set((s) => {
+        s.savedQueries = queries
+      })
+    },
+
+    saveCurrentQuery: async (tabId, name) => {
+      const tab = get().tabs.find((t) => t.id === tabId)
+      if (!tab || !tab.sql.trim()) return
+      const query: SavedQuery = {
+        id: genId(),
+        name,
+        sql: tab.sql,
+        createdAt: Date.now()
+      }
+      await window.db.saveQuery(query)
+      await get().loadSavedQueries()
+      get().setStatus(`Query saved: ${name}`, 'success')
+    },
+
+    deleteSavedQuery: async (id) => {
+      await window.db.deleteQuery(id)
+      set((s) => {
+        s.savedQueries = s.savedQueries.filter((q) => q.id !== id)
+      })
+    },
+
+    openSavedQuery: (query) => {
+      const id = genId()
+      const tab: QueryTab = {
+        id,
+        title: query.name,
+        connectionId: get().tabs[get().tabs.length - 1]?.connectionId || null,
+        sql: query.sql,
+        result: null,
+        isRunning: false,
+        isSaved: true
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+    },
+
+    setSidebarWidth: (w) => {      set((s) => {
         s.sidebarWidth = w
       })
     },
@@ -413,6 +473,12 @@ export const useAppStore = create<AppState>()(
     setSidebarCollapsed: (v) => {
       set((s) => {
         s.isSidebarCollapsed = v
+      })
+    },
+
+    setTheme: (t) => {
+      set((s) => {
+        s.theme = t
       })
     },
 

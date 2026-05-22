@@ -62,6 +62,13 @@ export interface QueryTab {
   isSaved: boolean
 }
 
+export interface SavedQuery {
+  id: string
+  name: string
+  sql: string
+  createdAt: number
+}
+
 export const DB_COLORS: Record<DatabaseType, string> = {
   mysql: '#f97316',
   mariadb: '#c084fc',
