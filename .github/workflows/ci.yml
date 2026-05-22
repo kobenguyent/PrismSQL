@@ -61,7 +61,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Allow ad-hoc signing (identity: "-") in pull request builds on macOS.
           # CSC_FOR_PULL_REQUEST only affects signing; no certificate secrets are exposed.
-          CSC_FOR_PULL_REQUEST: ${{ matrix.os == 'macos-latest' }}
+          CSC_FOR_PULL_REQUEST: ${{ matrix.os == 'macos-latest' && 'true' || '' }}
 
       - name: Upload artifacts (Linux)
         if: matrix.os == 'ubuntu-latest'
