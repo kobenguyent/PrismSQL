@@ -38,7 +38,7 @@ interface TreeState {
 
 const UNGROUPED_CATEGORY_KEY = ''
 
-const normalizeCategoryKey = (category?: string): string => category?.trim() || UNGROUPED_CATEGORY_KEY
+const normalizeCategoryKey = (category?: string | null): string => category?.trim() || UNGROUPED_CATEGORY_KEY
 const isUngroupedCategory = (categoryKey: string): boolean => categoryKey === UNGROUPED_CATEGORY_KEY
 
 export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
@@ -66,7 +66,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   const [isRenameSubmitting, setIsRenameSubmitting] = useState(false)
   const [expandedQueryCategories, setExpandedQueryCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
   const [expandedConnCategories, setExpandedConnCategories] = useState<Set<string>>(new Set([UNGROUPED_CATEGORY_KEY]))
-  const suppressRenameBlurRef = useRef(false)
+  const isRenameSubmittingRef = useRef(false)
 
   const [tree, setTree] = useState<TreeState>({
     expandedConnections: new Set(),
@@ -200,25 +200,31 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
 
   const commitRename = useCallback(
     async (query: SavedQuery) => {
+      if (isRenameSubmittingRef.current) {
+        return
+      }
       const nextName = renameValue.trim()
       if (!nextName || nextName === query.name) {
         cancelRename()
         return
       }
-      if (isRenameSubmitting) {
-        return
-      }
+      isRenameSubmittingRef.current = true
       setIsRenameSubmitting(true)
       try {
         await updateSavedQuery({ ...query, name: nextName })
         cancelRename()
       } catch (error) {
-        console.error('Failed to rename saved query', error)
+        console.error('Failed to rename saved query', {
+          queryId: query.id,
+          queryName: query.name,
+          error
+        })
       } finally {
+        isRenameSubmittingRef.current = false
         setIsRenameSubmitting(false)
       }
     },
-    [renameValue, isRenameSubmitting, updateSavedQuery, cancelRename]
+    [renameValue, updateSavedQuery, cancelRename]
   )
 
   return (
@@ -783,9 +789,12 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                                       cancelRename()
                                     }
                                   }}
-                                  onBlur={() => {
-                                    if (suppressRenameBlurRef.current) {
-                                      suppressRenameBlurRef.current = false
+                                  onBlur={(e) => {
+                                    const nextFocused = e.relatedTarget
+                                    if (
+                                      nextFocused instanceof Node &&
+                                      e.currentTarget.parentElement?.contains(nextFocused)
+                                    ) {
                                       return
                                     }
                                     void commitRename(q)
@@ -809,12 +818,6 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                               <button
                                 className="icon-btn"
                                 style={{ width: 20, height: 20, flexShrink: 0 }}
-                                onMouseDown={(e) => {
-                                  if (renamingQueryId === q.id) {
-                                    suppressRenameBlurRef.current = true
-                                    e.preventDefault()
-                                  }
-                                }}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (renamingQueryId === q.id) {
