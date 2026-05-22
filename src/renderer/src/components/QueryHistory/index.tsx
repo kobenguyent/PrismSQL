@@ -22,7 +22,9 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString()
 }
 
-function truncateSql(sql: string, maxLen = 120): string {
+const SQL_PREVIEW_LEN = 120
+
+function truncateSql(sql: string, maxLen = SQL_PREVIEW_LEN): string {
   const single = sql.replace(/\s+/g, ' ').trim()
   return single.length > maxLen ? single.slice(0, maxLen) + '…' : single
 }

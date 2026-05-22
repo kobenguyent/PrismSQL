@@ -3,6 +3,8 @@ import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
 import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery, QueryHistoryEntry, AppSettings } from '../types'
 
+const MAX_QUERY_HISTORY = 200
+
 function quoteIdentifier(name: string, dbType: DatabaseType): string {
   switch (dbType) {
     case 'mssql':
@@ -539,9 +541,8 @@ export const useAppStore = create<AppState>()(
     addToHistory: (entry) => {
       set((s) => {
         s.queryHistory.unshift(entry)
-        // Keep at most 200 entries
-        if (s.queryHistory.length > 200) {
-          s.queryHistory.length = 200
+        if (s.queryHistory.length > MAX_QUERY_HISTORY) {
+          s.queryHistory.length = MAX_QUERY_HISTORY
         }
       })
     },

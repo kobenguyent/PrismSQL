@@ -238,16 +238,21 @@ export function ResultsTable({
     if (val === null || val === undefined) return 'NULL'
     if (typeof val === 'number' || typeof val === 'bigint') return String(val)
     if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE'
-    const str = String(val).replace(/'/g, "''")
+    // Escape single quotes and backslashes to prevent SQL injection
+    const str = String(val).replace(/\\/g, '\\\\').replace(/'/g, "''")
     return `'${str}'`
   }
 
-  function buildUpdateSql(row: Record<string, unknown>, col: string, newVal: string): string {
+  function buildUpdateSql(
+    row: Record<string, unknown>,
+    col: string,
+    newVal: string
+  ): string | null {
+    if (pkColumns.length === 0) return null
     const qualifier = schema ?? database
     const tableRef = qualifier ? `${quoteId(qualifier)}.${quoteId(tableName!)}` : quoteId(tableName!)
     const setCl = `${quoteId(col)} = ${quoteValue(newVal)}`
-    const whereParts = pkColumns.map((pk) => `${quoteId(pk.name)} = ${quoteValue(row[pk.name])}`)
-    const whereCl = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1 /* WARNING: no primary key found */'
+    const whereCl = pkColumns.map((pk) => `${quoteId(pk.name)} = ${quoteValue(row[pk.name])}`).join(' AND ')
     return `UPDATE ${tableRef}\nSET ${setCl}\nWHERE ${whereCl};`
   }
 
@@ -269,6 +274,11 @@ export function ResultsTable({
   function commitEdit(row: Record<string, unknown>) {
     if (!editingCell) return
     const sql = buildUpdateSql(row, editingCell.col, editValue)
+    if (!sql) {
+      setEditingCell(null)
+      setUpdateError('Cannot edit: table has no primary key columns. Editing requires a primary key to safely identify the row.')
+      return
+    }
     setPendingUpdate({ sql, row })
     setUpdateError(null)
     setEditingCell(null)
