@@ -35,16 +35,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            artifact_name: linux
-            artifact_path: dist/*.AppImage dist/*.deb
-          - os: macos-latest
-            artifact_name: mac
-            artifact_path: dist/*.dmg dist/*.zip
-          - os: windows-latest
-            artifact_name: windows
-            artifact_path: dist/*.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -68,10 +58,33 @@ jobs:
       - name: Build and package
         run: npm run package
 
-      - name: Upload artifacts
+      - name: Upload artifacts (Linux)
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: prismsql-${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_path }}
+          name: prismsql-linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prismsql-mac
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prismsql-windows
+          path: dist/*.exe
           if-no-files-found: warn
           retention-days: 30
