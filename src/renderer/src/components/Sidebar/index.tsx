@@ -225,17 +225,13 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   }
 
   const applyTemplate = useCallback((sql: string) => {
-    let targetTabId = useAppStore.getState().activeTabId
+    const state = useAppStore.getState()
+    let targetTabId = state.activeTabId
     if (!targetTabId) {
-      newTab()
-      targetTabId = useAppStore.getState().activeTabId
+      targetTabId = newTab()
     }
-    if (!targetTabId) {
-      setStatus('Unable to open a query tab', 'error')
-      return
-    }
-    const existingSql = useAppStore.getState().tabs.find((t) => t.id === targetTabId)?.sql ?? ''
-    const trimmedSql = existingSql.trimEnd()
+    const tab = useAppStore.getState().tabs.find((t) => t.id === targetTabId)
+    const trimmedSql = (tab?.sql ?? '').trimEnd()
     const nextSql = trimmedSql ? `${trimmedSql}\n\n${sql}` : sql
     updateTabSql(targetTabId, nextSql)
     setStatus('SQL template inserted', 'success')
