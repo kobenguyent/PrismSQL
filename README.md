@@ -38,6 +38,18 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 | SQLite       | better-sqlite3 | —       |
 | SQL Server   | mssql     | 1433        |
 
+## ⬇️ Download
+
+Pre-built installers for every platform are attached to each [GitHub Release](https://github.com/kobenguyent/PrismSQL/releases/latest):
+
+| Platform | File |
+|----------|------|
+| 🍎 macOS | `.dmg` / `.zip` |
+| 🪟 Windows | `.exe` (NSIS installer / portable) |
+| 🐧 Linux | `.AppImage` / `.deb` |
+
+Head to the [Releases page](https://github.com/kobenguyent/PrismSQL/releases/latest) and download the asset for your platform.
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -45,7 +57,7 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 - **Node.js** ≥ 18
 - **npm** ≥ 9
 
-### Install
+### Build from source
 
 ```bash
 # Clone
