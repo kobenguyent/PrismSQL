@@ -1,34 +1,80 @@
 # Features
 
+This file is the **expected-behavior contract** for PrismSQL. Update it when
+user-visible behavior changes. See [`docs/ai/graph.md`](graph.md) for
+implementation details and [`docs/ai/issues.md`](issues.md) for known bugs.
+
+---
+
 ## Connection Management
 
-Expected behavior:
+**Files:** `ConnectionModal/index.tsx`, `store/index.ts`, `ipc/index.ts`,
+`db/manager.ts`, `store.ts`
 
-- Users can create, test, update, and delete saved connections.
-- Failed connection attempts should show an error and should not create saved
-  connection records.
-- Successful connection attempts can be saved and displayed in the sidebar.
+| Behavior | Expected |
+|---|---|
+| Create connection | Form validates name is non-empty before saving |
+| Test connection | Calls `db:test-connection` (no persist); shows inline result |
+| Connect | Calls `db:connect`; saves only on success |
+| Failed connection | Shows inline error in modal; does **not** create a saved record |
+| Edit connection | Pre-fills form with existing config; updates in place |
+| Delete connection | Removes from sidebar and disconnects live socket |
+| Credentials | Passwords encrypted at rest via `safeStorage` in main process |
 
-## Query Workspace
+**Key invariant:** `saveConnection` is never called when `connect` returns
+`{ success: false }`. See `graph.md` — Critical Data Flows § 2.
 
-Expected behavior:
-
-- Users can create multiple query tabs.
-- Users can select a connected database per tab.
-- Query results show row count, duration, columns, and data.
+---
 
 ## Schema Browser
 
-Expected behavior:
+**Files:** `Sidebar/index.tsx`, `store/index.ts`, `ipc/index.ts`, `db/manager.ts`
 
-- Connected databases expose databases, tables, views, columns, and routines.
-- Opening a table creates a safe preview query for that table.
+| Behavior | Expected |
+|---|---|
+| Expand connection | Loads databases lazily |
+| Expand database | Loads tables, views, routines lazily |
+| Expand table | Loads columns lazily |
+| Open table | Creates `SELECT * FROM <table> LIMIT 200` in a new query tab |
+| Sidebar resize | Drag handle adjusts sidebar width; layout stays stable |
+
+---
+
+## Query Workspace
+
+**Files:** `QueryEditor/index.tsx`, `TabBar/index.tsx`, `ResultsTable/index.tsx`,
+`store/index.ts`
+
+| Behavior | Expected |
+|---|---|
+| New tab | Opens a blank query tab |
+| Close tab | Removes the tab and its result state |
+| Run query | Executes SQL against the selected connection; shows results below |
+| Query results | Display row count, execution duration, columns, and rows |
+| No connection | Tab shows a prompt to connect before running |
+
+---
 
 ## Saved Queries
 
-Expected behavior:
+**Files:** `Sidebar/index.tsx`, `store/index.ts`, `ipc/index.ts`, `store.ts`
 
-- Users can save named SQL snippets.
-- Saved queries are local to the machine.
-- Opening a saved query should not run it automatically.
+| Behavior | Expected |
+|---|---|
+| Save query | Named SQL snippet stored locally in `saved-queries.json` |
+| Open saved query | Loads SQL into a new tab — does **not** auto-run |
+| Delete | Removes from sidebar and local store |
+
+---
+
+## Status Bar
+
+**Files:** `App.tsx`, `store/index.ts`
+
+| Behavior | Expected |
+|---|---|
+| Success messages | Auto-clear after 6 seconds |
+| Error messages | Auto-clear after 6 seconds |
+| Connection count | Always visible — shows live active connection count |
+| Modal errors | Shown inline inside the modal **only** — not in the status bar |
 
