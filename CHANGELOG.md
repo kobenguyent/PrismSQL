@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/kobenguyent/PrismSQL/compare/v1.0.0...v1.1.0) (2026-05-22)
+
+
+### Bug Fixes
+
+* code review issues - safe pop, use hook for theme, fix openSavedQuery connectionId ([16a75a1](https://github.com/kobenguyent/PrismSQL/commit/16a75a1652b065daa0748ad7622c4498d4fb51c2))
+* qualify table name with database when schema is absent (information_schema) ([190038d](https://github.com/kobenguyent/PrismSQL/commit/190038def1ae0b33fd354df7082e3d27ad9dd75c))
+
+
+### Features
+
+* themes, saved queries, SQL autocomplete, single-row horizontal view ([4d4c053](https://github.com/kobenguyent/PrismSQL/commit/4d4c053b96183a72a4284c00c070210514ab211c))
+
 # 1.0.0 (2026-05-22)
 
 
