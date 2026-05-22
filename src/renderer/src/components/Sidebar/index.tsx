@@ -12,7 +12,8 @@ import {
   PowerOff,
   Search,
   Code2,
-  FunctionSquare
+  FunctionSquare,
+  BookOpen
 } from 'lucide-react'
 import { useAppStore } from '../../store'
 import type { ConnectionConfig } from '../../types'
@@ -36,6 +37,7 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     connections,
     connectedIds,
     schema,
+    savedQueries,
     connect,
     disconnect,
     deleteConnection,
@@ -43,8 +45,12 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     loadColumns,
     loadProcedures,
     openTableInTab,
-    openProcedureInTab
+    openProcedureInTab,
+    deleteSavedQuery,
+    openSavedQuery
   } = useAppStore()
+
+  const [savedQueriesExpanded, setSavedQueriesExpanded] = useState(true)
 
   const [tree, setTree] = useState<TreeState>({
     expandedConnections: new Set(),
@@ -563,6 +569,53 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
             </div>
           )
         })}
+
+        {/* Saved Queries section */}
+        <div style={{ borderTop: '1px solid var(--glass-border)', marginTop: 8 }}>
+          <div
+            className="connection-item"
+            onClick={() => setSavedQueriesExpanded((v) => !v)}
+            style={{ padding: '8px 14px' }}
+          >
+            {savedQueriesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            <BookOpen size={13} style={{ color: 'var(--accent)' }} />
+            <span className="connection-name" style={{ fontWeight: 600 }}>Saved Queries</span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+              {savedQueries.length}
+            </span>
+          </div>
+          {savedQueriesExpanded && (
+            <div>
+              {savedQueries.length === 0 ? (
+                <div style={{ padding: '6px 28px', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+                  No saved queries
+                </div>
+              ) : (
+                savedQueries.map((q) => (
+                  <div
+                    key={q.id}
+                    className="tree-item tree-item-indent-1"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => openSavedQuery(q)}
+                  >
+                    <Code2 size={11} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {q.name}
+                    </span>
+                    <button
+                      className="icon-btn"
+                      style={{ width: 20, height: 20, flexShrink: 0 }}
+                      onClick={(e) => { e.stopPropagation(); deleteSavedQuery(q.id) }}
+                      data-tooltip="Delete"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

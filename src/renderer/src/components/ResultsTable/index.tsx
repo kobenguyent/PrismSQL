@@ -98,6 +98,7 @@ export function ResultsTable({ result }: Props): JSX.Element {
   }
 
   const filteredCount = table.getFilteredRowModel().rows.length
+  const isSingleRow = result.rows.length === 1
 
   return (
     <div className="results-pane" style={{ height: '100%' }}>
@@ -110,16 +111,23 @@ export function ResultsTable({ result }: Props): JSX.Element {
           {result.duration}ms
           {' · '}
           {result.columns.length} col{result.columns.length !== 1 ? 's' : ''}
+          {isSingleRow && (
+            <span style={{ marginLeft: 6, color: 'var(--accent)', fontSize: 'var(--font-size-xs)' }}>
+              · horizontal view
+            </span>
+          )}
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <button
-            className={`icon-btn ${showFilter ? 'active' : ''}`}
-            onClick={toggleFilter}
-            data-tooltip="Filter columns"
-          >
-            <Filter size={13} />
-          </button>
+          {!isSingleRow && (
+            <button
+              className={`icon-btn ${showFilter ? 'active' : ''}`}
+              onClick={toggleFilter}
+              data-tooltip="Filter columns"
+            >
+              <Filter size={13} />
+            </button>
+          )}
           <button className="icon-btn" onClick={exportCSV} data-tooltip="Export CSV">
             <Download size={13} />
           </button>
@@ -133,6 +141,36 @@ export function ResultsTable({ result }: Props): JSX.Element {
               Query executed successfully — no rows returned
             </span>
           </div>
+        ) : isSingleRow ? (
+          /* Horizontal view for single-row results */
+          <table className="data-table">
+            <tbody>
+              {result.columns.map((col) => {
+                const value = result.rows[0][col.name]
+                return (
+                  <tr key={col.name}>
+                    <td style={{
+                      fontFamily: 'var(--font-sans)',
+                      fontWeight: 600,
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      whiteSpace: 'nowrap',
+                      width: 160,
+                      borderRight: '1px solid var(--glass-border)',
+                      userSelect: 'none'
+                    }}>
+                      {col.name}
+                    </td>
+                    <td className={cellClass(value)}>
+                      {formatCell(value)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         ) : (
           <table className="data-table">
             <thead>
