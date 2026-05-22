@@ -9,6 +9,24 @@ interface Props {
   editConfig?: ConnectionConfig | null
 }
 
+interface ConnectionPersistenceActions {
+  connect(config: ConnectionConfig): Promise<{ success: boolean; error?: string }>
+  saveConnection(config: ConnectionConfig): Promise<void>
+}
+
+export async function connectThenSaveConnection(
+  config: ConnectionConfig,
+  { connect, saveConnection }: ConnectionPersistenceActions
+): Promise<{ success: boolean; error?: string }> {
+  const result = await connect(config)
+  if (!result.success) {
+    return result
+  }
+
+  await saveConnection(config)
+  return result
+}
+
 const DB_TYPES: { value: DatabaseType; label: string; icon: string; color: string }[] = [
   { value: 'mysql', label: 'MySQL', icon: 'M', color: '#f97316' },
   { value: 'mariadb', label: 'MariaDB', icon: 'Mb', color: '#c084fc' },
@@ -78,8 +96,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
         ...config,
         category: normalizedCategory || undefined
       }
-      await saveConnection(fullConfig)
-      const result = await connect(fullConfig)
+      const result = await connectThenSaveConnection(fullConfig, { connect, saveConnection })
       if (result.success) {
         onClose()
       } else {
