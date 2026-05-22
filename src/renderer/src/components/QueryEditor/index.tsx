@@ -4,6 +4,7 @@ import { sql as sqlLang, StandardSQL } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { Play, StopCircle, Save, X } from 'lucide-react'
 import { useAppStore } from '../../store'
+import { useIsLightTheme } from '../../hooks/useIsLightTheme'
 import type { QueryTab } from '../../types'
 
 interface Props {
@@ -11,7 +12,8 @@ interface Props {
 }
 
 export function QueryEditor({ tab }: Props): JSX.Element {
-  const { connections, connectedIds, schema, updateTabSql, updateTabConnection, runQuery, saveCurrentQuery, theme } = useAppStore()
+  const { connections, connectedIds, schema, updateTabSql, updateTabConnection, runQuery, saveCurrentQuery } = useAppStore()
+  const isLightTheme = useIsLightTheme()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
 
@@ -47,8 +49,9 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     // Attach column names
     for (const [key, cols] of Object.entries(connSchema.columns)) {
       // key is "db.table" or "table"
-      const tableName = key.includes('.') ? key.split('.').pop()! : key
-      if (result[tableName]) {
+      const parts = key.split('.')
+      const tableName = parts.length > 1 ? parts[parts.length - 1] : key
+      if (tableName && result[tableName]) {
         result[tableName] = cols.map((c) => c.name)
       }
     }
@@ -59,8 +62,6 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     () => [sqlLang({ dialect: StandardSQL, schema: sqlSchema, upperCaseKeywords: false })],
     [sqlSchema]
   )
-
-  const isLightTheme = theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   const handleSave = async () => {
     if (!saveName.trim()) return

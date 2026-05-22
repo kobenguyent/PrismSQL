@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { Database, LayoutPanelLeft, Moon, Sun, Monitor } from 'lucide-react'
 import { useAppStore } from './store'
+import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
 import { TabBar } from './components/TabBar'
 import { QueryEditor } from './components/QueryEditor'
@@ -109,7 +110,7 @@ export default function App(): JSX.Element {
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
 
-  const isLightTheme = theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const isLightTheme = useIsLightTheme()
 
   const handleOpenModal = (config?: ConnectionConfig) => {
     setEditingConnection(config ?? null)

@@ -450,10 +450,12 @@ export const useAppStore = create<AppState>()(
 
     openSavedQuery: (query) => {
       const id = genId()
+      const { tabs, activeTabId } = get()
+      const activeTab = tabs.find((t) => t.id === activeTabId)
       const tab: QueryTab = {
         id,
         title: query.name,
-        connectionId: get().tabs[get().tabs.length - 1]?.connectionId || null,
+        connectionId: activeTab?.connectionId || null,
         sql: query.sql,
         result: null,
         isRunning: false,
@@ -465,7 +467,8 @@ export const useAppStore = create<AppState>()(
       })
     },
 
-    setSidebarWidth: (w) => {      set((s) => {
+    setSidebarWidth: (w) => {
+      set((s) => {
         s.sidebarWidth = w
       })
     },
