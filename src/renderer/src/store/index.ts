@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-function uuidSimple(): string {
+export function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
@@ -199,7 +199,7 @@ export const useAppStore = create<AppState>()(
     },
 
     newTab: (connectionId = null) => {
-      const id = uuidSimple()
+      const id = genId()
       const tab: QueryTab = {
         id,
         title: 'Query',
@@ -319,8 +319,3 @@ export const useAppStore = create<AppState>()(
     }
   }))
 )
-
-// Export a simple uuid function for components
-export function genId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
-}

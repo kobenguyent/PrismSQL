@@ -135,13 +135,9 @@ export default function App(): JSX.Element {
         {!isSidebarCollapsed && (
           <>
             <div
-              className="sidebar"
               style={{ width: sidebarWidth, minWidth: sidebarWidth }}
             >
-              <Sidebar
-                onNewConnection={() => handleOpenModal()}
-                onEditConnection={(c) => handleOpenModal(c)}
-              />
+              <Sidebar onNewConnection={() => handleOpenModal()} />
             </div>
             {/* Resize handle */}
             <div className="resize-handle" onMouseDown={startResize} />

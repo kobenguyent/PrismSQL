@@ -20,7 +20,8 @@ export function saveConnections(connections: ConnectionConfig[]): void {
   try {
     const storePath = getStorePath()
     fs.mkdirSync(path.dirname(storePath), { recursive: true })
-    fs.writeFileSync(storePath, JSON.stringify(connections, null, 2), 'utf-8')
+    const persistedConnections = connections.map(({ password, ...connection }) => connection)
+    fs.writeFileSync(storePath, JSON.stringify(persistedConnections, null, 2), 'utf-8')
   } catch (err) {
     console.error('Failed to save connections:', err)
   }

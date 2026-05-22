@@ -318,6 +318,14 @@ html, body, #root {
 }
 .connection-item:hover { background: var(--glass-bg-hover); }
 .connection-item.active { background: var(--accent-dim); }
+.conn-actions {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.connection-item:hover .conn-actions,
+.connection-item.active .conn-actions {
+  opacity: 1;
+}
 
 .connection-dot {
   width: 8px;

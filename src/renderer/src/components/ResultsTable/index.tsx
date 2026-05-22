@@ -5,8 +5,7 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
   flexRender,
-  type SortingState,
-  type ColumnFiltersState
+  type SortingState
 } from '@tanstack/react-table'
 import { ArrowUp, ArrowDown, Download, Filter } from 'lucide-react'
 import type { QueryResult } from '../../types'
@@ -32,7 +31,6 @@ function formatCell(value: unknown): string {
 
 export function ResultsTable({ result }: Props): JSX.Element {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [showFilter, setShowFilter] = useState(false)
 

@@ -34,6 +34,11 @@ export class MySQLAdapter implements DatabaseAdapter {
       const [rows, fields] = await this.connection.execute<RowDataPacket[]>(sql, params)
       const duration = Date.now() - start
       const resultRows = Array.isArray(rows) ? rows : []
+      const rowCount = Array.isArray(rows)
+        ? resultRows.length
+        : typeof (rows as { affectedRows?: unknown }).affectedRows === 'number'
+          ? ((rows as { affectedRows: number }).affectedRows)
+          : 0
       const columns = (fields as FieldPacket[] || []).map((f) => ({
         name: f.name,
         type: f.type?.toString() || 'unknown',
@@ -43,7 +48,7 @@ export class MySQLAdapter implements DatabaseAdapter {
       return {
         columns,
         rows: resultRows as Record<string, unknown>[],
-        rowCount: resultRows.length,
+        rowCount,
         duration
       }
     } catch (err) {

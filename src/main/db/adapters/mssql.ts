@@ -38,14 +38,18 @@ export class MSSQLAdapter implements DatabaseAdapter {
       const result = await request.query(sql)
       const duration = Date.now() - start
       const rows = result.recordset || []
-      const columns =
-        rows.length > 0
-          ? Object.keys(rows[0]).map((name) => ({ name, type: 'unknown', nullable: true, primaryKey: false }))
-          : []
+      const metadataColumns = result.recordset?.columns
+        ? Object.keys(result.recordset.columns)
+        : []
+      const columns = (rows.length > 0 ? Object.keys(rows[0]) : metadataColumns)
+        .map((name) => ({ name, type: 'unknown', nullable: true, primaryKey: false }))
+      const rowCount = rows.length > 0
+        ? rows.length
+        : result.rowsAffected.reduce((sum, count) => sum + count, 0)
       return {
         columns,
         rows: rows as Record<string, unknown>[],
-        rowCount: rows.length,
+        rowCount,
         duration
       }
     } catch (err) {

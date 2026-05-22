@@ -30,11 +30,17 @@ export class SQLiteAdapter implements DatabaseAdapter {
       if (isSelect) {
         const stmt = this.db.prepare(sql)
         const rows = stmt.all(...params) as Record<string, unknown>[]
+        const metadataColumns = stmt.columns().map((col) => ({
+          name: col.name,
+          type: col.type || 'TEXT',
+          nullable: true,
+          primaryKey: false
+        }))
         const duration = Date.now() - start
         const columns =
           rows.length > 0
             ? Object.keys(rows[0]).map((name) => ({ name, type: 'TEXT', nullable: true, primaryKey: false }))
-            : []
+            : metadataColumns
         return { columns, rows, rowCount: rows.length, duration }
       } else {
         const stmt = this.db.prepare(sql)

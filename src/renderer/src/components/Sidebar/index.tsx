@@ -8,7 +8,6 @@ import {
   Eye,
   Columns,
   Trash2,
-  RefreshCw,
   Power,
   PowerOff
 } from 'lucide-react'
@@ -18,7 +17,6 @@ import { DB_COLORS } from '../../types'
 
 interface Props {
   onNewConnection: () => void
-  onEditConnection: (config: ConnectionConfig) => void
 }
 
 interface TreeState {
@@ -28,7 +26,7 @@ interface TreeState {
   selectedTable: string | null
 }
 
-export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
+export function Sidebar({ onNewConnection }: Props): JSX.Element {
   const {
     connections,
     connectedIds,
@@ -39,8 +37,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     loadTables,
     loadColumns,
     insertSnippet,
-    activeTabId,
-    tabs
+    activeTabId
   } = useAppStore()
 
   const [tree, setTree] = useState<TreeState>({
@@ -97,8 +94,9 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   )
 
   const toggleTable = useCallback(
-    async (connId: string, tableName: string, dbName: string) => {
-      const key = `${connId}/${dbName}/${tableName}`
+    async (connId: string, tableName: string, dbName: string, schema?: string) => {
+      const qualifiedTableName = schema ? `${schema}.${tableName}` : tableName
+      const key = `${connId}/${dbName}/${qualifiedTableName}`
       const expanded = tree.expandedTables[connId] ?? new Set<string>()
       const isExpanded = expanded.has(key)
       setTree((prev) => {
@@ -115,18 +113,19 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
         }
       })
       if (!isExpanded) {
-        await loadColumns(connId, tableName, dbName)
+        await loadColumns(connId, qualifiedTableName, dbName)
       }
     },
     [tree.expandedTables, loadColumns]
   )
 
-  const handleInsertSelect = (connId: string, tableName: string) => {
+  const handleInsertSelect = (tableName: string, schema?: string) => {
     if (!activeTabId) return
-    insertSnippet(activeTabId, `SELECT * FROM ${tableName} LIMIT 100;`)
+    const qualifiedTableName = schema ? `${schema}.${tableName}` : tableName
+    insertSnippet(activeTabId, `SELECT * FROM ${qualifiedTableName} LIMIT 100;`)
   }
 
-  const handleContextMenu = (e: React.MouseEvent, conn: ConnectionConfig) => {
+  const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
   }
@@ -165,11 +164,11 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
           return (
             <div key={conn.id}>
               {/* Connection row */}
-              <div
-                className={`connection-item ${isExpanded ? 'active' : ''}`}
-                onClick={() => toggleConnection(conn)}
-                onContextMenu={(e) => handleContextMenu(e, conn)}
-              >
+                <div
+                  className={`connection-item ${isExpanded ? 'active' : ''}`}
+                  onClick={() => toggleConnection(conn)}
+                  onContextMenu={handleContextMenu}
+                >
                 <span
                   className={`connection-dot ${isConnected ? 'connected' : ''}`}
                   style={{ background: isConnected ? color : undefined }}
@@ -195,7 +194,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                 </span>
 
                 {/* Actions (shown on hover via CSS opacity trick) */}
-                <span style={{ display: 'flex', gap: 2, opacity: 0 }} className="conn-actions">
+                <span style={{ display: 'flex', gap: 2 }} className="conn-actions">
                   <button
                     className="icon-btn"
                     style={{ width: 20, height: 20 }}
@@ -262,16 +261,17 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
                                 </div>
                               ) : (
                                 tables.map((tbl) => {
-                                  const tableKey = `${conn.id}/${dbName}/${tbl.name}`
+                                  const qualifiedTableName = tbl.schema ? `${tbl.schema}.${tbl.name}` : tbl.name
+                                  const tableKey = `${conn.id}/${dbName}/${qualifiedTableName}`
                                   const tblExpanded = (tree.expandedTables[conn.id] ?? new Set()).has(tableKey)
-                                  const columns = connSchema.columns[`${dbName}.${tbl.name}`] ?? []
+                                  const columns = connSchema.columns[`${dbName}.${qualifiedTableName}`] ?? []
 
                                   return (
-                                    <div key={tbl.name}>
+                                    <div key={tableKey}>
                                       <div
                                         className={`tree-item tree-item-indent-1 ${tree.selectedTable === tableKey ? 'selected' : ''}`}
-                                        onClick={() => toggleTable(conn.id, tbl.name, dbName)}
-                                        onDoubleClick={() => handleInsertSelect(conn.id, tbl.name)}
+                                        onClick={() => toggleTable(conn.id, tbl.name, dbName, tbl.schema)}
+                                        onDoubleClick={() => handleInsertSelect(tbl.name, tbl.schema)}
                                         title={`Double-click to insert SELECT statement`}
                                       >
                                         {tblExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
