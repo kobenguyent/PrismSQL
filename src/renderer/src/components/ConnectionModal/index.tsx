@@ -71,11 +71,20 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
       return
     }
     setSaving(true)
-    const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
-    await saveConnection(fullConfig)
-    await connect(fullConfig)
-    setSaving(false)
-    onClose()
+    try {
+      const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
+      await saveConnection(fullConfig)
+      const result = await connect(fullConfig)
+      if (result.success) {
+        onClose()
+      } else {
+        setTestResult({ success: false, error: result.error ?? 'Connection failed' })
+      }
+    } catch (err) {
+      setTestResult({ success: false, error: (err as Error).message })
+    } finally {
+      setSaving(false)
+    }
   }, [config, editConfig, saveConnection, connect, setStatus, onClose])
 
   const isSQLite = config.type === 'sqlite'

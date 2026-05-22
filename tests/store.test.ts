@@ -43,7 +43,7 @@ describe('Connection Store (persistence)', () => {
     expect(loaded[1].type).toBe('mysql')
   })
 
-  it('saveConnections does not persist plaintext passwords', async () => {
+  it('saveConnections persists passwords so saved connections can reconnect', async () => {
     const { saveConnections } = await import('../src/main/store')
     saveConnections([
       {
@@ -56,7 +56,7 @@ describe('Connection Store (persistence)', () => {
     ])
 
     const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as Array<Record<string, unknown>>
-    expect(raw[0]).not.toHaveProperty('password')
+    expect(raw[0]).toHaveProperty('password', 'super-secret')
   })
 
   it('loadConnections returns empty array on malformed JSON', async () => {
