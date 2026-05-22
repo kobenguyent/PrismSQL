@@ -33,3 +33,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      # Build after versioning so the app reads the correct version from package.json
+      - name: Build app (post-release)
+        run: npx electron-vite build
