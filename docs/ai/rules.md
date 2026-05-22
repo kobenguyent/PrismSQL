@@ -34,11 +34,10 @@
 
 - Branch naming: `fix/<short-description>`, `feature/<short-description>`,
   `docs/<short-description>`, or `chore/<short-description>`.
-- Commit message style: Conventional Commits format, for example
-  `fix: prevent failed connection from persisting to sidebar`.
-- PR title style: must be a valid Conventional Commit (`type: description`
-  or `type(scope): description`), for example
-  `fix: failed connection persistence`. The CI workflow enforces this
-  automatically. Valid types: `fix`, `feat`, `ci`, `chore`, `docs`,
-  `refactor`, `perf`, `test`.
+- Commit message style: Conventional Commits — `<type>: <description>`, for example
+  `fix: connection error not shown in modal` or `feat: add saved query categories`.
+  Allowed types: `fix`, `feat`, `docs`, `chore`, `refactor`, `test`, `style`.
+- PR title style: must follow the same Conventional Commits convention as the commit
+  message — `fix: <short description>`, `feat: <short description>`, etc.
+  Examples: `fix: connection error handling`, `feat: sidebar resize`.
 - Keep dependency upgrades separate from product bug fixes.

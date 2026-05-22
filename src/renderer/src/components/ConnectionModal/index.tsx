@@ -79,7 +79,10 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
     setTestResult(null)
     const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
     const result = await window.db.testConnection(fullConfig)
-    setTestResult(result)
+    setTestResult({
+      success: result.success,
+      error: result.success ? undefined : (result.error || 'Connection failed')
+    })
     setTesting(false)
   }, [config, editConfig])
 
@@ -100,7 +103,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
       if (result.success) {
         onClose()
       } else {
-        setTestResult({ success: false, error: result.error ?? 'Connection failed' })
+        setTestResult({ success: false, error: result.error || 'Connection failed' })
       }
     } catch (err) {
       setTestResult({ success: false, error: (err as Error).message })

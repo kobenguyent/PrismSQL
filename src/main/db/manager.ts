@@ -6,6 +6,24 @@ import { MSSQLAdapter } from './adapters/mssql'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from './types'
 import log from 'electron-log'
 
+/** Safely extract a human-readable message from any thrown value. */
+function extractErrorMessage(err: unknown): string {
+  if (!err) return 'Unknown error'
+  if (typeof err === 'string') return err || 'Unknown error'
+  if (typeof err === 'object') {
+    // Driver errors often have 'message', 'detail', or 'text' fields
+    const e = err as Record<string, unknown>
+    const msg =
+      (typeof e['message'] === 'string' && e['message'].trim()) ||
+      (typeof e['detail'] === 'string' && e['detail'].trim()) ||
+      (typeof e['text'] === 'string' && e['text'].trim()) ||
+      (typeof e['msg'] === 'string' && e['msg'].trim())
+    if (msg) return msg
+    try { return JSON.stringify(err) } catch { /* fall through */ }
+  }
+  return 'Unknown error'
+}
+
 export class ConnectionManager {
   private connections = new Map<string, DatabaseAdapter>()
 
@@ -37,7 +55,8 @@ export class ConnectionManager {
       return { success: true }
     } catch (err) {
       log.error(`Failed to connect to ${config.name}:`, err)
-      return { success: false, error: (err as Error).message }
+      const message = extractErrorMessage(err)
+      return { success: false, error: message }
     }
   }
 
@@ -67,7 +86,7 @@ export class ConnectionManager {
       const alive = await adapter.ping()
       return { success: alive }
     } catch (err) {
-      return { success: false, error: (err as Error).message }
+      return { success: false, error: extractErrorMessage(err) }
     } finally {
       if (adapter) {
         await adapter.disconnect().catch(() => {})
