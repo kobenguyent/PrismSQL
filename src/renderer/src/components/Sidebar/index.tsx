@@ -9,7 +9,10 @@ import {
   Columns,
   Trash2,
   Power,
-  PowerOff
+  PowerOff,
+  Search,
+  Code2,
+  FunctionSquare
 } from 'lucide-react'
 import { useAppStore } from '../../store'
 import type { ConnectionConfig } from '../../types'
@@ -23,7 +26,9 @@ interface TreeState {
   expandedConnections: Set<string>
   expandedDatabases: Record<string, Set<string>>
   expandedTables: Record<string, Set<string>>
+  expandedSections: Record<string, Set<string>> // key: `connId/dbName`, value: Set of section names
   selectedTable: string | null
+  dbSearch: Record<string, string> // key: `connId/dbName`, value: search text
 }
 
 export function Sidebar({ onNewConnection }: Props): JSX.Element {
@@ -36,15 +41,20 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     deleteConnection,
     loadTables,
     loadColumns,
+    loadProcedures,
+    openTableInTab,
     insertSnippet,
-    activeTabId
+    activeTabId,
+    newTab
   } = useAppStore()
 
   const [tree, setTree] = useState<TreeState>({
     expandedConnections: new Set(),
     expandedDatabases: {},
     expandedTables: {},
-    selectedTable: null
+    expandedSections: {},
+    selectedTable: null,
+    dbSearch: {}
   })
 
   const toggleConnection = useCallback(
@@ -88,14 +98,15 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
       })
       if (!isExpanded) {
         await loadTables(connId, dbName)
+        await loadProcedures(connId, dbName)
       }
     },
-    [tree.expandedDatabases, loadTables]
+    [tree.expandedDatabases, loadTables, loadProcedures]
   )
 
   const toggleTable = useCallback(
-    async (connId: string, tableName: string, dbName: string, schema?: string) => {
-      const qualifiedTableName = schema ? `${schema}.${tableName}` : tableName
+    async (connId: string, tableName: string, dbName: string, tableSchema?: string) => {
+      const qualifiedTableName = tableSchema ? `${tableSchema}.${tableName}` : tableName
       const key = `${connId}/${dbName}/${qualifiedTableName}`
       const expanded = tree.expandedTables[connId] ?? new Set<string>()
       const isExpanded = expanded.has(key)
@@ -119,11 +130,50 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
     [tree.expandedTables, loadColumns]
   )
 
-  const handleInsertSelect = (tableName: string, schema?: string) => {
-    if (!activeTabId) return
-    const qualifiedTableName = schema ? `${schema}.${tableName}` : tableName
-    insertSnippet(activeTabId, `SELECT * FROM ${qualifiedTableName} LIMIT 100;`)
-  }
+  const toggleSection = useCallback((connId: string, dbName: string, section: string) => {
+    const sectionKey = `${connId}/${dbName}`
+    setTree((prev) => {
+      const current = new Set(prev.expandedSections[sectionKey] ?? new Set<string>())
+      if (current.has(section)) {
+        current.delete(section)
+      } else {
+        current.add(section)
+      }
+      return {
+        ...prev,
+        expandedSections: { ...prev.expandedSections, [sectionKey]: current }
+      }
+    })
+  }, [])
+
+  const setDbSearch = useCallback((connId: string, dbName: string, value: string) => {
+    const key = `${connId}/${dbName}`
+    setTree((prev) => ({
+      ...prev,
+      dbSearch: { ...prev.dbSearch, [key]: value }
+    }))
+  }, [])
+
+  const handleOpenTableData = useCallback(
+    async (connId: string, tableName: string, dbName: string, tableSchema?: string) => {
+      await openTableInTab(connId, tableName, dbName, tableSchema)
+    },
+    [openTableInTab]
+  )
+
+  const handleOpenProcedure = useCallback(
+    (connId: string, procName: string, procSchema?: string) => {
+      const qualifiedName = procSchema ? `${procSchema}.${procName}` : procName
+      const snippet = `-- Procedure: ${qualifiedName}\nCALL ${qualifiedName}();`
+      if (activeTabId) {
+        insertSnippet(activeTabId, snippet)
+      } else {
+        newTab(connId)
+        // insertSnippet will be called after tab creation via a follow-up
+      }
+    },
+    [activeTabId, insertSnippet, newTab]
+  )
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -164,11 +214,11 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
           return (
             <div key={conn.id}>
               {/* Connection row */}
-                <div
-                  className={`connection-item ${isExpanded ? 'active' : ''}`}
-                  onClick={() => toggleConnection(conn)}
-                  onContextMenu={handleContextMenu}
-                >
+              <div
+                className={`connection-item ${isExpanded ? 'active' : ''}`}
+                onClick={() => toggleConnection(conn)}
+                onContextMenu={handleContextMenu}
+              >
                 <span
                   className={`connection-dot ${isConnected ? 'connected' : ''}`}
                   style={{ background: isConnected ? color : undefined }}
@@ -232,8 +282,30 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
                   ) : (
                     connSchema.databases.map((dbName) => {
                       const dbExpanded = (tree.expandedDatabases[conn.id] ?? new Set()).has(dbName)
-                      const tables = connSchema.tables[dbName] ?? []
+                      const allTables = connSchema.tables[dbName] ?? []
+                      const procedures = connSchema.procedures[dbName] ?? []
                       const loadingTables = connSchema.loadingTables[dbName]
+                      const loadingProcedures = connSchema.loadingProcedures[dbName]
+                      const sectionKey = `${conn.id}/${dbName}`
+                      const expandedSections = tree.expandedSections[sectionKey] ?? new Set<string>()
+                      const searchText = (tree.dbSearch[sectionKey] ?? '').toLowerCase()
+
+                      const tables = allTables.filter((t) => t.type === 'table')
+                      const views = allTables.filter((t) => t.type === 'view')
+
+                      const filteredTables = searchText
+                        ? tables.filter((t) => t.name.toLowerCase().includes(searchText))
+                        : tables
+                      const filteredViews = searchText
+                        ? views.filter((v) => v.name.toLowerCase().includes(searchText))
+                        : views
+                      const filteredProcedures = searchText
+                        ? procedures.filter((p) => p.name.toLowerCase().includes(searchText))
+                        : procedures
+
+                      const tablesExpanded = expandedSections.has('tables')
+                      const viewsExpanded = expandedSections.has('views')
+                      const proceduresExpanded = expandedSections.has('procedures')
 
                       return (
                         <div key={dbName}>
@@ -250,71 +322,243 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
 
                           {dbExpanded && (
                             <div>
-                              {loadingTables ? (
+                              {/* Search box */}
+                              <div style={{ padding: '4px 8px 4px 24px' }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: 'var(--bg-tertiary)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 4,
+                                  padding: '2px 6px'
+                                }}>
+                                  <Search size={10} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                                  <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={tree.dbSearch[sectionKey] ?? ''}
+                                    onChange={(e) => setDbSearch(conn.id, dbName, e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      outline: 'none',
+                                      fontSize: 11,
+                                      color: 'var(--text-primary)',
+                                      width: '100%',
+                                      padding: 0
+                                    }}
+                                  />
+                                  {(tree.dbSearch[sectionKey] ?? '') && (
+                                    <button
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                                      onClick={(e) => { e.stopPropagation(); setDbSearch(conn.id, dbName, '') }}
+                                    >
+                                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>✕</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {loadingTables || loadingProcedures ? (
                                 <div className="tree-item tree-item-indent-1">
                                   <span className="spinner" />
-                                  <span>Loading tables...</span>
-                                </div>
-                              ) : tables.length === 0 ? (
-                                <div className="tree-item tree-item-indent-1" style={{ color: 'var(--text-tertiary)' }}>
-                                  No tables
+                                  <span>Loading...</span>
                                 </div>
                               ) : (
-                                tables.map((tbl) => {
-                                  const qualifiedTableName = tbl.schema ? `${tbl.schema}.${tbl.name}` : tbl.name
-                                  const tableKey = `${conn.id}/${dbName}/${qualifiedTableName}`
-                                  const tblExpanded = (tree.expandedTables[conn.id] ?? new Set()).has(tableKey)
-                                  const columns = connSchema.columns[`${dbName}.${qualifiedTableName}`] ?? []
-
-                                  return (
-                                    <div key={tableKey}>
+                                <>
+                                  {/* Tables section */}
+                                  {(filteredTables.length > 0 || !searchText) && (
+                                    <div>
                                       <div
-                                        className={`tree-item tree-item-indent-1 ${tree.selectedTable === tableKey ? 'selected' : ''}`}
-                                        onClick={() => toggleTable(conn.id, tbl.name, dbName, tbl.schema)}
-                                        onDoubleClick={() => handleInsertSelect(tbl.name, tbl.schema)}
-                                        title={`Double-click to insert SELECT statement`}
+                                        className="tree-item tree-item-indent-1"
+                                        style={{ fontWeight: 600, fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none' }}
+                                        onClick={(e) => { e.stopPropagation(); toggleSection(conn.id, dbName, 'tables') }}
                                       >
-                                        {tblExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                                        {tbl.type === 'view' ? (
-                                          <Eye size={11} style={{ opacity: 0.7 }} />
-                                        ) : (
-                                          <Table size={11} style={{ opacity: 0.7 }} />
-                                        )}
-                                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                          {tbl.name}
-                                        </span>
+                                        {tablesExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                                        <Table size={10} style={{ opacity: 0.6 }} />
+                                        <span>Tables ({filteredTables.length})</span>
                                       </div>
+                                      {tablesExpanded && filteredTables.map((tbl) => {
+                                        const qualifiedTableName = tbl.schema ? `${tbl.schema}.${tbl.name}` : tbl.name
+                                        const tableKey = `${conn.id}/${dbName}/${qualifiedTableName}`
+                                        const tblExpanded = (tree.expandedTables[conn.id] ?? new Set()).has(tableKey)
+                                        const columns = connSchema.columns[`${dbName}.${qualifiedTableName}`] ?? []
 
-                                      {/* Columns */}
-                                      {tblExpanded && columns.map((col) => (
-                                        <div
-                                          key={col.name}
-                                          className="tree-item tree-item-indent-2"
-                                          style={{ fontSize: 11 }}
-                                        >
-                                          <Columns size={10} style={{ opacity: 0.5 }} />
-                                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {col.name}
-                                          </span>
-                                          <span style={{
-                                            fontSize: 9,
-                                            color: 'var(--text-tertiary)',
-                                            fontFamily: 'var(--font-mono)'
-                                          }}>
-                                            {col.type}
-                                          </span>
-                                          {col.primaryKey && (
-                                            <span style={{
-                                              fontSize: 8,
-                                              color: 'var(--color-warning)',
-                                              fontWeight: 700
-                                            }}>PK</span>
-                                          )}
-                                        </div>
-                                      ))}
+                                        return (
+                                          <div key={tableKey}>
+                                            <div
+                                              className={`tree-item tree-item-indent-2 ${tree.selectedTable === tableKey ? 'selected' : ''}`}
+                                              title="Click to view data, click arrow to expand columns"
+                                            >
+                                              <span
+                                                style={{ display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'pointer', padding: '0 2px' }}
+                                                onClick={(e) => { e.stopPropagation(); toggleTable(conn.id, tbl.name, dbName, tbl.schema) }}
+                                              >
+                                                {tblExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                              </span>
+                                              <span
+                                                style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, overflow: 'hidden', cursor: 'pointer' }}
+                                                onClick={(e) => { e.stopPropagation(); handleOpenTableData(conn.id, tbl.name, dbName, tbl.schema) }}
+                                              >
+                                                <Table size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                  {tbl.name}
+                                                </span>
+                                              </span>
+                                            </div>
+
+                                            {/* Columns */}
+                                            {tblExpanded && columns.map((col) => (
+                                              <div
+                                                key={col.name}
+                                                className="tree-item tree-item-indent-3"
+                                                style={{ fontSize: 11 }}
+                                              >
+                                                <Columns size={10} style={{ opacity: 0.5 }} />
+                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                  {col.name}
+                                                </span>
+                                                <span style={{
+                                                  fontSize: 9,
+                                                  color: 'var(--text-tertiary)',
+                                                  fontFamily: 'var(--font-mono)'
+                                                }}>
+                                                  {col.type}
+                                                </span>
+                                                {col.primaryKey && (
+                                                  <span style={{
+                                                    fontSize: 8,
+                                                    color: 'var(--color-warning)',
+                                                    fontWeight: 700
+                                                  }}>PK</span>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )
+                                      })}
                                     </div>
-                                  )
-                                })
+                                  )}
+
+                                  {/* Views section */}
+                                  {(filteredViews.length > 0 || !searchText) && (
+                                    <div>
+                                      <div
+                                        className="tree-item tree-item-indent-1"
+                                        style={{ fontWeight: 600, fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none' }}
+                                        onClick={(e) => { e.stopPropagation(); toggleSection(conn.id, dbName, 'views') }}
+                                      >
+                                        {viewsExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                                        <Eye size={10} style={{ opacity: 0.6 }} />
+                                        <span>Views ({filteredViews.length})</span>
+                                      </div>
+                                      {viewsExpanded && filteredViews.map((tbl) => {
+                                        const qualifiedTableName = tbl.schema ? `${tbl.schema}.${tbl.name}` : tbl.name
+                                        const tableKey = `${conn.id}/${dbName}/${qualifiedTableName}`
+                                        const tblExpanded = (tree.expandedTables[conn.id] ?? new Set()).has(tableKey)
+                                        const columns = connSchema.columns[`${dbName}.${qualifiedTableName}`] ?? []
+
+                                        return (
+                                          <div key={tableKey}>
+                                            <div
+                                              className={`tree-item tree-item-indent-2 ${tree.selectedTable === tableKey ? 'selected' : ''}`}
+                                              title="Click to view data, click arrow to expand columns"
+                                            >
+                                              <span
+                                                style={{ display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'pointer', padding: '0 2px' }}
+                                                onClick={(e) => { e.stopPropagation(); toggleTable(conn.id, tbl.name, dbName, tbl.schema) }}
+                                              >
+                                                {tblExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                              </span>
+                                              <span
+                                                style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, overflow: 'hidden', cursor: 'pointer' }}
+                                                onClick={(e) => { e.stopPropagation(); handleOpenTableData(conn.id, tbl.name, dbName, tbl.schema) }}
+                                              >
+                                                <Eye size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                  {tbl.name}
+                                                </span>
+                                              </span>
+                                            </div>
+
+                                            {/* Columns */}
+                                            {tblExpanded && columns.map((col) => (
+                                              <div
+                                                key={col.name}
+                                                className="tree-item tree-item-indent-3"
+                                                style={{ fontSize: 11 }}
+                                              >
+                                                <Columns size={10} style={{ opacity: 0.5 }} />
+                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                  {col.name}
+                                                </span>
+                                                <span style={{
+                                                  fontSize: 9,
+                                                  color: 'var(--text-tertiary)',
+                                                  fontFamily: 'var(--font-mono)'
+                                                }}>
+                                                  {col.type}
+                                                </span>
+                                                {col.primaryKey && (
+                                                  <span style={{
+                                                    fontSize: 8,
+                                                    color: 'var(--color-warning)',
+                                                    fontWeight: 700
+                                                  }}>PK</span>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {/* Procedures section */}
+                                  {(filteredProcedures.length > 0 || !searchText) && (
+                                    <div>
+                                      <div
+                                        className="tree-item tree-item-indent-1"
+                                        style={{ fontWeight: 600, fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none' }}
+                                        onClick={(e) => { e.stopPropagation(); toggleSection(conn.id, dbName, 'procedures') }}
+                                      >
+                                        {proceduresExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                                        <Code2 size={10} style={{ opacity: 0.6 }} />
+                                        <span>Routines ({filteredProcedures.length})</span>
+                                      </div>
+                                      {proceduresExpanded && filteredProcedures.map((proc) => {
+                                        const qualifiedName = proc.schema ? `${proc.schema}.${proc.name}` : proc.name
+                                        return (
+                                          <div
+                                            key={qualifiedName}
+                                            className="tree-item tree-item-indent-2"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={(e) => { e.stopPropagation(); handleOpenProcedure(conn.id, proc.name, proc.schema) }}
+                                            title="Click to insert call statement"
+                                          >
+                                            {proc.type === 'function'
+                                              ? <FunctionSquare size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                              : <Code2 size={11} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                            }
+                                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {proc.name}
+                                            </span>
+                                            <span style={{
+                                              fontSize: 9,
+                                              color: 'var(--text-tertiary)',
+                                              fontFamily: 'var(--font-mono)',
+                                              flexShrink: 0
+                                            }}>
+                                              {proc.type === 'function' ? 'fn' : 'proc'}
+                                            </span>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           )}

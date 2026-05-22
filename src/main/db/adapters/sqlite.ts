@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 export class SQLiteAdapter implements DatabaseAdapter {
   private db: Database.Database | null = null
@@ -90,6 +90,11 @@ export class SQLiteAdapter implements DatabaseAdapter {
       primaryKey: r['pk'] !== 0,
       defaultValue: r['dflt_value'] as string | undefined
     }))
+  }
+
+  async getProcedures(_database?: string): Promise<ProcedureInfo[]> {
+    // SQLite does not support stored procedures
+    return []
   }
 
   async ping(): Promise<boolean> {

@@ -35,6 +35,12 @@ export interface TableInfo {
   schema?: string
 }
 
+export interface ProcedureInfo {
+  name: string
+  schema?: string
+  type: 'procedure' | 'function'
+}
+
 export interface ColumnInfo {
   name: string
   type: string

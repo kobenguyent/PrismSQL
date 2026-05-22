@@ -3,7 +3,7 @@ import { MySQLAdapter } from './adapters/mysql'
 import { PostgresAdapter } from './adapters/postgres'
 import { SQLiteAdapter } from './adapters/sqlite'
 import { MSSQLAdapter } from './adapters/mssql'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from './types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from './types'
 import log from 'electron-log'
 
 export class ConnectionManager {
@@ -97,5 +97,11 @@ export class ConnectionManager {
     const adapter = this.connections.get(connectionId)
     if (!adapter) throw new Error(`Not connected: ${connectionId}`)
     return adapter.getColumns(table, database)
+  }
+
+  async getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]> {
+    const adapter = this.connections.get(connectionId)
+    if (!adapter) throw new Error(`Not connected: ${connectionId}`)
+    return adapter.getProcedures(database)
   }
 }

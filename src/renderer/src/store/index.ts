@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
-import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo } from '../types'
+import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 // Required for Immer to handle Set and Map mutations inside producers
 enableMapSet()
@@ -21,6 +21,7 @@ declare global {
       getDatabases(connectionId: string): Promise<string[]>
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
+      getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
     }
   }
 }
@@ -33,8 +34,10 @@ interface SchemaNode {
   databases: string[]
   tables: Record<string, TableInfo[]>
   columns: Record<string, ColumnInfo[]>
+  procedures: Record<string, ProcedureInfo[]>
   loadingDatabases: boolean
   loadingTables: Record<string, boolean>
+  loadingProcedures: Record<string, boolean>
 }
 
 interface AppState {
@@ -62,6 +65,7 @@ interface AppState {
   loadDatabases(connectionId: string): Promise<void>
   loadTables(connectionId: string, database: string): Promise<void>
   loadColumns(connectionId: string, table: string, database?: string): Promise<void>
+  loadProcedures(connectionId: string, database: string): Promise<void>
 
   // Tab actions
   newTab(connectionId?: string | null): void
@@ -71,6 +75,7 @@ interface AppState {
   updateTabConnection(tabId: string, connectionId: string): void
   runQuery(tabId: string): Promise<void>
   insertSnippet(tabId: string, snippet: string): void
+  openTableInTab(connectionId: string, tableName: string, database: string, schema?: string): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -89,7 +94,6 @@ export const useAppStore = create<AppState>()(
     isSidebarCollapsed: false,
     statusMessage: null,
     statusType: 'info',
-
     loadConnections: async () => {
       const connections = await window.db.getConnections()
       set((s) => {
@@ -121,8 +125,10 @@ export const useAppStore = create<AppState>()(
               databases: [],
               tables: {},
               columns: {},
+              procedures: {},
               loadingDatabases: false,
-              loadingTables: {}
+              loadingTables: {},
+              loadingProcedures: {}
             }
           }
         })
@@ -200,6 +206,29 @@ export const useAppStore = create<AppState>()(
           }
         })
       } catch {}
+    },
+
+    loadProcedures: async (connectionId, database) => {
+      set((s) => {
+        if (s.schema[connectionId]) {
+          s.schema[connectionId].loadingProcedures[database] = true
+        }
+      })
+      try {
+        const procedures = await window.db.getProcedures(connectionId, database)
+        set((s) => {
+          if (s.schema[connectionId]) {
+            s.schema[connectionId].procedures[database] = procedures
+            s.schema[connectionId].loadingProcedures[database] = false
+          }
+        })
+      } catch {
+        set((s) => {
+          if (s.schema[connectionId]) {
+            s.schema[connectionId].loadingProcedures[database] = false
+          }
+        })
+      }
     },
 
     newTab: (connectionId = null) => {
@@ -301,6 +330,25 @@ export const useAppStore = create<AppState>()(
           tab.sql = tab.sql ? `${tab.sql}\n${snippet}` : snippet
         }
       })
+    },
+
+    openTableInTab: async (connectionId, tableName, database, schema) => {
+      const qualifiedName = schema ? `${schema}.${tableName}` : tableName
+      const id = genId()
+      const tab: QueryTab = {
+        id,
+        title: tableName,
+        connectionId,
+        sql: `SELECT * FROM ${qualifiedName} LIMIT 100;`,
+        result: null,
+        isRunning: false,
+        isSaved: false
+      }
+      set((s) => {
+        s.tabs.push(tab)
+        s.activeTabId = id
+      })
+      await get().runQuery(id)
     },
 
     setSidebarWidth: (w) => {

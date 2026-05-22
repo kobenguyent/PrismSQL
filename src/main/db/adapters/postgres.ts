@@ -1,6 +1,6 @@
 import { Client, QueryResult as PgQueryResult } from 'pg'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
 
 export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
@@ -100,6 +100,20 @@ export class PostgresAdapter implements DatabaseAdapter {
       nullable: r['is_nullable'] === 'YES',
       primaryKey: r['is_primary_key'] as boolean,
       defaultValue: r['column_default'] as string | undefined
+    }))
+  }
+
+  async getProcedures(database?: string): Promise<ProcedureInfo[]> {
+    const result = await this.query(
+      `SELECT routine_name, routine_schema, routine_type
+       FROM information_schema.routines
+       WHERE routine_schema NOT IN ('pg_catalog', 'information_schema')
+       ORDER BY routine_schema, routine_name`
+    )
+    return result.rows.map((r) => ({
+      name: r['routine_name'] as string,
+      schema: r['routine_schema'] as string,
+      type: (r['routine_type'] as string) === 'FUNCTION' ? 'function' : 'procedure'
     }))
   }
 

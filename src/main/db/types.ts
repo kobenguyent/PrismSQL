@@ -49,6 +49,12 @@ export interface ColumnInfo {
   comment?: string
 }
 
+export interface ProcedureInfo {
+  name: string
+  schema?: string
+  type: 'procedure' | 'function'
+}
+
 export interface SchemaInfo {
   databases: string[]
   tables: Record<string, TableInfo[]>

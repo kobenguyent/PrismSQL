@@ -378,6 +378,7 @@ html, body, #root {
 .tree-item.selected { background: var(--accent-dim); color: var(--text-accent); }
 .tree-item-indent-1 { padding-left: 40px; }
 .tree-item-indent-2 { padding-left: 54px; }
+.tree-item-indent-3 { padding-left: 68px; }
 
 /* ── Tab Bar ────────────────────────────────────────────────── */
 .tabbar {
