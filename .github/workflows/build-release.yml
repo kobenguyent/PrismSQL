@@ -47,7 +47,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           for f in dist/*.AppImage dist/*.deb; do
-            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "$f" --clobber
+            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "${f}" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +56,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           for f in dist/*.dmg dist/*.zip; do
-            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "$f" --clobber
+            [ -f "$f" ] && gh release upload "${{ github.event.release.tag_name }}" "${f}" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
