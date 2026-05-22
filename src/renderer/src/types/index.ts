@@ -39,6 +39,8 @@ export interface ProcedureInfo {
   name: string
   schema?: string
   type: 'procedure' | 'function'
+  /** Unique identifier for overloaded routines (e.g. Postgres specific_name) */
+  specificName?: string
 }
 
 export interface ColumnInfo {

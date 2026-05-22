@@ -160,8 +160,8 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
   )
 
   const handleOpenProcedure = useCallback(
-    (connId: string, procName: string, procSchema?: string) => {
-      openProcedureInTab(connId, procName, procSchema)
+    (connId: string, proc: import('../../types').ProcedureInfo) => {
+      openProcedureInTab(connId, proc)
     },
     [openProcedureInTab]
   )
@@ -521,13 +521,14 @@ export function Sidebar({ onNewConnection }: Props): JSX.Element {
                                       </div>
                                       {proceduresExpanded && filteredProcedures.map((proc) => {
                                         const qualifiedName = proc.schema ? `${proc.schema}.${proc.name}` : proc.name
+                                        const reactKey = proc.specificName ?? qualifiedName
                                         return (
                                           <div
-                                            key={qualifiedName}
+                                            key={reactKey}
                                             className="tree-item tree-item-indent-2"
                                             style={{ cursor: 'pointer' }}
-                                            onClick={(e) => { e.stopPropagation(); handleOpenProcedure(conn.id, proc.name, proc.schema) }}
-                                            title="Click to insert call statement"
+                                            onClick={(e) => { e.stopPropagation(); handleOpenProcedure(conn.id, proc) }}
+                                            title="Click to open in new tab"
                                           >
                                             {proc.type === 'function'
                                               ? <FunctionSquare size={11} style={{ opacity: 0.7, flexShrink: 0 }} />

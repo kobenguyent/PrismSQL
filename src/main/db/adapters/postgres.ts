@@ -106,7 +106,7 @@ export class PostgresAdapter implements DatabaseAdapter {
   async getProcedures(_database?: string): Promise<ProcedureInfo[]> {
     // Postgres routines are scoped to the connected database; the database param is not needed
     const result = await this.query(
-      `SELECT routine_name, routine_schema, routine_type
+      `SELECT routine_name, routine_schema, routine_type, specific_name
        FROM information_schema.routines
        WHERE routine_schema NOT IN ('pg_catalog', 'information_schema')
        ORDER BY routine_schema, routine_name`
@@ -114,7 +114,8 @@ export class PostgresAdapter implements DatabaseAdapter {
     return result.rows.map((r) => ({
       name: r['routine_name'] as string,
       schema: r['routine_schema'] as string,
-      type: (r['routine_type'] as string) === 'FUNCTION' ? 'function' : 'procedure'
+      type: (r['routine_type'] as string) === 'FUNCTION' ? 'function' : 'procedure',
+      specificName: r['specific_name'] as string
     }))
   }
 
