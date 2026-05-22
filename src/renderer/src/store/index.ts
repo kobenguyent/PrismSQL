@@ -365,7 +365,8 @@ export const useAppStore = create<AppState>()(
       const conn = get().connections.find((c) => c.id === connectionId)
       const dbType: DatabaseType = conn?.type ?? 'postgres'
       const q = (n: string) => quoteIdentifier(n, dbType)
-      const qualifiedName = schema ? `${q(schema)}.${q(tableName)}` : q(tableName)
+      const qualifier = schema ?? database
+      const qualifiedName = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
       const sql =
         dbType === 'mssql'
           ? `SELECT TOP 100 * FROM ${qualifiedName};`
