@@ -47,11 +47,11 @@ describe('E2E feature flows', () => {
 
   it('does not restore server version after disconnect if async version arrives late', async () => {
     let resolveVersion: ((value: { version: string }) => void) | null = null
-    const versionPromise = new Promise<{ version: string }>((resolve) => {
+    const delayedVersionPromise = new Promise<{ version: string }>((resolve) => {
       resolveVersion = resolve
     })
     const db = createDbMock({
-      getServerVersion: vi.fn().mockReturnValue(versionPromise)
+      getServerVersion: vi.fn().mockReturnValue(delayedVersionPromise)
     })
 
     const useAppStore = await loadStoreWithDb(db)
@@ -95,15 +95,15 @@ describe('E2E feature flows', () => {
     const db = createDbMock()
     const useAppStore = await loadStoreWithDb(db)
 
-    for (let i = 0; i < 205; i++) {
+    for (let queryIndex = 0; queryIndex < 205; queryIndex++) {
       useAppStore.getState().addToHistory({
-        id: `h-${i}`,
-        sql: `SELECT ${i}`,
+        id: `h-${queryIndex}`,
+        sql: `SELECT ${queryIndex}`,
         connectionId: 'c1',
         connectionName: 'Conn',
-        timestamp: i,
-        duration: i,
-        rowCount: i
+        timestamp: queryIndex,
+        duration: queryIndex,
+        rowCount: queryIndex
       })
     }
 
@@ -124,7 +124,9 @@ describe('SQL and status formatting helpers', () => {
     expect(quoteIdentifierForDb('we]rd', 'mssql')).toBe('[we]]rd]')
     expect(quoteIdentifierForDb('na`me', 'mysql')).toBe('`na``me`')
     expect(quoteValueForDb(true, 'mssql')).toBe('1')
-    expect(quoteValueForDb("O'Hara\\path", 'postgres')).toBe("'O''Hara\\\\path'")
+    expect(quoteValueForDb("O'Hara\\path", 'postgres')).toBe("'O''Hara\\path'")
+    expect(quoteValueForDb("O'Hara\\path", 'mysql')).toBe("'O''Hara\\\\path'")
+    expect(quoteValueForDb("O'Hara\\path", 'mariadb')).toBe("'O''Hara\\\\path'")
   })
 
   it('builds PK-scoped update SQL using schema-qualified table names', () => {

@@ -52,15 +52,18 @@ export function quoteValueForDb(val: unknown, dbType?: DatabaseType): string {
     if (dbType === 'mssql') return val ? '1' : '0'
     return val ? 'TRUE' : 'FALSE'
   }
-  // Escape single quotes and backslashes to prevent SQL injection
-  const str = String(val).replace(/\\/g, '\\\\').replace(/'/g, "''")
+  // Escape literals by dialect
+  const escaped = String(val).replace(/'/g, "''")
+  const str = dbType === 'mysql' || dbType === 'mariadb'
+    ? escaped.replace(/\\/g, '\\\\')
+    : escaped
   return `'${str}'`
 }
 
 export function buildInlineUpdateSql(
   row: Record<string, unknown>,
   col: string,
-  newVal: string,
+  newVal: unknown,
   pkColumns: ColumnInfo[],
   tableName: string,
   database?: string,
@@ -70,6 +73,7 @@ export function buildInlineUpdateSql(
   if (pkColumns.length === 0) return null
   const q = (name: string) => quoteIdentifierForDb(name, dbType)
   const v = (value: unknown) => quoteValueForDb(value, dbType)
+  // Prefer explicit schema when present; otherwise fall back to database qualifier.
   const qualifier = schema ?? database
   const tableRef = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
   const setCl = `${q(col)} = ${v(newVal)}`
