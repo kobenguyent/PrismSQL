@@ -1,8 +1,26 @@
 {
   "branches": ["main"],
   "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "angular",
+        "parserOpts": {
+          "mergePattern": "^Merge pull request #(\\d+) from (.*)$",
+          "mergeCorrespondence": ["id", "source"]
+        }
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "angular",
+        "parserOpts": {
+          "mergePattern": "^Merge pull request #(\\d+) from (.*)$",
+          "mergeCorrespondence": ["id", "source"]
+        }
+      }
+    ],
     [
       "@semantic-release/changelog",
       {
