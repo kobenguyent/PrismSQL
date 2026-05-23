@@ -104,8 +104,8 @@ export function QueryEditor({ tab }: Props): JSX.Element {
       })
       updateTabSql(tab.id, beautified)
       setStatus('SQL beautified', 'success')
-    } catch {
-      setStatus('Unable to beautify SQL for this dialect', 'warning')
+    } catch (error) {
+      setStatus(`Unable to beautify SQL: ${(error as Error).message}`, 'warning')
     }
   }, [tab.sql, tab.id, tab.connectionId, connections, getSqlLanguage, updateTabSql, setStatus])
 
@@ -133,7 +133,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
       setAiBusyTask(null)
 
       if (!response.success || !response.output) {
-        setStatus(response.error || 'AI request failed', 'error')
+        setStatus(`AI ${task} failed: ${response.error || 'unknown error'}`, 'error')
         return
       }
 

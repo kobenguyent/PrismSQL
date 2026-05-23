@@ -165,6 +165,10 @@ PrismSQL AI is designed with a strict **local-only** policy:
 2. Pull at least one model (default expected by PrismSQL: `llama3.1`).
 3. Keep Ollama running at `http://127.0.0.1:11434` (default).
 
+Optional overrides:
+- `PRISMSQL_OLLAMA_URL` — override Ollama base URL
+- `PRISMSQL_OLLAMA_MODEL` — override default model name
+
 In the Query Editor toolbar you can use:
 - **AI Generate** (from a natural-language prompt)
 - **AI Explain** (explains current SQL)

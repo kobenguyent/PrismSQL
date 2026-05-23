@@ -139,7 +139,9 @@ describe('Connection Store (persistence)', () => {
             { id: 'c1', name: 'PG Local Updated', type: 'postgres', host: '127.0.0.1' }, // replace
             { id: 'c3', name: 'MySQL Local', type: 'mysql', host: 'localhost' }, // duplicate fingerprint
             { id: 'c4', name: 'SQLite New', type: 'sqlite', filename: '/tmp/new.db' }, // import
-            { id: 12, type: 'postgres' } // invalid
+            { id: 12, type: 'postgres' }, // invalid id
+            { id: 'bad-1', type: 'postgres' }, // missing name
+            { id: 'bad-2', name: 'Unknown', type: 'oracle' } // invalid type
           ]
         },
         null,
@@ -153,7 +155,7 @@ describe('Connection Store (persistence)', () => {
       imported: 1,
       replaced: 1,
       skippedDuplicates: 1,
-      skippedInvalid: 1
+      skippedInvalid: 3
     })
     const loaded = loadConnections()
     expect(loaded.find((c) => c.id === 'c1')?.name).toBe('PG Local Updated')

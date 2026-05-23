@@ -15,6 +15,7 @@ import { AIRequest, OllamaService } from '../ai/ollama'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
   const aiService = new OllamaService()
+  const debugChannels = new Set(['db:query'])
 
   const handleWithLogging = <TArgs extends unknown[], TResult>(
     channel: string,
@@ -22,7 +23,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   ): void => {
     ipcMain.handle(channel, async (event, ...args: TArgs) => {
       try {
-        if (channel === 'db:query') {
+        if (debugChannels.has(channel)) {
           appLogger.debug('IPC request', { channel })
         } else {
           appLogger.info('IPC request', { channel })

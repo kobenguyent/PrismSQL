@@ -1,6 +1,7 @@
 import { app, safeStorage } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { randomUUID } from 'crypto'
 import { ConnectionConfig, DatabaseType } from './db/types'
 import { appLogger } from './logger'
 
@@ -20,11 +21,6 @@ const SUPPORTED_DB_TYPES: DatabaseType[] = ['mysql', 'mariadb', 'postgres', 'sql
 const ENCRYPTED_PREFIX = 'enc:'
 
 function encryptPassword(password: string): string {
-  if (password.startsWith(ENCRYPTED_PREFIX)) {
-    // Import/export may already contain encrypted payloads. Keep as-is to avoid double encryption.
-    appLogger.debug('Skipping password re-encryption for already encrypted value')
-    return password
-  }
   if (safeStorage.isEncryptionAvailable()) {
     return ENCRYPTED_PREFIX + safeStorage.encryptString(password).toString('base64')
   }
@@ -177,12 +173,27 @@ function normalizeImportedConnection(conn: ConnectionConfig): ConnectionConfig {
     ...conn,
     id: conn.id?.trim() || createConnectionId(),
     name: conn.name.trim(),
+    password: sanitizeImportedPassword(conn.password),
     category: conn.category?.trim() || undefined
   }
 }
 
 function createConnectionId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2)
+  return randomUUID()
+}
+
+function sanitizeImportedPassword(password?: string): string | undefined {
+  if (!password) return undefined
+  if (!password.startsWith(ENCRYPTED_PREFIX)) {
+    return password
+  }
+  const decrypted = decryptPassword(password)
+  if (!decrypted) {
+    appLogger.warn('Dropped invalid encrypted password during import')
+    return undefined
+  }
+  // Always re-encrypt using local machine key material on save.
+  return decrypted
 }
 
 function fingerprintConnection(conn: ConnectionConfig): string {
