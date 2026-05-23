@@ -21,6 +21,8 @@ const ENCRYPTED_PREFIX = 'enc:'
 
 function encryptPassword(password: string): string {
   if (password.startsWith(ENCRYPTED_PREFIX)) {
+    // Import/export may already contain encrypted payloads. Keep as-is to avoid double encryption.
+    appLogger.debug('Skipping password re-encryption for already encrypted value')
     return password
   }
   if (safeStorage.isEncryptionAvailable()) {

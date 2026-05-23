@@ -22,7 +22,11 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   ): void => {
     ipcMain.handle(channel, async (event, ...args: TArgs) => {
       try {
-        appLogger.info('IPC request', { channel })
+        if (channel === 'db:query') {
+          appLogger.debug('IPC request', { channel })
+        } else {
+          appLogger.info('IPC request', { channel })
+        }
         return await handler(event, ...args)
       } catch (error) {
         appLogger.error('IPC handler failed', { channel, error: (error as Error).message })

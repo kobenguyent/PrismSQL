@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, StandardSQL } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { Play, StopCircle, Save, Wand2, Sparkles, Bot, X } from 'lucide-react'
+import { Play, StopCircle, Save, Wand2, Sparkles, Bot, X, MessageSquarePlus } from 'lucide-react'
 import { useAppStore } from '../../store'
 import { useIsLightTheme } from '../../hooks/useIsLightTheme'
 import type { DatabaseType, QueryTab } from '../../types'
@@ -21,6 +21,8 @@ export function QueryEditor({ tab }: Props): JSX.Element {
   const [saveCategory, setSaveCategory] = useState('')
   const [aiBusyTask, setAiBusyTask] = useState<'generate' | 'explain' | 'optimize' | null>(null)
   const [aiOutput, setAiOutput] = useState<string | null>(null)
+  const [showAIGenerateModal, setShowAIGenerateModal] = useState(false)
+  const [aiGeneratePrompt, setAiGeneratePrompt] = useState('')
 
   const handleRunQuery = useCallback(() => {
     if (!tab.isRunning) {
@@ -108,24 +110,23 @@ export function QueryEditor({ tab }: Props): JSX.Element {
   }, [tab.sql, tab.id, tab.connectionId, connections, getSqlLanguage, updateTabSql, setStatus])
 
   const runAiTask = useCallback(
-    async (task: 'generate' | 'explain' | 'optimize') => {
+    async (task: 'generate' | 'explain' | 'optimize', generatePrompt?: string) => {
       const conn = connections.find((c) => c.id === tab.connectionId)
       const dbType = conn?.type
 
+      if (task === 'generate' && !generatePrompt?.trim()) {
+        setStatus('Describe SQL requirements for AI generation', 'warning')
+        return
+      }
       if (task !== 'generate' && !tab.sql.trim()) {
         setStatus('Write SQL first for AI explain/optimize', 'warning')
         return
       }
-      const prompt =
-        task === 'generate'
-          ? window.prompt('Describe the SQL you want to generate (local Ollama only):', '')
-          : undefined
-      if (task === 'generate' && !prompt?.trim()) return
 
       setAiBusyTask(task)
       const response = await window.db.runAITask({
         task,
-        prompt: prompt?.trim(),
+        prompt: generatePrompt?.trim(),
         sql: task === 'generate' ? undefined : tab.sql,
         dbType
       })
@@ -193,11 +194,11 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         </button>
         <button
           className="icon-btn"
-          onClick={() => runAiTask('generate')}
+          onClick={() => setShowAIGenerateModal(true)}
           disabled={aiBusyTask !== null}
           data-tooltip="AI Generate SQL (Local Ollama)"
         >
-          <Sparkles size={13} />
+          <MessageSquarePlus size={13} />
         </button>
         <button
           className="icon-btn"
@@ -307,6 +308,50 @@ export function QueryEditor({ tab }: Props): JSX.Element {
             <div className="modal-footer">
               <button className="btn btn-secondary btn-sm" onClick={() => setAiOutput(null)}>
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAIGenerateModal && (
+        <div className="modal-overlay" onClick={() => setShowAIGenerateModal(false)}>
+          <div className="modal-panel" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Generate SQL (Local Ollama)</span>
+              <button className="icon-btn" onClick={() => setShowAIGenerateModal(false)}>
+                <X size={15} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Describe what query you want</label>
+                <textarea
+                  className="form-input"
+                  value={aiGeneratePrompt}
+                  onChange={(e) => setAiGeneratePrompt(e.target.value)}
+                  rows={5}
+                  placeholder="e.g. Get the top 10 customers by revenue in the last 30 days."
+                />
+              </div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+                Local-only AI: prompts are sent only to your local Ollama instance.
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowAIGenerateModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  await runAiTask('generate', aiGeneratePrompt)
+                  setShowAIGenerateModal(false)
+                  setAiGeneratePrompt('')
+                }}
+                disabled={!aiGeneratePrompt.trim() || aiBusyTask !== null}
+              >
+                Generate
               </button>
             </div>
           </div>
