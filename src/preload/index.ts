@@ -26,6 +26,8 @@ export interface AIResponse {
   success: boolean
   output?: string
   error?: string
+}
+
 export interface AppSettings {
   queryLimit: number
 }
