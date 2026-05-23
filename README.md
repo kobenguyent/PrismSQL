@@ -166,7 +166,7 @@ PrismSQL AI is designed with a strict **local-only** policy:
 3. Keep Ollama running at `http://127.0.0.1:11434` (default).
 
 Optional overrides:
-- `PRISMSQL_OLLAMA_URL` — override Ollama base URL
+- `PRISMSQL_OLLAMA_URL` — override Ollama base URL (localhost/loopback only)
 - `PRISMSQL_OLLAMA_MODEL` — override default model name
 
 In the Query Editor toolbar you can use:

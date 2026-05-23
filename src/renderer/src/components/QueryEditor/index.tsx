@@ -123,14 +123,21 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         return
       }
 
+      let response: { success: boolean; output?: string; error?: string }
       setAiBusyTask(task)
-      const response = await window.db.runAITask({
-        task,
-        prompt: generatePrompt?.trim(),
-        sql: task === 'generate' ? undefined : tab.sql,
-        dbType
-      })
-      setAiBusyTask(null)
+      try {
+        response = await window.db.runAITask({
+          task,
+          prompt: generatePrompt?.trim(),
+          sql: task === 'generate' ? undefined : tab.sql,
+          dbType
+        })
+      } catch (error) {
+        setStatus(`AI ${task} failed: ${(error as Error).message}`, 'error')
+        return
+      } finally {
+        setAiBusyTask(null)
+      }
 
       if (!response.success || !response.output) {
         setStatus(`AI ${task} failed: ${response.error || 'unknown error'}`, 'error')

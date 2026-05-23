@@ -111,6 +111,25 @@ describe('Connection Store (persistence)', () => {
     expect(result).toEqual([])
   })
 
+  it('loadConnections drops invalid encrypted passwords', async () => {
+    const electron = await import('electron')
+    const mockSafe = electron.safeStorage as {
+      decryptString: ReturnType<typeof vi.fn>
+    }
+    mockSafe.decryptString.mockImplementationOnce(() => {
+      throw new Error('decrypt failure')
+    })
+    fs.writeFileSync(
+      storePath,
+      JSON.stringify([{ id: 'c1', name: 'Broken', type: 'postgres', password: 'enc:invalid-base64' }], null, 2),
+      'utf-8'
+    )
+
+    const { loadConnections } = await import('../src/main/store')
+    const loaded = loadConnections()
+    expect(loaded[0].password).toBeUndefined()
+  })
+
   it('exportConnectionsToPath omits passwords by default', async () => {
     const { saveConnections, exportConnectionsToPath } = await import('../src/main/store')
     saveConnections([{ id: 'c1', name: 'Secured', type: 'postgres', password: 'secret' }])

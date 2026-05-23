@@ -50,7 +50,13 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
     ipcRenderer.invoke('db:get-procedures', connectionId, database),
-  exportConnections: (includePasswords = false): Promise<{ success: boolean; canceled?: boolean; path?: string; count?: number }> =>
+  exportConnections: (includePasswords = false): Promise<{
+    success: boolean
+    canceled?: boolean
+    path?: string
+    count?: number
+    error?: string
+  }> =>
     ipcRenderer.invoke('db:export-connections', includePasswords),
   importConnections: (): Promise<{
     success: boolean
@@ -59,6 +65,7 @@ const dbAPI = {
     replaced?: number
     skippedDuplicates?: number
     skippedInvalid?: number
+    error?: string
   }> => ipcRenderer.invoke('db:import-connections'),
   getSavedQueries: (): Promise<SavedQueryRecord[]> => ipcRenderer.invoke('queries:get'),
   saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>

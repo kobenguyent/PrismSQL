@@ -34,7 +34,13 @@ declare global {
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
-      exportConnections(includePasswords?: boolean): Promise<{ success: boolean; canceled?: boolean; path?: string; count?: number }>
+      exportConnections(includePasswords?: boolean): Promise<{
+        success: boolean
+        canceled?: boolean
+        path?: string
+        count?: number
+        error?: string
+      }>
       importConnections(): Promise<{
         success: boolean
         canceled?: boolean
@@ -42,6 +48,7 @@ declare global {
         replaced?: number
         skippedDuplicates?: number
         skippedInvalid?: number
+        error?: string
       }>
       getSavedQueries(): Promise<SavedQuery[]>
       saveQuery(query: SavedQuery): Promise<{ success: boolean }>
@@ -483,27 +490,35 @@ export const useAppStore = create<AppState>()(
     },
 
     importConnections: async () => {
-      const result = await window.db.importConnections()
-      if (result.canceled) return
-      if (!result.success) {
-        get().setStatus('Failed to import connections', 'error')
-        return
+      try {
+        const result = await window.db.importConnections()
+        if (result.canceled) return
+        if (!result.success) {
+          get().setStatus(`Failed to import connections${result.error ? `: ${result.error}` : ''}`, 'error')
+          return
+        }
+        await get().loadConnections()
+        get().setStatus(
+          `Imported ${result.imported ?? 0}, replaced ${result.replaced ?? 0}, skipped ${result.skippedDuplicates ?? 0} duplicates`,
+          'success'
+        )
+      } catch (error) {
+        get().setStatus(`Failed to import connections: ${(error as Error).message}`, 'error')
       }
-      await get().loadConnections()
-      get().setStatus(
-        `Imported ${result.imported ?? 0}, replaced ${result.replaced ?? 0}, skipped ${result.skippedDuplicates ?? 0} duplicates`,
-        'success'
-      )
     },
 
     exportConnections: async (includePasswords = false) => {
-      const result = await window.db.exportConnections(includePasswords)
-      if (result.canceled) return
-      if (!result.success) {
-        get().setStatus('Failed to export connections', 'error')
-        return
+      try {
+        const result = await window.db.exportConnections(includePasswords)
+        if (result.canceled) return
+        if (!result.success) {
+          get().setStatus(`Failed to export connections${result.error ? `: ${result.error}` : ''}`, 'error')
+          return
+        }
+        get().setStatus(`Exported ${result.count ?? 0} connection(s)`, 'success')
+      } catch (error) {
+        get().setStatus(`Failed to export connections: ${(error as Error).message}`, 'error')
       }
-      get().setStatus(`Exported ${result.count ?? 0} connection(s)`, 'success')
     },
 
     openLogs: async () => {

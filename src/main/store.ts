@@ -27,13 +27,13 @@ function encryptPassword(password: string): string {
   return password
 }
 
-function decryptPassword(stored: string): string {
+function decryptPassword(stored: string): string | undefined {
   if (stored.startsWith(ENCRYPTED_PREFIX)) {
     try {
       const buf = Buffer.from(stored.slice(ENCRYPTED_PREFIX.length), 'base64')
       return safeStorage.decryptString(buf)
     } catch {
-      return ''
+      return undefined
     }
   }
   // Legacy plaintext value — return as-is so existing data keeps working.

@@ -164,9 +164,14 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     if (result.canceled || !result.filePath) {
       return { success: false, canceled: true }
     }
-    const count = exportConnectionsToPath(result.filePath, includePasswords)
-    appLogger.info('Connections exported', { filePath: result.filePath, count, includePasswords })
-    return { success: true, count, path: result.filePath }
+    try {
+      const count = exportConnectionsToPath(result.filePath, includePasswords)
+      appLogger.info('Connections exported', { filePath: result.filePath, count, includePasswords })
+      return { success: true, count, path: result.filePath }
+    } catch (error) {
+      appLogger.error('Failed to export connections', { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
   })
 
   handleWithLogging('db:import-connections', async () => {
@@ -178,9 +183,14 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     if (result.canceled || result.filePaths.length === 0) {
       return { success: false, canceled: true }
     }
-    const importResult = importConnectionsFromPath(result.filePaths[0])
-    appLogger.info('Connections imported', { filePath: result.filePaths[0], ...importResult })
-    return { success: true, ...importResult }
+    try {
+      const importResult = importConnectionsFromPath(result.filePaths[0])
+      appLogger.info('Connections imported', { filePath: result.filePaths[0], ...importResult })
+      return { success: true, ...importResult }
+    } catch (error) {
+      appLogger.error('Failed to import connections', { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
   })
 
   handleWithLogging('app:get-log-path', async () => {
