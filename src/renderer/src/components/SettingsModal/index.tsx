@@ -13,8 +13,8 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
 
   const handleSave = async () => {
     const limit = parseInt(queryLimit, 10)
-    if (isNaN(limit) || limit < 1 || limit > 100000) {
-      setError('Query limit must be a number between 1 and 100,000')
+    if (isNaN(limit) || limit < 1 || limit > 10000) {
+      setError('Query limit must be a number between 1 and 10,000')
       return
     }
     setSaving(true)
@@ -38,13 +38,13 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
               className="form-input"
               type="number"
               min={1}
-              max={100000}
+              max={10000}
               value={queryLimit}
               onChange={(e) => setQueryLimit(e.target.value)}
               placeholder="100"
             />
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-              Rows returned when browsing a table (e.g. SELECT * FROM …). Default: 100.
+              Rows returned when browsing a table (e.g. SELECT * FROM …). Default: 100. Max: 10,000.
             </span>
           </div>
           {error && (

@@ -284,7 +284,7 @@ export function ResultsTable({
   function buildUpdateSql(
     row: Record<string, unknown>,
     col: string,
-    newVal: string
+    newVal: unknown
   ): string | null {
     return buildInlineUpdateSql(
       row,
@@ -296,6 +296,34 @@ export function ResultsTable({
       schema,
       conn?.type
     )
+  }
+
+  /**
+   * Re-type the edited string value based on the original cell value's type so
+   * quoteValueForDb emits the correct SQL literal (number, boolean, NULL, or string).
+   */
+  function coerceEditValue(editStr: string, original: unknown): unknown {
+    // Empty input for a null original → keep as NULL
+    if ((editStr === '' || editStr.toUpperCase() === 'NULL') && (original === null || original === undefined)) {
+      return null
+    }
+    if (original === null || original === undefined) {
+      // Explicit NULL keyword always → null
+      if (editStr.toUpperCase() === 'NULL') return null
+      return editStr
+    }
+    if (typeof original === 'boolean') {
+      const lower = editStr.toLowerCase()
+      if (lower === 'true' || lower === '1') return true
+      if (lower === 'false' || lower === '0') return false
+      return editStr
+    }
+    if (typeof original === 'number' || typeof original === 'bigint') {
+      const n = Number(editStr)
+      if (!isNaN(n) && editStr.trim() !== '') return n
+      return editStr
+    }
+    return editStr
   }
 
   function handleCellDoubleClick(rowIdx: number, col: string, value: unknown) {
@@ -315,7 +343,8 @@ export function ResultsTable({
 
   function commitEdit(row: Record<string, unknown>) {
     if (!editingCell) return
-    const sql = buildUpdateSql(row, editingCell.col, editValue)
+    const typedVal = coerceEditValue(editValue, editingCell.original)
+    const sql = buildUpdateSql(row, editingCell.col, typedVal)
     if (!sql) {
       setEditingCell(null)
       setUpdateError('Cannot edit: table has no primary key columns. Editing requires a primary key to safely identify the row.')

@@ -8,12 +8,12 @@ const MAX_QUERY_HISTORY = 200
 function quoteIdentifier(name: string, dbType: DatabaseType): string {
   switch (dbType) {
     case 'mssql':
-      return `[${name}]`
+      return `[${name.replace(/]/g, ']]')}]`
     case 'mysql':
     case 'mariadb':
-      return `\`${name}\``
+      return `\`${name.replace(/`/g, '``')}\``
     default:
-      return `"${name}"`
+      return `"${name.replace(/"/g, '""')}"`
   }
 }
 
@@ -585,7 +585,13 @@ export const useAppStore = create<AppState>()(
     },
 
     updateSettings: async (partial) => {
-      const next = { ...get().settings, ...partial }
+      const merged = { ...get().settings, ...partial }
+      // Sanitize queryLimit to match the server-side enforced range (1–10000)
+      const rawLimit = Number(merged.queryLimit)
+      const queryLimit = Number.isFinite(rawLimit)
+        ? Math.max(1, Math.min(10000, Math.floor(rawLimit)))
+        : get().settings.queryLimit
+      const next = { ...merged, queryLimit }
       set((s) => {
         s.settings = next
       })
