@@ -127,4 +127,13 @@ export class PostgresAdapter implements DatabaseAdapter {
       return false
     }
   }
+
+  async getServerVersion(): Promise<string> {
+    try {
+      const result = await this.query('SELECT version() AS version')
+      return (result.rows[0]?.['version'] as string) || 'Unknown'
+    } catch {
+      return 'Unknown'
+    }
+  }
 }

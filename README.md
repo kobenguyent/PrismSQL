@@ -8,14 +8,14 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 
 ## 📸 Screenshots
 
-### Main window — sidebar, query editor & results panel
-![Main window](docs/screenshots/main-window.png)
+### Add connection flow — test connection successfully, then save
+![Add connection flow](docs/screenshots/flow-add-connection.png)
 
-### Query editor — CodeMirror SQL with syntax highlighting
-![Query editor](docs/screenshots/query-editor.png)
+### Querying data flow — run queries successfully and view results
+![Querying data flow](docs/screenshots/flow-query-data.png)
 
-### Connection modal — add, test and save connections
-![Connection modal](docs/screenshots/connection-modal.png)
+### SQL editor flow — compose and run SQL
+![Query editor flow](docs/screenshots/flow-query-editor.png)
 
 ## ✨ Features
 

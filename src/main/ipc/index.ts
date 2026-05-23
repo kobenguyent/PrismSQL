@@ -6,6 +6,9 @@ import {
   importConnectionsFromPath,
   loadConnections,
   loadSavedQueries,
+  loadSettings,
+  sanitizeSettings,
+  saveSettings,
   saveConnections,
   writeSavedQueries
 } from '../store'
@@ -204,5 +207,22 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
       throw new Error(openError)
     }
     return { success: true, path: logPath }
+  })
+
+  handleWithLogging('settings:get', async () => {
+    return loadSettings()
+  })
+
+  handleWithLogging('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
+    saveSettings(sanitizeSettings(settings))
+    return { success: true }
+  })
+
+  handleWithLogging('db:get-server-version', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+    try {
+      return { version: await manager.getServerVersion(connectionId) }
+    } catch (err) {
+      return { version: 'Unknown' }
+    }
   })
 }

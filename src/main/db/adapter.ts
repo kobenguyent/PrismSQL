@@ -9,4 +9,5 @@ export interface DatabaseAdapter {
   getColumns(table: string, database?: string): Promise<ColumnInfo[]>
   getProcedures(database?: string): Promise<ProcedureInfo[]>
   ping(): Promise<boolean>
+  getServerVersion(): Promise<string>
 }

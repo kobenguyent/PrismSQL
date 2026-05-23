@@ -29,18 +29,21 @@ describe('Connection Store (persistence)', () => {
   const storePath = path.join(os.tmpdir(), 'connections.json')
   const importPath = path.join(os.tmpdir(), 'connections-import.json')
   const exportPath = path.join(os.tmpdir(), 'connections-export.json')
+  const settingsPath = path.join(os.tmpdir(), 'settings.json')
 
   beforeEach(() => {
     // Clean up any leftover file
     if (fs.existsSync(storePath)) fs.unlinkSync(storePath)
     if (fs.existsSync(importPath)) fs.unlinkSync(importPath)
     if (fs.existsSync(exportPath)) fs.unlinkSync(exportPath)
+    if (fs.existsSync(settingsPath)) fs.unlinkSync(settingsPath)
   })
 
   afterEach(() => {
     if (fs.existsSync(storePath)) fs.unlinkSync(storePath)
     if (fs.existsSync(importPath)) fs.unlinkSync(importPath)
     if (fs.existsSync(exportPath)) fs.unlinkSync(exportPath)
+    if (fs.existsSync(settingsPath)) fs.unlinkSync(settingsPath)
   })
 
   it('loadConnections returns empty array when no file exists', async () => {
@@ -200,5 +203,32 @@ describe('Connection Store (persistence)', () => {
     const loaded = loadConnections()
     expect(loaded.find((c) => c.id === 'c1')?.name).toBe('PG Local Updated')
     expect(loaded.some((c) => c.id === 'c4')).toBe(true)
+  })
+
+  it('loadSettings returns defaults when file is missing', async () => {
+    const { loadSettings } = await import('../src/main/store')
+    expect(loadSettings()).toEqual({ queryLimit: 100 })
+  })
+
+  it('loadSettings returns defaults on malformed JSON', async () => {
+    fs.writeFileSync(settingsPath, '{bad json', 'utf-8')
+    const { loadSettings } = await import('../src/main/store')
+    expect(loadSettings()).toEqual({ queryLimit: 100 })
+  })
+
+  it('loadSettings sanitizes type and range for queryLimit', async () => {
+    fs.writeFileSync(settingsPath, JSON.stringify({ queryLimit: '50000' }), 'utf-8')
+    const { loadSettings } = await import('../src/main/store')
+    expect(loadSettings()).toEqual({ queryLimit: 10000 })
+
+    fs.writeFileSync(settingsPath, JSON.stringify({ queryLimit: -5 }), 'utf-8')
+    expect(loadSettings()).toEqual({ queryLimit: 1 })
+  })
+
+  it('saveSettings sanitizes queryLimit before writing', async () => {
+    const { saveSettings } = await import('../src/main/store')
+    saveSettings({ queryLimit: 'abc' as unknown as number })
+    const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as { queryLimit: number }
+    expect(stored.queryLimit).toBe(100)
   })
 })

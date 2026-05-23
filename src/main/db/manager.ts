@@ -145,4 +145,10 @@ export class ConnectionManager {
     if (!adapter) throw new Error(`Not connected: ${connectionId}`)
     return adapter.getProcedures(database)
   }
+
+  async getServerVersion(connectionId: string): Promise<string> {
+    const adapter = this.connections.get(connectionId)
+    if (!adapter) throw new Error(`Not connected: ${connectionId}`)
+    return adapter.getServerVersion()
+  }
 }

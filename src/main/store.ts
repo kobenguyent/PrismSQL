@@ -13,9 +13,20 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export interface AppSettings {
+  queryLimit: number
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  queryLimit: 100
+}
+const MIN_QUERY_LIMIT = 1
+const MAX_QUERY_LIMIT = 10000
+
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
 const SUPPORTED_DB_TYPES: DatabaseType[] = ['mysql', 'mariadb', 'postgres', 'sqlite', 'mssql']
+const getSettingsPath = (): string => path.join(app.getPath('userData'), 'settings.json')
 
 /** Prefix used to distinguish safeStorage-encrypted values from plaintext. */
 const ENCRYPTED_PREFIX = 'enc:'
@@ -206,4 +217,39 @@ function fingerprintConnection(conn: ConnectionConfig): string {
     database: conn.database?.trim().toLowerCase() ?? '',
     filename: conn.filename?.trim().toLowerCase() ?? ''
   })
+}
+
+export function loadSettings(): AppSettings {
+  try {
+    const p = getSettingsPath()
+    if (!fs.existsSync(p)) return { ...DEFAULT_SETTINGS }
+    const data = fs.readFileSync(p, 'utf-8')
+    return sanitizeSettings(JSON.parse(data) as unknown)
+  } catch {
+    return { ...DEFAULT_SETTINGS }
+  }
+}
+
+function sanitizeQueryLimit(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return DEFAULT_SETTINGS.queryLimit
+  return Math.max(MIN_QUERY_LIMIT, Math.min(MAX_QUERY_LIMIT, Math.floor(n)))
+}
+
+export function sanitizeSettings(settings: unknown): AppSettings {
+  if (!settings || typeof settings !== 'object') return { ...DEFAULT_SETTINGS }
+  const source = settings as Partial<AppSettings>
+  return {
+    queryLimit: sanitizeQueryLimit(source.queryLimit)
+  }
+}
+
+export function saveSettings(settings: AppSettings): void {
+  try {
+    const p = getSettingsPath()
+    fs.mkdirSync(path.dirname(p), { recursive: true })
+    fs.writeFileSync(p, JSON.stringify(sanitizeSettings(settings), null, 2), 'utf-8')
+  } catch (err) {
+    console.error('Failed to save settings:', err)
+  }
 }

@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/kobenguyent/PrismSQL/compare/v1.2.2...v1.3.0) (2026-05-23)
+
+
+### Features
+
+* cell viewer, inline editing, connection info, settings, query history ([#19](https://github.com/kobenguyent/PrismSQL/issues/19)) ([3513887](https://github.com/kobenguyent/PrismSQL/commit/351388720d2279f86b80a25a1aabf6f8312264cc))
+
 ## [1.2.2](https://github.com/kobenguyent/PrismSQL/compare/v1.2.1...v1.2.2) (2026-05-22)
 
 

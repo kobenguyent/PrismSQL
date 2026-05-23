@@ -26,6 +26,8 @@ export interface AIResponse {
   success: boolean
   output?: string
   error?: string
+export interface AppSettings {
+  queryLimit: number
 }
 
 const dbAPI = {
@@ -75,7 +77,12 @@ const dbAPI = {
     ipcRenderer.invoke('ai:get-settings'),
   runAITask: (request: AIRequest): Promise<AIResponse> => ipcRenderer.invoke('ai:run-task', request),
   getLogPath: (): Promise<string> => ipcRenderer.invoke('app:get-log-path'),
-  openLogs: (): Promise<{ success: boolean; path: string }> => ipcRenderer.invoke('app:open-logs')
+  openLogs: (): Promise<{ success: boolean; path: string }> => ipcRenderer.invoke('app:open-logs'),
+  getServerVersion: (connectionId: string): Promise<{ version: string }> =>
+    ipcRenderer.invoke('db:get-server-version', connectionId),
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
+  saveSettings: (settings: AppSettings): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('settings:save', settings)
 }
 
 if (process.contextIsolated) {

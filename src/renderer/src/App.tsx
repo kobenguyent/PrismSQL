@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Bug } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -7,7 +7,10 @@ import { TabBar } from './components/TabBar'
 import { QueryEditor } from './components/QueryEditor'
 import { ResultsTable } from './components/ResultsTable'
 import { ConnectionModal } from './components/ConnectionModal'
+import { SettingsModal } from './components/SettingsModal'
+import { QueryHistoryPanel } from './components/QueryHistory'
 import type { ConnectionConfig } from './types'
+import { formatServerVersion } from './utils/version'
 
 // Read version from package.json (injected by Vite at build time)
 const APP_VERSION = __APP_VERSION__
@@ -18,6 +21,7 @@ export default function App(): JSX.Element {
     activeTabId,
     connections,
     connectedIds,
+    connectionVersions,
     statusMessage,
     statusType,
     sidebarWidth,
@@ -25,7 +29,9 @@ export default function App(): JSX.Element {
     theme,
     loadConnections,
     loadSavedQueries,
+    loadSettings,
     newTab,
+    runQuery,
     setSidebarWidth,
     setSidebarCollapsed,
     setTheme,
@@ -35,6 +41,8 @@ export default function App(): JSX.Element {
   const [showConnectionModal, setShowConnectionModal] = useState(false)
   const [editingConnection, setEditingConnection] = useState<ConnectionConfig | null>(null)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   // Resize state
   const isResizing = useRef(false)
@@ -50,7 +58,8 @@ export default function App(): JSX.Element {
   useEffect(() => {
     loadConnections()
     loadSavedQueries()
-  }, [loadConnections, loadSavedQueries])
+    loadSettings()
+  }, [loadConnections, loadSavedQueries, loadSettings])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -126,6 +135,20 @@ export default function App(): JSX.Element {
         <div className="titlebar-actions">
           <button
             className="icon-btn"
+            onClick={() => setShowHistory(true)}
+            data-tooltip="Query History"
+          >
+            <Clock size={15} />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowSettings(true)}
+            data-tooltip="Settings"
+          >
+            <Settings size={15} />
+          </button>
+          <button
+            className="icon-btn"
             onClick={() => {
               const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
               setTheme(next)
@@ -178,7 +201,14 @@ export default function App(): JSX.Element {
               {/* Results */}
               <div style={{ height: resultsPanelHeight, flexShrink: 0, overflow: 'hidden' }}>
                 {activeTab.result ? (
-                  <ResultsTable result={activeTab.result} />
+                  <ResultsTable
+                    result={activeTab.result}
+                    connectionId={activeTab.connectionId}
+                    tableName={activeTab.tabType === 'table' ? activeTab.title : undefined}
+                    database={activeTab.database}
+                    schema={activeTab.schema}
+                    onRefresh={activeTab.tabType === 'table' ? () => runQuery(activeTab.id) : undefined}
+                  />
                 ) : (
                   <div className="results-pane" style={{ height: '100%', alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
                     <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>
@@ -232,6 +262,38 @@ export default function App(): JSX.Element {
         <span className={`statusbar-msg ${statusType}`}>
           {statusMessage}
         </span>
+        {/* Active connection info */}
+        {(() => {
+          const activeTab = tabs.find((t) => t.id === activeTabId)
+          const conn = activeTab?.connectionId
+            ? connections.find((c) => c.id === activeTab.connectionId)
+            : null
+          if (!conn || !connectedIds.has(conn.id)) return null
+          const version = connectionVersions[conn.id]
+          const displayVersion = version ? formatServerVersion(version) : null
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 'var(--font-size-xs)' }}>
+              <span
+                className="connection-dot connected"
+                style={{ width: 6, height: 6, flexShrink: 0 }}
+              />
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{conn.name}</span>
+              <span className={`connection-type-badge`} style={{ color: `var(--db-${conn.type})`, background: `color-mix(in srgb, var(--db-${conn.type}) 15%, transparent)` }}>
+                {conn.type}
+              </span>
+              {conn.database && (
+                <span style={{ color: 'var(--text-tertiary)' }}>
+                  · {conn.database}
+                </span>
+              )}
+              {displayVersion && version !== 'Unknown' && (
+                <span style={{ color: 'var(--text-tertiary)' }}>
+                  · {displayVersion}
+                </span>
+              )}
+            </span>
+          )
+        })()}
         <span style={{ color: 'var(--text-tertiary)' }}>
           {connectedIds.size} connection{connectedIds.size !== 1 ? 's' : ''} active
         </span>
@@ -270,6 +332,16 @@ export default function App(): JSX.Element {
           onClose={() => setShowConnectionModal(false)}
           editConfig={editingConnection}
         />
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+
+      {/* Query history panel */}
+      {showHistory && (
+        <QueryHistoryPanel onClose={() => setShowHistory(false)} />
       )}
 
       {/* Privacy modal */}
