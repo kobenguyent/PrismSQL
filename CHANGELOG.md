@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.1...v1.4.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* Update README.md ([f2940b4](https://github.com/kobenguyent/KobeanSQL/commit/f2940b42a60377285f3931b7d81d629d6315cbd7))
+
 ## [1.4.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.0...v1.4.1) (2026-05-23)
 
 
