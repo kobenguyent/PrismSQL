@@ -226,8 +226,7 @@ The DSL lives in `src/renderer/src/sql/dsl.ts` and currently exposes:
 Example usage:
 
 ```ts
-import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from './src/renderer/src/sql/dsl'
-
+// Import these helpers from the local `sql/dsl.ts` module in renderer code.
 const selectSql = buildSelectTableSql('postgres', 'users', 'public', 25)
 // SELECT * FROM "public"."users" LIMIT 25;
 

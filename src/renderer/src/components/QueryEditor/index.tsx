@@ -185,7 +185,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     setDslStatementType('select')
     setDslObjectName('')
     setDslQualifier('')
-    setDslLimit(String(settings.queryLimit || 100))
+    setDslLimit(String(settings.queryLimit ?? 100))
     setShowDslModal(true)
   }, [settings.queryLimit])
 
