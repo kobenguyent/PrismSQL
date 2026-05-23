@@ -32,6 +32,22 @@ describe('local AI service selection', () => {
 })
 
 describe('local-only URL policy', () => {
+  it('returns provider-specific local URL examples for invalid URL values', async () => {
+    const ollamaResult = await new OllamaService('not-a-url', 'llama3.1').runTask({
+      task: 'generate',
+      prompt: 'list users'
+    })
+    expect(ollamaResult.success).toBe(false)
+    expect(ollamaResult.error).toContain('http://127.0.0.1:11434')
+
+    const openaiResult = await new OpenAICompatibleService('not-a-url', 'gpt-local').runTask({
+      task: 'generate',
+      prompt: 'list users'
+    })
+    expect(openaiResult.success).toBe(false)
+    expect(openaiResult.error).toContain('http://127.0.0.1:1234/v1')
+  })
+
   it('rejects non-local Ollama URLs', async () => {
     const service = new OllamaService('https://example.com', 'llama3.1')
     const result = await service.runTask({ task: 'generate', prompt: 'list users' })

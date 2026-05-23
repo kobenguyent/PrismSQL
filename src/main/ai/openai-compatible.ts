@@ -17,7 +17,11 @@ export class OpenAICompatibleService implements LocalAIService {
   ) {
     this.baseUrl = baseUrl
     this.model = model
-    this.baseUrlValidationError = validateLocalBaseUrl(baseUrl, 'KOBEANSQL_OPENAI_URL')
+    this.baseUrlValidationError = validateLocalBaseUrl(
+      baseUrl,
+      'KOBEANSQL_OPENAI_URL',
+      DEFAULT_OPENAI_COMPATIBLE_URL
+    )
   }
 
   getSettings(): { provider: 'openai-compatible'; baseUrl: string; model: string; localOnly: true } {

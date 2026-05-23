@@ -82,7 +82,7 @@ export class OllamaService implements LocalAIService {
   }
 
   private validateBaseUrl(baseUrl: string): string | undefined {
-    return validateLocalBaseUrl(baseUrl, 'KOBEANSQL_OLLAMA_URL')
+    return validateLocalBaseUrl(baseUrl, 'KOBEANSQL_OLLAMA_URL', DEFAULT_OLLAMA_URL)
   }
 
   private buildPrompt(request: AIRequest): string | null {

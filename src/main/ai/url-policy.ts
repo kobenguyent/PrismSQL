@@ -1,11 +1,15 @@
 import { isIP } from 'node:net'
 
-export function validateLocalBaseUrl(baseUrl: string, envName: string): string | undefined {
+export function validateLocalBaseUrl(
+  baseUrl: string,
+  envName: string,
+  exampleLocalUrl = 'http://127.0.0.1'
+): string | undefined {
   let url: URL
   try {
     url = new URL(baseUrl)
   } catch {
-    return `Invalid ${envName}. Use a local URL such as http://127.0.0.1.`
+    return `Invalid ${envName}. Use a local URL such as ${exampleLocalUrl}.`
   }
 
   if (!['http:', 'https:'].includes(url.protocol)) {
