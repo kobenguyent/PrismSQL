@@ -124,6 +124,27 @@ describe('Connection Store (persistence)', () => {
     expect(exported.connections[0].password).toBeUndefined()
   })
 
+  it('exportConnectionsToPath includes encrypted passwords when requested', async () => {
+    const electron = await import('electron')
+    const mockSafe = electron.safeStorage as {
+      isEncryptionAvailable: ReturnType<typeof vi.fn>
+      encryptString: ReturnType<typeof vi.fn>
+    }
+    mockSafe.isEncryptionAvailable.mockReturnValueOnce(true)
+    mockSafe.encryptString.mockReturnValueOnce(Buffer.from('ENCRYPTED'))
+
+    const { saveConnections, exportConnectionsToPath } = await import('../src/main/store')
+    saveConnections([{ id: 'c1', name: 'Secured', type: 'postgres', password: 'secret' }])
+    exportConnectionsToPath(exportPath, true)
+
+    const exported = JSON.parse(fs.readFileSync(exportPath, 'utf-8')) as {
+      includePasswords: boolean
+      connections: Array<Record<string, unknown>>
+    }
+    expect(exported.includePasswords).toBe(true)
+    expect(exported.connections[0].password).toMatch(/^enc:/)
+  })
+
   it('importConnectionsFromPath validates, replaces by id and skips duplicates', async () => {
     const { saveConnections, importConnectionsFromPath, loadConnections } = await import('../src/main/store')
     saveConnections([

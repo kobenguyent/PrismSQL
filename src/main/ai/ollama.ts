@@ -15,11 +15,17 @@ export interface AIResponse {
   error?: string
 }
 
+const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
+const DEFAULT_OLLAMA_MODEL = 'llama3.1'
+
 export class OllamaService {
   private readonly baseUrl: string
   private readonly model: string
 
-  constructor(baseUrl = process.env.PRISMSQL_OLLAMA_URL ?? 'http://127.0.0.1:11434', model = process.env.PRISMSQL_OLLAMA_MODEL ?? 'llama3.1') {
+  constructor(
+    baseUrl = process.env.PRISMSQL_OLLAMA_URL ?? DEFAULT_OLLAMA_URL,
+    model = process.env.PRISMSQL_OLLAMA_MODEL ?? DEFAULT_OLLAMA_MODEL
+  ) {
     this.baseUrl = baseUrl
     this.model = model
   }

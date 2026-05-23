@@ -30,7 +30,11 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
         }
         return await handler(event, ...args)
       } catch (error) {
-        appLogger.error('IPC handler failed', { channel, error: (error as Error).message })
+        appLogger.error('IPC handler failed', {
+          channel,
+          error: (error as Error).message,
+          stack: (error as Error).stack
+        })
         throw error
       }
     })

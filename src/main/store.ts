@@ -197,13 +197,13 @@ function sanitizeImportedPassword(password?: string): string | undefined {
 }
 
 function fingerprintConnection(conn: ConnectionConfig): string {
-  return [
-    conn.type,
-    conn.name.trim().toLowerCase(),
-    conn.host?.trim().toLowerCase() ?? '',
-    conn.port?.toString() ?? '',
-    conn.user?.trim().toLowerCase() ?? '',
-    conn.database?.trim().toLowerCase() ?? '',
-    conn.filename?.trim().toLowerCase() ?? ''
-  ].join('|')
+  return JSON.stringify({
+    type: conn.type,
+    name: conn.name.trim().toLowerCase(),
+    host: conn.host?.trim().toLowerCase() ?? '',
+    port: conn.port?.toString() ?? '',
+    user: conn.user?.trim().toLowerCase() ?? '',
+    database: conn.database?.trim().toLowerCase() ?? '',
+    filename: conn.filename?.trim().toLowerCase() ?? ''
+  })
 }
