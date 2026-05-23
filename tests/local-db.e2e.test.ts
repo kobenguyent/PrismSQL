@@ -11,14 +11,26 @@ vi.mock('electron-log', () => ({
   error: vi.fn()
 }))
 
-function getNodeSqliteModule(): { DatabaseSync: new (filename: string) => unknown } {
+type SQLiteDatabaseCtor = new (filename: string) => {
+  exec(sql: string): void
+  close(): void
+  prepare(sql: string): {
+    all: (...params: unknown[]) => unknown[]
+    get: (...params: unknown[]) => unknown
+    run: (...params: unknown[]) => { changes: number }
+    columns: () => Array<{ column?: string; name?: string; type?: string }>
+  }
+}
+
+function getSqliteDatabaseCtor(): SQLiteDatabaseCtor {
   const sqliteModule = (
     process as typeof process & { getBuiltinModule?: (name: string) => unknown }
-  ).getBuiltinModule?.('node:sqlite') as { DatabaseSync: new (filename: string) => unknown } | undefined
-  if (!sqliteModule?.DatabaseSync) {
-    throw new Error('node:sqlite is required for local-db.e2e tests')
+  ).getBuiltinModule?.('node:sqlite') as { DatabaseSync?: SQLiteDatabaseCtor } | undefined
+  if (sqliteModule?.DatabaseSync) {
+    return sqliteModule.DatabaseSync
   }
-  return sqliteModule
+
+  return require('better-sqlite3') as SQLiteDatabaseCtor
 }
 
 function quoteSqliteIdentifier(identifier: string): string {
@@ -26,7 +38,7 @@ function quoteSqliteIdentifier(identifier: string): string {
 }
 
 vi.mock('../src/main/db/adapters/sqlite', async () => {
-  const { DatabaseSync } = getNodeSqliteModule()
+  const DatabaseSync = getSqliteDatabaseCtor()
 
   class SQLiteAdapter {
     private db: InstanceType<typeof DatabaseSync> | null = null
