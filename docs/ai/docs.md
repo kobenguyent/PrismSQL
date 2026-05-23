@@ -15,6 +15,7 @@
 | `docs/ai/plans.md` | A plan is created, moves to in-progress, or completes |
 | `docs/ai/rules.md` | A new engineering rule is adopted or an existing one is revised |
 | `docs/ai/skills.md` | A repeatable workflow is added or improved |
+| `docs/ai/plugins.md` | A recommended external agent plugin or boundary changes |
 | `docs/ai/security.md` | A security policy or scanning procedure changes |
 | `docs/ai/product-knowledge.md` | Core flows, boundaries, or user trust expectations change |
 
@@ -50,4 +51,3 @@ to match.
 
 See `docs/ai/skills.md` — **Skill: Update the Knowledge Graph** for the exact
 workflow.
-

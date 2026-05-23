@@ -6,6 +6,7 @@ This repository uses repo-local guidance for AI coding agents. Start with:
 - `docs/ai/rules.md` for required engineering rules.
 - `docs/ai/beads.md` for Beads (`bd`) issue tracking.
 - `docs/ai/issues.md` for the current known issue context.
+- `docs/ai/plugins.md` for recommended external agent plugins.
 
 ## Required Workflow
 
@@ -17,3 +18,9 @@ This repository uses repo-local guidance for AI coding agents. Start with:
 4. Run the smallest relevant test first, then the full suite before completion.
 5. For bug fixes, capture the root cause, the fix, and verification evidence.
 
+## Recommended Agent Plugin
+
+Use the `obra/superpowers` plugin in the Codex agent environment when it is
+available. Treat it as workflow support only: do not vendor the plugin into this
+repository, do not add it as an npm dependency, and do not let it override the
+repo-local guidance in `AGENTS.md` and `docs/ai/*.md`.
