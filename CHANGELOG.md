@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.0...v1.4.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* Rename project identity from PrismSQL to KobeanSQL across app, packaging, and docs ([#23](https://github.com/kobenguyent/KobeanSQL/issues/23)) ([94ae8bd](https://github.com/kobenguyent/KobeanSQL/commit/94ae8bdaa596cc060f3b4268c9c7381a8d67e982))
+
 # [1.4.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.3.0...v1.4.0) (2026-05-23)
 
 
