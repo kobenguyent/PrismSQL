@@ -1,5 +1,11 @@
 import type { DatabaseType, ProcedureInfo } from '../types'
 
+/**
+ * Quotes a SQL identifier using the dialect-specific escaping rules for the active database.
+ *
+ * Use this whenever a table, schema, database, column, procedure, or function name comes from
+ * user input or metadata so the generated SQL stays valid across supported dialects.
+ */
 export function quoteIdentifier(name: string, dbType: DatabaseType): string {
   switch (dbType) {
     case 'mssql':
@@ -18,6 +24,12 @@ function qualifiedName(dbType: DatabaseType, name: string, schemaOrDatabase?: st
     : quoteIdentifier(name, dbType)
 }
 
+/**
+ * Minimal fluent builder for `SELECT * FROM ...` queries.
+ *
+ * The builder intentionally keeps the surface area small so the Query Editor UI and store can
+ * share the same dialect-aware SQL generation path without duplicating string templates.
+ */
 class SelectBuilder {
   private readonly clauses: string[] = []
   private readonly dbType: DatabaseType
@@ -65,6 +77,12 @@ export function buildSelectTableSql(
   return new SelectBuilder(dbType).all().from(tableName, schemaOrDatabase).limit(limit).build()
 }
 
+/**
+ * Builds a runnable procedure/function stub for the given dialect.
+ *
+ * - Functions become `SELECT routine();`
+ * - Procedures become `CALL routine();` except for SQL Server, which uses `EXEC routine;`
+ */
 export function buildProcedureCallSql(
   dbType: DatabaseType,
   routineName: string,

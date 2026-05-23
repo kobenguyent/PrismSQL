@@ -28,7 +28,7 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 - **Connection import/export** — portable JSON backup/restore with validation and duplicate handling
 - **SQL beautify** — one-click SQL formatting in the editor toolbar
 - **Local AI providers** — Ollama and OpenAI-compatible local endpoints for generate/explain/optimize without cloud APIs
-- **KobeanSQL SQL DSL** — dialect-aware query builders for common table/procedure SQL generation
+- **KobeanSQL SQL DSL** — dialect-aware query builders exposed in the Query Editor for common table/procedure/function SQL generation
 - **Keyboard shortcuts** — `Ctrl/⌘+Enter` to run, `Ctrl/⌘+T` for new tab
 - **Resizable layout** — drag sidebar and results-panel dividers
 
@@ -127,6 +127,7 @@ src/
 └── renderer/
     └── src/
         ├── App.tsx                     # Root layout
+        ├── sql/dsl.ts                  # KobeanSQL SQL DSL builders
         ├── types/index.ts              # Shared renderer types
         ├── store/index.ts              # Zustand + Immer state
         ├── styles/globals.css          # Glassmorphism design system
@@ -181,6 +182,61 @@ In the Query Editor toolbar you can use:
 - **AI Generate** (from a natural-language prompt)
 - **AI Explain** (explains current SQL)
 - **AI Optimize** (returns improved SQL)
+
+## 🧱 KobeanSQL SQL DSL
+
+KobeanSQL ships with a small SQL DSL for generating common statements in a dialect-aware way. The app uses the same builders internally for schema actions, and the Query Editor now exposes them directly so you can generate boilerplate SQL without hand-writing database-specific syntax.
+
+### Use the DSL in the Query Editor
+
+1. Open a query tab and select a connection.
+2. Click the **KobeanSQL DSL** (`</>`) button in the Query Editor toolbar.
+3. Choose the statement type:
+   - **Select table / view**
+   - **Call procedure**
+   - **Call function**
+4. Enter the object name and, if needed, a schema or database qualifier.
+5. For `SELECT`, choose the row limit.
+6. Review the live SQL preview and click **Insert SQL**.
+
+The generated SQL is inserted into the current tab, so you can keep composing by hand before running it.
+
+### Dialect rules handled by the DSL
+
+- **Identifier quoting**
+  - SQL Server: `[identifier]`
+  - MySQL / MariaDB: `` `identifier` ``
+  - PostgreSQL / SQLite: `"identifier"`
+- **Select builder**
+  - SQL Server uses `SELECT TOP n * FROM ...`
+  - PostgreSQL / MySQL / MariaDB / SQLite use `SELECT * FROM ... LIMIT n`
+- **Routine builder**
+  - Procedures use `EXEC ...` on SQL Server
+  - Procedures use `CALL ...()` on PostgreSQL / MySQL / MariaDB / SQLite
+  - Functions use `SELECT ...()` across supported dialects
+
+### Programmatic API
+
+The DSL lives in `src/renderer/src/sql/dsl.ts` and currently exposes:
+
+- `quoteIdentifier(name, dbType)`
+- `buildSelectTableSql(dbType, tableName, schemaOrDatabase, limit)`
+- `buildProcedureCallSql(dbType, routineName, routineType, schema)`
+
+Example usage:
+
+```ts
+import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from './src/renderer/src/sql/dsl'
+
+const selectSql = buildSelectTableSql('postgres', 'users', 'public', 25)
+// SELECT * FROM "public"."users" LIMIT 25;
+
+const procedureSql = buildProcedureCallSql('mssql', 'syncUsers', 'procedure', 'dbo')
+// EXEC [dbo].[syncUsers];
+
+const quoted = quoteIdentifier('Order Details', 'mysql')
+// `Order Details`
+```
 
 ## 🧰 Connections: Import / Export
 
