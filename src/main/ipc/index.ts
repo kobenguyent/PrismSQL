@@ -14,10 +14,11 @@ import {
 } from '../store'
 import { ConnectionConfig } from '../db/types'
 import { appLogger } from '../logger'
-import { AIRequest, OllamaService } from '../ai/ollama'
+import type { AIRequest } from '../ai/types'
+import { createLocalAIService } from '../ai/service'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
-  const aiService = new OllamaService()
+  const aiService = createLocalAIService()
   const debugChannels = new Set(['db:query'])
 
   const handleWithLogging = <TArgs extends unknown[], TResult>(

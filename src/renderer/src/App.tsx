@@ -367,7 +367,7 @@ export default function App(): JSX.Element {
                 connections you explicitly configure.
               </p>
               <p>
-                AI features are strictly local-only and currently support <strong style={{ color: 'var(--text-primary)' }}>Ollama</strong> running on your machine.
+                AI features are strictly local-only and support local providers such as <strong style={{ color: 'var(--text-primary)' }}>Ollama</strong> and <strong style={{ color: 'var(--text-primary)' }}>OpenAI-compatible local servers</strong>.
                 KobeanSQL does not send prompts or SQL to cloud AI providers.
               </p>
               <p>

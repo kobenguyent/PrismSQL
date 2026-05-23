@@ -2,27 +2,88 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, StandardSQL } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { Play, StopCircle, Save, Wand2, Sparkles, Bot, X, MessageSquarePlus } from 'lucide-react'
+import { Play, StopCircle, Save, Wand2, Sparkles, Bot, X, MessageSquarePlus, Code2 } from 'lucide-react'
 import { useAppStore } from '../../store'
 import { useIsLightTheme } from '../../hooks/useIsLightTheme'
 import type { DatabaseType, QueryTab } from '../../types'
 import { format } from 'sql-formatter'
+import { buildProcedureCallSql, buildSelectTableSql } from '../../sql/dsl'
 
 interface Props {
   tab: QueryTab
 }
 
 export function QueryEditor({ tab }: Props): JSX.Element {
-  const { connections, connectedIds, schema, updateTabSql, updateTabConnection, runQuery, saveCurrentQuery, setStatus } =
+  const {
+    connections,
+    connectedIds,
+    schema,
+    settings,
+    updateTabSql,
+    updateTabConnection,
+    runQuery,
+    insertSnippet,
+    saveCurrentQuery,
+    setStatus
+  } =
     useAppStore()
   const isLightTheme = useIsLightTheme()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [saveCategory, setSaveCategory] = useState('')
+  const [showDslModal, setShowDslModal] = useState(false)
+  const [dslStatementType, setDslStatementType] = useState<'select' | 'procedure' | 'function'>('select')
+  const [dslObjectName, setDslObjectName] = useState('')
+  const [dslQualifier, setDslQualifier] = useState('')
+  const [dslLimit, setDslLimit] = useState('100')
   const [aiBusyTask, setAiBusyTask] = useState<'generate' | 'explain' | 'optimize' | null>(null)
   const [aiOutput, setAiOutput] = useState<string | null>(null)
   const [showAIGenerateModal, setShowAIGenerateModal] = useState(false)
   const [aiGeneratePrompt, setAiGeneratePrompt] = useState('')
+  const [aiSettings, setAiSettings] = useState<{
+    provider: 'ollama' | 'openai-compatible'
+    baseUrl: string
+    model: string
+    localOnly: true
+  } | null>(null)
+
+  useEffect(() => {
+    let disposed = false
+    window.db
+      .getAISettings()
+      .then((settings) => {
+        if (!disposed) setAiSettings(settings)
+      })
+      .catch(() => {
+        if (!disposed) setAiSettings(null)
+      })
+    return () => {
+      disposed = true
+    }
+  }, [])
+
+  const aiProviderName =
+    aiSettings?.provider === 'openai-compatible' ? 'OpenAI-compatible local provider' : 'Ollama'
+  const activeConnection = useMemo(
+    () => connections.find((connection) => connection.id === tab.connectionId),
+    [connections, tab.connectionId]
+  )
+  const activeDialectName = useMemo(() => {
+    switch (activeConnection?.type) {
+      case 'mysql':
+        return 'MySQL'
+      case 'mariadb':
+        return 'MariaDB'
+      case 'postgres':
+        return 'PostgreSQL'
+      case 'sqlite':
+        return 'SQLite'
+      case 'mssql':
+        return 'SQL Server'
+      default:
+        return 'SQL'
+    }
+  }, [activeConnection?.type])
 
   const handleRunQuery = useCallback(() => {
     if (!tab.isRunning) {
@@ -96,10 +157,9 @@ export function QueryEditor({ tab }: Props): JSX.Element {
 
   const handleBeautifySql = useCallback(() => {
     if (!tab.sql.trim()) return
-    const conn = connections.find((c) => c.id === tab.connectionId)
     try {
       const beautified = format(tab.sql, {
-        language: getSqlLanguage(conn?.type),
+        language: getSqlLanguage(activeConnection?.type),
         keywordCase: 'upper'
       })
       updateTabSql(tab.id, beautified)
@@ -107,12 +167,45 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     } catch (error) {
       setStatus(`Unable to beautify SQL: ${(error as Error).message}`, 'warning')
     }
-  }, [tab.sql, tab.id, tab.connectionId, connections, getSqlLanguage, updateTabSql, setStatus])
+  }, [tab.sql, tab.id, activeConnection?.type, getSqlLanguage, updateTabSql, setStatus])
+
+  const dslPreviewSql = useMemo(() => {
+    const objectName = dslObjectName.trim()
+    const qualifier = dslQualifier.trim() || undefined
+    if (!activeConnection || !objectName) return ''
+    if (dslStatementType === 'select') {
+      const parsedLimit = Number.parseInt(dslLimit.trim(), 10)
+      if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) return ''
+      return buildSelectTableSql(activeConnection.type, objectName, qualifier, parsedLimit)
+    }
+    return buildProcedureCallSql(activeConnection.type, objectName, dslStatementType, qualifier)
+  }, [activeConnection, dslObjectName, dslQualifier, dslLimit, dslStatementType])
+
+  const openDslModal = useCallback(() => {
+    setDslStatementType('select')
+    setDslObjectName('')
+    setDslQualifier('')
+    setDslLimit(String(settings.queryLimit ?? 100))
+    setShowDslModal(true)
+  }, [settings.queryLimit])
+
+  const handleInsertDslSql = useCallback(() => {
+    if (!activeConnection) {
+      setStatus('Select a connection to use the KobeanSQL DSL', 'warning')
+      return
+    }
+    if (!dslPreviewSql) {
+      setStatus('Complete the KobeanSQL DSL fields to generate SQL', 'warning')
+      return
+    }
+    insertSnippet(tab.id, dslPreviewSql)
+    setShowDslModal(false)
+    setStatus(`KobeanSQL DSL SQL inserted for ${activeDialectName}`, 'success')
+  }, [activeConnection, activeDialectName, dslPreviewSql, insertSnippet, setStatus, tab.id])
 
   const runAiTask = useCallback(
     async (task: 'generate' | 'explain' | 'optimize', generatePrompt?: string) => {
-      const conn = connections.find((c) => c.id === tab.connectionId)
-      const dbType = conn?.type
+      const dbType = activeConnection?.type
 
       if (task === 'generate' && !generatePrompt?.trim()) {
         setStatus('Describe SQL requirements for AI generation', 'warning')
@@ -146,13 +239,13 @@ export function QueryEditor({ tab }: Props): JSX.Element {
 
       if (task === 'explain') {
         setAiOutput(response.output)
-        setStatus('AI explanation ready (local Ollama)', 'success')
+        setStatus(`AI explanation ready (${aiProviderName})`, 'success')
         return
       }
       updateTabSql(tab.id, response.output)
-      setStatus(task === 'optimize' ? 'SQL optimized by local AI' : 'SQL generated by local AI', 'success')
+      setStatus(task === 'optimize' ? `SQL optimized by ${aiProviderName}` : `SQL generated by ${aiProviderName}`, 'success')
     },
-    [connections, setStatus, tab.connectionId, tab.id, tab.sql, updateTabSql]
+    [activeConnection?.type, aiProviderName, setStatus, tab.id, tab.sql, updateTabSql]
   )
 
   return (
@@ -201,9 +294,17 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         </button>
         <button
           className="icon-btn"
+          onClick={openDslModal}
+          disabled={!tab.connectionId}
+          data-tooltip={`KobeanSQL DSL (${activeDialectName})`}
+        >
+          <Code2 size={13} />
+        </button>
+        <button
+          className="icon-btn"
           onClick={() => setShowAIGenerateModal(true)}
           disabled={aiBusyTask !== null}
-          data-tooltip="AI Generate SQL (Local Ollama)"
+          data-tooltip={`AI Generate SQL (${aiProviderName})`}
         >
           <MessageSquarePlus size={13} />
         </button>
@@ -211,7 +312,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
           className="icon-btn"
           onClick={() => runAiTask('explain')}
           disabled={aiBusyTask !== null || !tab.sql.trim()}
-          data-tooltip="AI Explain SQL (Local Ollama)"
+          data-tooltip={`AI Explain SQL (${aiProviderName})`}
         >
           <Bot size={13} />
         </button>
@@ -219,7 +320,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
           className="icon-btn"
           onClick={() => runAiTask('optimize')}
           disabled={aiBusyTask !== null || !tab.sql.trim()}
-          data-tooltip="AI Optimize SQL (Local Ollama)"
+          data-tooltip={`AI Optimize SQL (${aiProviderName})`}
         >
           <Sparkles size={13} />
         </button>
@@ -228,7 +329,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
           <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd>
         </span>
         <span className="keyboard-hint" style={{ color: 'var(--text-tertiary)' }}>
-          AI: local Ollama only
+          AI: local-only ({aiProviderName})
         </span>
       </div>
 
@@ -255,6 +356,100 @@ export function QueryEditor({ tab }: Props): JSX.Element {
           }}
         />
       </div>
+
+      {showDslModal && (
+        <div className="modal-overlay" onClick={() => setShowDslModal(false)}>
+          <div className="modal-panel" style={{ width: 460, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">KobeanSQL DSL Builder</span>
+              <button className="icon-btn" onClick={() => setShowDslModal(false)}>
+                <X size={15} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginBottom: 12, lineHeight: 1.5 }}>
+                Generate dialect-aware SQL for the selected connection. The generated statement is inserted into the
+                current tab and follows {activeDialectName} quoting and statement rules.
+              </div>
+              <div className="form-group">
+                <label className="form-label">Statement type</label>
+                <select
+                  className="form-input"
+                  value={dslStatementType}
+                  onChange={(e) => setDslStatementType(e.target.value as 'select' | 'procedure' | 'function')}
+                >
+                  <option value="select">Select table / view</option>
+                  <option value="procedure">Call procedure</option>
+                  <option value="function">Call function</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">{dslStatementType === 'select' ? 'Table or view name' : 'Routine name'}</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={dslObjectName}
+                  onChange={(e) => setDslObjectName(e.target.value)}
+                  placeholder={dslStatementType === 'select' ? 'e.g. orders' : 'e.g. refresh_stats'}
+                  autoFocus
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Schema / database (optional)</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={dslQualifier}
+                  onChange={(e) => setDslQualifier(e.target.value)}
+                  placeholder="e.g. public, reporting, salesdb"
+                />
+              </div>
+              {dslStatementType === 'select' && (
+                <div className="form-group">
+                  <label className="form-label">Row limit</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min={1}
+                    value={dslLimit}
+                    onChange={(e) => setDslLimit(e.target.value)}
+                    placeholder="100"
+                  />
+                </div>
+              )}
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                {dslStatementType === 'select'
+                  ? 'SQL Server uses SELECT TOP n; other supported dialects use LIMIT n.'
+                  : dslStatementType === 'function'
+                    ? 'Functions generate SELECT qualified_name().'
+                    : 'Procedures generate EXEC on SQL Server and CALL on other supported dialects.'}
+              </div>
+              <div
+                style={{
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--glass-bg-light)',
+                  padding: 12,
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--font-size-xs)',
+                  whiteSpace: 'pre-wrap',
+                  minHeight: 76
+                }}
+              >
+                {dslPreviewSql || '-- Fill out the builder to preview the generated SQL'}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowDslModal(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={handleInsertDslSql} disabled={!dslPreviewSql}>
+                Insert SQL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Save Query Modal */}
       {showSaveModal && (
@@ -304,7 +499,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         <div className="modal-overlay" onClick={() => setAiOutput(null)}>
           <div className="modal-panel" style={{ width: 520, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">AI SQL Explanation (Local Ollama)</span>
+              <span className="modal-title">AI SQL Explanation ({aiProviderName})</span>
               <button className="icon-btn" onClick={() => setAiOutput(null)}>
                 <X size={15} />
               </button>
@@ -325,7 +520,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         <div className="modal-overlay" onClick={() => setShowAIGenerateModal(false)}>
           <div className="modal-panel" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Generate SQL (Local Ollama)</span>
+              <span className="modal-title">Generate SQL ({aiProviderName})</span>
               <button className="icon-btn" onClick={() => setShowAIGenerateModal(false)}>
                 <X size={15} />
               </button>
@@ -342,7 +537,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
                 />
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                Local-only AI: prompts are sent only to your local Ollama instance.
+                Local-only AI: prompts are sent only to your local provider ({aiProviderName}).
               </div>
             </div>
             <div className="modal-footer">
