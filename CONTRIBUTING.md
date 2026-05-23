@@ -1,4 +1,4 @@
-# Contributing to PrismSQL
+# Contributing to KobeanSQL
 
 Thank you for your interest in contributing!
 

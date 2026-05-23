@@ -9,7 +9,7 @@ vi.mock('electron-log', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    transports: { file: { level: 'info', getFile: vi.fn(() => ({ path: path.join(os.tmpdir(), 'prismsql.log') })) } }
+    transports: { file: { level: 'info', getFile: vi.fn(() => ({ path: path.join(os.tmpdir(), 'kobeansql.log') })) } }
   }
 }))
 

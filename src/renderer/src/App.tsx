@@ -130,7 +130,7 @@ export default function App(): JSX.Element {
       <div className="titlebar">
         <div className="titlebar-brand">
           <div className="titlebar-logo">P</div>
-          <span className="titlebar-name">PrismSQL</span>
+          <span className="titlebar-name">KobeanSQL</span>
         </div>
         <div className="titlebar-actions">
           <button
@@ -223,7 +223,7 @@ export default function App(): JSX.Element {
             <div className="welcome-screen">
               <div className="welcome-card">
                 <div className="welcome-logo">P</div>
-                <div className="welcome-title">PrismSQL</div>
+                <div className="welcome-title">KobeanSQL</div>
                 <div className="welcome-sub">
                   You have {connections.length} saved connection{connections.length !== 1 ? 's' : ''}.
                   Select one from the sidebar to start querying, or open a new tab.
@@ -243,7 +243,7 @@ export default function App(): JSX.Element {
             <div className="welcome-screen">
               <div className="welcome-card">
                 <div className="welcome-logo">P</div>
-                <div className="welcome-title">Welcome to PrismSQL</div>
+                <div className="welcome-title">Welcome to KobeanSQL</div>
                 <div className="welcome-sub">
                   A modern SQL client with a beautiful glassmorphism interface.
                   Connect to MySQL, PostgreSQL, SQLite, or SQL Server.
@@ -318,7 +318,7 @@ export default function App(): JSX.Element {
         </button>
         <button
           className="icon-btn"
-          onClick={() => window.open('https://kobenguyent.github.io/PrismSQL/', '_blank')}
+          onClick={() => window.open('https://kobenguyent.github.io/KobeanSQL/', '_blank')}
           data-tooltip="Documentation"
           style={{ width: 20, height: 20 }}
         >
@@ -354,21 +354,21 @@ export default function App(): JSX.Element {
             </div>
             <div className="modal-body" style={{ gap: 12, lineHeight: 1.65, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
               <p>
-                <strong style={{ color: 'var(--text-primary)' }}>PrismSQL does not collect any personal data.</strong>
+                <strong style={{ color: 'var(--text-primary)' }}>KobeanSQL does not collect any personal data.</strong>
               </p>
               <p>
                 All database connection credentials and saved queries are stored locally on your
                 machine using the operating system's user-data directory. No information is ever
-                sent to external servers by PrismSQL itself.
+                sent to external servers by KobeanSQL itself.
               </p>
               <p>
-                PrismSQL does <em>not</em> include analytics, telemetry, crash-reporting services,
+                KobeanSQL does <em>not</em> include analytics, telemetry, crash-reporting services,
                 or any third-party tracking. Network traffic is only ever initiated by the database
                 connections you explicitly configure.
               </p>
               <p>
                 AI features are strictly local-only and currently support <strong style={{ color: 'var(--text-primary)' }}>Ollama</strong> running on your machine.
-                PrismSQL does not send prompts or SQL to cloud AI providers.
+                KobeanSQL does not send prompts or SQL to cloud AI providers.
               </p>
               <p>
                 Built by <strong style={{ color: 'var(--text-primary)' }}>JosephThien – KobeT</strong>.

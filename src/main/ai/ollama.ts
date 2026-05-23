@@ -26,8 +26,8 @@ export class OllamaService {
   private readonly baseUrlValidationError?: string
 
   constructor(
-    baseUrl = process.env.PRISMSQL_OLLAMA_URL ?? DEFAULT_OLLAMA_URL,
-    model = process.env.PRISMSQL_OLLAMA_MODEL ?? DEFAULT_OLLAMA_MODEL
+    baseUrl = process.env.KOBEANSQL_OLLAMA_URL ?? DEFAULT_OLLAMA_URL,
+    model = process.env.KOBEANSQL_OLLAMA_MODEL ?? DEFAULT_OLLAMA_MODEL
   ) {
     this.baseUrl = baseUrl
     this.model = model
@@ -100,11 +100,11 @@ export class OllamaService {
     try {
       url = new URL(baseUrl)
     } catch {
-      return 'Invalid PRISMSQL_OLLAMA_URL. Use a local URL such as http://127.0.0.1:11434.'
+      return 'Invalid KOBEANSQL_OLLAMA_URL. Use a local URL such as http://127.0.0.1:11434.'
     }
 
     if (!['http:', 'https:'].includes(url.protocol)) {
-      return 'Invalid PRISMSQL_OLLAMA_URL protocol. Only http(s) URLs are allowed.'
+      return 'Invalid KOBEANSQL_OLLAMA_URL protocol. Only http(s) URLs are allowed.'
     }
 
     const host = url.hostname.toLowerCase()
@@ -114,7 +114,7 @@ export class OllamaService {
     const isLoopback = host === 'localhost' || isIpv4Loopback || isIpv6Loopback
 
     if (!isLoopback) {
-      return 'PrismSQL local-only policy requires PRISMSQL_OLLAMA_URL to use localhost or loopback addresses.'
+      return 'KobeanSQL local-only policy requires KOBEANSQL_OLLAMA_URL to use localhost or loopback addresses.'
     }
 
     return undefined
@@ -122,7 +122,7 @@ export class OllamaService {
 
   private buildPrompt(request: AIRequest): string | null {
     const dbType = request.dbType ?? 'sql'
-    const policy = 'PrismSQL policy: local AI only, no telemetry, no cloud providers.'
+    const policy = 'KobeanSQL policy: local AI only, no telemetry, no cloud providers.'
     switch (request.task) {
       case 'generate':
         if (!request.prompt?.trim()) return null
