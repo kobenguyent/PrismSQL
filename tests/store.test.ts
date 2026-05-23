@@ -3,6 +3,16 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 
+vi.mock('electron-log', () => ({
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    transports: { file: { level: 'info', getFile: vi.fn(() => ({ path: path.join(os.tmpdir(), 'prismsql.log') })) } }
+  }
+}))
+
 // We need to mock `electron` because store.ts calls `app.getPath` and `safeStorage`
 vi.mock('electron', () => ({
   app: {
@@ -17,14 +27,20 @@ vi.mock('electron', () => ({
 
 describe('Connection Store (persistence)', () => {
   const storePath = path.join(os.tmpdir(), 'connections.json')
+  const importPath = path.join(os.tmpdir(), 'connections-import.json')
+  const exportPath = path.join(os.tmpdir(), 'connections-export.json')
 
   beforeEach(() => {
     // Clean up any leftover file
     if (fs.existsSync(storePath)) fs.unlinkSync(storePath)
+    if (fs.existsSync(importPath)) fs.unlinkSync(importPath)
+    if (fs.existsSync(exportPath)) fs.unlinkSync(exportPath)
   })
 
   afterEach(() => {
     if (fs.existsSync(storePath)) fs.unlinkSync(storePath)
+    if (fs.existsSync(importPath)) fs.unlinkSync(importPath)
+    if (fs.existsSync(exportPath)) fs.unlinkSync(exportPath)
   })
 
   it('loadConnections returns empty array when no file exists', async () => {
@@ -93,5 +109,54 @@ describe('Connection Store (persistence)', () => {
     const { loadConnections } = await import('../src/main/store')
     const result = loadConnections()
     expect(result).toEqual([])
+  })
+
+  it('exportConnectionsToPath omits passwords by default', async () => {
+    const { saveConnections, exportConnectionsToPath } = await import('../src/main/store')
+    saveConnections([{ id: 'c1', name: 'Secured', type: 'postgres', password: 'secret' }])
+    exportConnectionsToPath(exportPath)
+
+    const exported = JSON.parse(fs.readFileSync(exportPath, 'utf-8')) as {
+      includePasswords: boolean
+      connections: Array<Record<string, unknown>>
+    }
+    expect(exported.includePasswords).toBe(false)
+    expect(exported.connections[0].password).toBeUndefined()
+  })
+
+  it('importConnectionsFromPath validates, replaces by id and skips duplicates', async () => {
+    const { saveConnections, importConnectionsFromPath, loadConnections } = await import('../src/main/store')
+    saveConnections([
+      { id: 'c1', name: 'PG Local', type: 'postgres', host: 'localhost' },
+      { id: 'c2', name: 'MySQL Local', type: 'mysql', host: 'localhost' }
+    ])
+
+    fs.writeFileSync(
+      importPath,
+      JSON.stringify(
+        {
+          connections: [
+            { id: 'c1', name: 'PG Local Updated', type: 'postgres', host: '127.0.0.1' }, // replace
+            { id: 'c3', name: 'MySQL Local', type: 'mysql', host: 'localhost' }, // duplicate fingerprint
+            { id: 'c4', name: 'SQLite New', type: 'sqlite', filename: '/tmp/new.db' }, // import
+            { id: 12, type: 'postgres' } // invalid
+          ]
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    )
+
+    const result = importConnectionsFromPath(importPath)
+    expect(result).toEqual({
+      imported: 1,
+      replaced: 1,
+      skippedDuplicates: 1,
+      skippedInvalid: 1
+    })
+    const loaded = loadConnections()
+    expect(loaded.find((c) => c.id === 'c1')?.name).toBe('PG Local Updated')
+    expect(loaded.some((c) => c.id === 'c4')).toBe(true)
   })
 })

@@ -1,13 +1,13 @@
 import { app, BrowserWindow, shell, nativeTheme } from 'electron'
 import path from 'path'
-import log from 'electron-log'
 import { ConnectionManager } from './db/manager'
 import { registerIpcHandlers } from './ipc'
 import { is } from '@electron-toolkit/utils'
+import { appLogger, setupLogger } from './logger'
 
 // Configure logger
-log.transports.file.level = 'info'
-log.info('PrismSQL starting...')
+setupLogger()
+appLogger.info('PrismSQL starting...')
 
 const manager = new ConnectionManager()
 
@@ -60,6 +60,7 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  appLogger.info('Application ready')
   registerIpcHandlers(manager)
   createWindow()
 
@@ -71,6 +72,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', async () => {
+  appLogger.info('All windows closed, disconnecting all connections')
   await manager.disconnectAll()
   if (process.platform !== 'darwin') {
     app.quit()
@@ -78,5 +80,6 @@ app.on('window-all-closed', async () => {
 })
 
 app.on('before-quit', async () => {
+  appLogger.info('App before-quit, disconnecting all connections')
   await manager.disconnectAll()
 })

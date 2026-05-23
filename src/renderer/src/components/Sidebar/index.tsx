@@ -16,7 +16,9 @@ import {
   BookOpen,
   Pencil,
   Check,
-  Folder
+  Folder,
+  Upload,
+  Download
 } from 'lucide-react'
 import { useAppStore } from '../../store'
 import type { ConnectionConfig, SavedQuery } from '../../types'
@@ -87,7 +89,9 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
     updateSavedQuery,
     newTab,
     updateTabSql,
-    setStatus
+    setStatus,
+    importConnections,
+    exportConnections
   } = useAppStore()
 
   const [templatesExpanded, setTemplatesExpanded] = useState(true)
@@ -283,6 +287,20 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
           data-tooltip="New Connection"
         >
           <Plus size={14} />
+        </button>
+        <button
+          className="icon-btn"
+          onClick={() => importConnections()}
+          data-tooltip="Import Connections"
+        >
+          <Upload size={14} />
+        </button>
+        <button
+          className="icon-btn"
+          onClick={() => exportConnections(false)}
+          data-tooltip="Export Connections"
+        >
+          <Download size={14} />
         </button>
       </div>
 

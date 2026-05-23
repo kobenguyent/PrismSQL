@@ -25,6 +25,9 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 - **Schema browser** — expandable tree: connections → databases → tables/views → columns with types and PK flags
 - **Results table** — sortable columns, global filter, CSV export, row count + query duration
 - **Connection manager** — save, edit, delete and test connections; persisted across sessions
+- **Connection import/export** — portable JSON backup/restore with validation and duplicate handling
+- **SQL beautify** — one-click SQL formatting in the editor toolbar
+- **Local AI (Ollama only)** — generate, explain, and optimize SQL without cloud APIs
 - **Keyboard shortcuts** — `Ctrl/⌘+Enter` to run, `Ctrl/⌘+T` for new tab
 - **Resizable layout** — drag sidebar and results-panel dividers
 
@@ -146,6 +149,41 @@ npm run test:watch  # watch mode
 ```
 
 Tests use **Vitest** and mock all database drivers so no live server is needed.
+
+## 🤖 Local AI (Ollama-only)
+
+PrismSQL AI is designed with a strict **local-only** policy:
+
+- Only **Ollama** is supported in the initial release.
+- No cloud AI provider integrations.
+- No telemetry or analytics pipeline for AI prompts/results.
+- Your prompts and SQL stay local to your machine when using Ollama.
+
+### Setup
+
+1. Install and run Ollama locally.
+2. Pull at least one model (default expected by PrismSQL: `llama3.1`).
+3. Keep Ollama running at `http://127.0.0.1:11434` (default).
+
+In the Query Editor toolbar you can use:
+- **AI Generate** (from a natural-language prompt)
+- **AI Explain** (explains current SQL)
+- **AI Optimize** (returns improved SQL)
+
+## 🧰 Connections: Import / Export
+
+- Use the sidebar header buttons to import/export connection files.
+- Import validates connection entries and applies conflict handling:
+  - Replace on matching `id`
+  - Skip exact duplicates (same connection fingerprint)
+  - Skip invalid records
+- Export defaults to omitting passwords for safer sharing.
+
+## 🧾 Logging & Diagnostics
+
+- PrismSQL writes local logs using `electron-log`.
+- Use the status-bar bug icon to open the logs folder quickly.
+- When reporting issues, share relevant log excerpts and redact sensitive values.
 
 ## 🛠️ Tech Stack
 

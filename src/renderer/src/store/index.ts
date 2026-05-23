@@ -34,9 +34,27 @@ declare global {
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
+      exportConnections(includePasswords?: boolean): Promise<{ success: boolean; canceled?: boolean; path?: string; count?: number }>
+      importConnections(): Promise<{
+        success: boolean
+        canceled?: boolean
+        imported?: number
+        replaced?: number
+        skippedDuplicates?: number
+        skippedInvalid?: number
+      }>
       getSavedQueries(): Promise<SavedQuery[]>
       saveQuery(query: SavedQuery): Promise<{ success: boolean }>
       deleteQuery(id: string): Promise<{ success: boolean }>
+      getAISettings(): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }>
+      runAITask(request: {
+        task: 'generate' | 'explain' | 'optimize'
+        prompt?: string
+        sql?: string
+        dbType?: string
+      }): Promise<{ success: boolean; output?: string; error?: string }>
+      getLogPath(): Promise<string>
+      openLogs(): Promise<{ success: boolean; path: string }>
     }
   }
 }
@@ -103,6 +121,9 @@ interface AppState {
   deleteSavedQuery(id: string): Promise<void>
   openSavedQuery(query: SavedQuery): void
   updateSavedQuery(query: SavedQuery): Promise<void>
+  importConnections(): Promise<void>
+  exportConnections(includePasswords?: boolean): Promise<void>
+  openLogs(): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -459,6 +480,41 @@ export const useAppStore = create<AppState>()(
         const idx = s.savedQueries.findIndex((q) => q.id === query.id)
         if (idx >= 0) s.savedQueries[idx] = query
       })
+    },
+
+    importConnections: async () => {
+      const result = await window.db.importConnections()
+      if (result.canceled) return
+      if (!result.success) {
+        get().setStatus('Failed to import connections', 'error')
+        return
+      }
+      await get().loadConnections()
+      get().setStatus(
+        `Imported ${result.imported ?? 0}, replaced ${result.replaced ?? 0}, skipped ${result.skippedDuplicates ?? 0} duplicates`,
+        'success'
+      )
+    },
+
+    exportConnections: async (includePasswords = false) => {
+      const result = await window.db.exportConnections(includePasswords)
+      if (result.canceled) return
+      if (!result.success) {
+        get().setStatus('Failed to export connections', 'error')
+        return
+      }
+      get().setStatus(`Exported ${result.count ?? 0} connection(s)`, 'success')
+    },
+
+    openLogs: async () => {
+      try {
+        const result = await window.db.openLogs()
+        if (result.success) {
+          get().setStatus('Opened logs folder', 'info')
+        }
+      } catch (error) {
+        get().setStatus((error as Error).message, 'error')
+      }
     },
 
     openSavedQuery: (query) => {

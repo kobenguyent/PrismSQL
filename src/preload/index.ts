@@ -13,6 +13,21 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export type AITaskType = 'generate' | 'explain' | 'optimize'
+
+export interface AIRequest {
+  task: AITaskType
+  prompt?: string
+  sql?: string
+  dbType?: string
+}
+
+export interface AIResponse {
+  success: boolean
+  output?: string
+  error?: string
+}
+
 const dbAPI = {
   getConnections: (): Promise<ConnectionConfig[]> => ipcRenderer.invoke('db:get-connections'),
   saveConnection: (config: ConnectionConfig): Promise<{ success: boolean }> =>
@@ -35,10 +50,25 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
     ipcRenderer.invoke('db:get-procedures', connectionId, database),
+  exportConnections: (includePasswords = false): Promise<{ success: boolean; canceled?: boolean; path?: string; count?: number }> =>
+    ipcRenderer.invoke('db:export-connections', includePasswords),
+  importConnections: (): Promise<{
+    success: boolean
+    canceled?: boolean
+    imported?: number
+    replaced?: number
+    skippedDuplicates?: number
+    skippedInvalid?: number
+  }> => ipcRenderer.invoke('db:import-connections'),
   getSavedQueries: (): Promise<SavedQueryRecord[]> => ipcRenderer.invoke('queries:get'),
   saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('queries:save', query),
-  deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id)
+  deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id),
+  getAISettings: (): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }> =>
+    ipcRenderer.invoke('ai:get-settings'),
+  runAITask: (request: AIRequest): Promise<AIResponse> => ipcRenderer.invoke('ai:run-task', request),
+  getLogPath: (): Promise<string> => ipcRenderer.invoke('app:get-log-path'),
+  openLogs: (): Promise<{ success: boolean; path: string }> => ipcRenderer.invoke('app:open-logs')
 }
 
 if (process.contextIsolated) {
