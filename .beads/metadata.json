@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "prismsql",
-  "project_id": "88fd16c7-cbd2-470d-95dc-da6af781639a"
-}
