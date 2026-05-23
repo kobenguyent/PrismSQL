@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/kobenguyent/PrismSQL/compare/v1.3.0...v1.4.0) (2026-05-23)
+
+
+### Features
+
+* Add local-only Ollama AI workflow, SQL beautify, secure connection import/export, and structured diagnostics ([#22](https://github.com/kobenguyent/PrismSQL/issues/22)) ([0a5df6b](https://github.com/kobenguyent/PrismSQL/commit/0a5df6b0292cd608db3b9c1b7fdd8a4a4e124fe6))
+
 # [1.3.0](https://github.com/kobenguyent/PrismSQL/compare/v1.2.2...v1.3.0) (2026-05-23)
 
 
