@@ -11,6 +11,7 @@ Antigravity, and other coding assistants.
 - `product-knowledge.md`: what PrismSQL is, who it serves, and its core flows.
 - `rules.md`: coding, testing, Git, and PR rules for agents.
 - `skills.md`: repeatable agent skills and workflows for this repo.
+- `plugins.md`: recommended external agent plugins and boundaries.
 - `beads.md`: how to use external Beads (`bd`) issue tracking.
 - `security.md`: Betterleaks and sensitive-data scanning rules.
 - `issues.md`: known issues and bug investigation records.
