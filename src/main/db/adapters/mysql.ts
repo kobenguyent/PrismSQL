@@ -131,4 +131,13 @@ export class MySQLAdapter implements DatabaseAdapter {
       return false
     }
   }
+
+  async getServerVersion(): Promise<string> {
+    try {
+      const result = await this.query('SELECT VERSION() AS version')
+      return (result.rows[0]?.['version'] as string) || 'Unknown'
+    } catch {
+      return 'Unknown'
+    }
+  }
 }

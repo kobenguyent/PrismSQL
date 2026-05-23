@@ -129,4 +129,15 @@ export class MSSQLAdapter implements DatabaseAdapter {
       return false
     }
   }
+
+  async getServerVersion(): Promise<string> {
+    try {
+      const result = await this.query(`SELECT @@VERSION AS version`)
+      const raw = (result.rows[0]?.['version'] as string) || 'Unknown'
+      // @@VERSION returns a long string; extract first line
+      return raw.split('\n')[0].trim()
+    } catch {
+      return 'Unknown'
+    }
+  }
 }
