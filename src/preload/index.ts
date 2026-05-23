@@ -28,6 +28,15 @@ export interface AIResponse {
   error?: string
 }
 
+export type AIProvider = 'ollama' | 'openai-compatible'
+
+export interface AISettings {
+  provider: AIProvider
+  baseUrl: string
+  model: string
+  localOnly: true
+}
+
 export interface AppSettings {
   queryLimit: number
 }
@@ -75,7 +84,7 @@ const dbAPI = {
   saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('queries:save', query),
   deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id),
-  getAISettings: (): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }> =>
+  getAISettings: (): Promise<AISettings> =>
     ipcRenderer.invoke('ai:get-settings'),
   runAITask: (request: AIRequest): Promise<AIResponse> => ipcRenderer.invoke('ai:run-task', request),
   getLogPath: (): Promise<string> => ipcRenderer.invoke('app:get-log-path'),

@@ -2,20 +2,9 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
 import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery, QueryHistoryEntry, AppSettings } from '../types'
+import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
 
 const MAX_QUERY_HISTORY = 200
-
-function quoteIdentifier(name: string, dbType: DatabaseType): string {
-  switch (dbType) {
-    case 'mssql':
-      return `[${name.replace(/]/g, ']]')}]`
-    case 'mysql':
-    case 'mariadb':
-      return `\`${name.replace(/`/g, '``')}\``
-    default:
-      return `"${name.replace(/"/g, '""')}"`
-  }
-}
 
 // Required for Immer to handle Set and Map mutations inside producers
 enableMapSet()
@@ -55,7 +44,12 @@ declare global {
       getSavedQueries(): Promise<SavedQuery[]>
       saveQuery(query: SavedQuery): Promise<{ success: boolean }>
       deleteQuery(id: string): Promise<{ success: boolean }>
-      getAISettings(): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }>
+      getAISettings(): Promise<{
+        provider: 'ollama' | 'openai-compatible'
+        baseUrl: string
+        model: string
+        localOnly: true
+      }>
       runAITask(request: {
         task: 'generate' | 'explain' | 'optimize'
         prompt?: string
@@ -452,15 +446,10 @@ export const useAppStore = create<AppState>()(
     openTableInTab: async (connectionId, tableName, database, schema) => {
       const conn = get().connections.find((c) => c.id === connectionId)
       const dbType: DatabaseType = conn?.type ?? 'postgres'
-      const q = (n: string) => quoteIdentifier(n, dbType)
       const qualifier = schema ?? database
-      const qualifiedName = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
       const { settings } = get()
       const limit = settings.queryLimit || 100
-      const sql =
-        dbType === 'mssql'
-          ? `SELECT TOP ${limit} * FROM ${qualifiedName};`
-          : `SELECT * FROM ${qualifiedName} LIMIT ${limit};`
+      const sql = buildSelectTableSql(dbType, tableName, qualifier, limit)
       const id = genId()
       const tab: QueryTab = {
         id,
@@ -484,20 +473,14 @@ export const useAppStore = create<AppState>()(
     openProcedureInTab: (connectionId, proc) => {
       const conn = get().connections.find((c) => c.id === connectionId)
       const dbType: DatabaseType = conn?.type ?? 'postgres'
-      const q = (n: string) => quoteIdentifier(n, dbType)
-      const qualifiedName = proc.schema ? `${q(proc.schema)}.${q(proc.name)}` : q(proc.name)
-
-      let sql: string
-      if (proc.type === 'function') {
-        // Stub — add parameters as needed before running
-        sql = `-- Function: ${qualifiedName}\nSELECT ${qualifiedName}();`
-      } else if (dbType === 'mssql') {
-        // Stub — add parameters as needed before running
-        sql = `-- Procedure: ${qualifiedName}\nEXEC ${qualifiedName};`
-      } else {
-        // Stub — add parameters as needed before running
-        sql = `-- Procedure: ${qualifiedName}\nCALL ${qualifiedName}();`
-      }
+      const qualifiedName = proc.schema
+        ? `${quoteIdentifier(proc.schema, dbType)}.${quoteIdentifier(proc.name, dbType)}`
+        : quoteIdentifier(proc.name, dbType)
+      const sql = buildProcedureCallSql(dbType, proc.name, proc.type, proc.schema)
+      const sqlWithComment =
+        proc.type === 'function'
+          ? `-- Function: ${qualifiedName}\n${sql}`
+          : `-- Procedure: ${qualifiedName}\n${sql}`
 
       const id = genId()
       const tab: QueryTab = {
@@ -505,7 +488,7 @@ export const useAppStore = create<AppState>()(
         title: proc.name,
         tabType: 'procedure',
         connectionId,
-        sql,
+        sql: sqlWithComment,
         result: null,
         isRunning: false,
         isSaved: false

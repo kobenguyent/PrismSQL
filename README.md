@@ -27,7 +27,8 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 - **Connection manager** — save, edit, delete and test connections; persisted across sessions
 - **Connection import/export** — portable JSON backup/restore with validation and duplicate handling
 - **SQL beautify** — one-click SQL formatting in the editor toolbar
-- **Local AI (Ollama only)** — generate, explain, and optimize SQL without cloud APIs
+- **Local AI providers** — Ollama and OpenAI-compatible local endpoints for generate/explain/optimize without cloud APIs
+- **KobeanSQL SQL DSL** — dialect-aware query builders for common table/procedure SQL generation
 - **Keyboard shortcuts** — `Ctrl/⌘+Enter` to run, `Ctrl/⌘+T` for new tab
 - **Resizable layout** — drag sidebar and results-panel dividers
 
@@ -150,24 +151,31 @@ npm run test:watch  # watch mode
 
 Tests use **Vitest** and mock all database drivers so no live server is needed.
 
-## 🤖 Local AI (Ollama-only)
+## 🤖 Local AI (Provider-flexible, local-only)
 
 KobeanSQL AI is designed with a strict **local-only** policy:
 
-- Only **Ollama** is supported in the initial release.
+- Supported local providers:
+  - **Ollama**
+  - **OpenAI-compatible local servers** (e.g. LM Studio, LocalAI, llama.cpp server mode)
 - No cloud AI provider integrations.
 - No telemetry or analytics pipeline for AI prompts/results.
-- Your prompts and SQL stay local to your machine when using Ollama.
+- Your prompts and SQL stay local to your machine.
 
 ### Setup
 
-1. Install and run Ollama locally.
-2. Pull at least one model (default expected by KobeanSQL: `llama3.1`).
-3. Keep Ollama running at `http://127.0.0.1:11434` (default).
+1. Choose and start a local provider:
+   - Ollama default endpoint: `http://127.0.0.1:11434`
+   - OpenAI-compatible default endpoint: `http://127.0.0.1:1234/v1`
+2. Pull/load at least one model in your local provider.
+3. Set provider env vars if needed (all URLs must use localhost/loopback).
 
 Optional overrides:
+- `KOBEANSQL_AI_PROVIDER` — `ollama` (default) or `openai-compatible`
 - `KOBEANSQL_OLLAMA_URL` — override Ollama base URL (localhost/loopback only)
 - `KOBEANSQL_OLLAMA_MODEL` — override default model name
+- `KOBEANSQL_OPENAI_URL` — override OpenAI-compatible base URL (localhost/loopback only)
+- `KOBEANSQL_OPENAI_MODEL` — override OpenAI-compatible model name
 
 In the Query Editor toolbar you can use:
 - **AI Generate** (from a natural-language prompt)
