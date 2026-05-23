@@ -205,4 +205,4 @@ In the Query Editor toolbar you can use:
 
 ## 📜 License
 
-MIT © 2024 kobenguyent
+MIT © 2026 josephThien - kobet
