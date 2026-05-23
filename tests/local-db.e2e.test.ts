@@ -359,7 +359,7 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
 })
 
 function createLocalSqlitePath(): { dbFile: string; cleanupDir: string } {
-  const cleanupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prismsql-e2e-'))
+  const cleanupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kobeansql-e2e-'))
   const dbFile = path.join(cleanupDir, 'app-data.sqlite')
   return { dbFile, cleanupDir }
 }

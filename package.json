@@ -1,5 +1,5 @@
 {
-  "name": "prismsql",
+  "name": "kobeansql",
   "version": "1.4.0",
   "description": "A modern SQL database client with Apple glassmorphism UI",
   "main": "out/main/index.js",
@@ -8,7 +8,7 @@
     "email": "kobenguyent@github.com"
   },
   "license": "MIT",
-  "homepage": "https://github.com/kobenguyent/PrismSQL",
+  "homepage": "https://github.com/kobenguyent/KobeanSQL",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
@@ -58,8 +58,8 @@
     "vitest": "^1.4.0"
   },
   "build": {
-    "appId": "com.kobenguyent.prismsql",
-    "productName": "PrismSQL",
+    "appId": "com.kobenguyent.kobeansql",
+    "productName": "KobeanSQL",
     "copyright": "Copyright © 2024 kobenguyent",
     "directories": {
       "output": "dist"

@@ -7,7 +7,7 @@ import { appLogger, setupLogger } from './logger'
 
 // Configure logger
 setupLogger()
-appLogger.info('PrismSQL starting...')
+appLogger.info('KobeanSQL starting...')
 
 const manager = new ConnectionManager()
 
@@ -17,7 +17,7 @@ function createWindow(): BrowserWindow {
     height: 900,
     minWidth: 900,
     minHeight: 600,
-    title: 'PrismSQL',
+    title: 'KobeanSQL',
     // macOS vibrancy / transparency
     vibrancy: 'under-window',
     visualEffectState: 'active',

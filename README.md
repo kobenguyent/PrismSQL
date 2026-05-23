@@ -1,8 +1,8 @@
-# PrismSQL
+# KobeanSQL
 
 A modern, high-performance SQL database client for desktop — built with **Electron**, **React**, and an **Apple-inspired glassmorphism UI**.
 
-![PrismSQL](https://img.shields.io/badge/version-1.0.0-7b7bea?style=flat-square)
+![KobeanSQL](https://img.shields.io/badge/version-1.0.0-7b7bea?style=flat-square)
 ![Electron](https://img.shields.io/badge/electron-29-60a5fa?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-4ade80?style=flat-square)
 
@@ -43,7 +43,7 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 
 ## ⬇️ Download
 
-Pre-built installers for every platform are attached to each [GitHub Release](https://github.com/kobenguyent/PrismSQL/releases/latest):
+Pre-built installers for every platform are attached to each [GitHub Release](https://github.com/kobenguyent/KobeanSQL/releases/latest):
 
 | Platform | File |
 |----------|------|
@@ -51,7 +51,7 @@ Pre-built installers for every platform are attached to each [GitHub Release](ht
 | 🪟 Windows | `.exe` (NSIS installer / portable) |
 | 🐧 Linux | `.AppImage` / `.deb` |
 
-Head to the [Releases page](https://github.com/kobenguyent/PrismSQL/releases/latest) and download the asset for your platform.
+Head to the [Releases page](https://github.com/kobenguyent/KobeanSQL/releases/latest) and download the asset for your platform.
 
 ## 🚀 Getting Started
 
@@ -64,8 +64,8 @@ Head to the [Releases page](https://github.com/kobenguyent/PrismSQL/releases/lat
 
 ```bash
 # Clone
-git clone https://github.com/kobenguyent/PrismSQL.git
-cd PrismSQL
+git clone https://github.com/kobenguyent/KobeanSQL.git
+cd KobeanSQL
 
 # Install dependencies (skip native-module compilation at this stage)
 npm install --ignore-scripts
@@ -74,10 +74,10 @@ npm install --ignore-scripts
 npm run rebuild:sqlite
 ```
 
-> **macOS — running a downloaded release:** The distributed app is not notarized with an Apple Developer certificate. After copying `PrismSQL.app` to `/Applications`, strip the quarantine attribute so Gatekeeper allows it to open:
+> **macOS — running a downloaded release:** The distributed app is not notarized with an Apple Developer certificate. After copying `KobeanSQL.app` to `/Applications`, strip the quarantine attribute so Gatekeeper allows it to open:
 >
 > ```bash
-> xattr -cr /Applications/PrismSQL.app
+> xattr -cr /Applications/KobeanSQL.app
 > ```
 
 ### Development
@@ -97,10 +97,10 @@ npm run package      # build + create OS-specific installer
 
 Packaged output lands in `dist/`.
 
-> **macOS note:** CI builds are unsigned (no Apple Developer certificate). macOS Gatekeeper may block the app with *"PrismSQL is damaged and can't be opened"*. To open it anyway, remove the quarantine attribute after mounting the DMG and copying the app to `/Applications`:
+> **macOS note:** CI builds are unsigned (no Apple Developer certificate). macOS Gatekeeper may block the app with *"KobeanSQL is damaged and can't be opened"*. To open it anyway, remove the quarantine attribute after mounting the DMG and copying the app to `/Applications`:
 >
 > ```bash
-> xattr -cr /Applications/PrismSQL.app
+> xattr -cr /Applications/KobeanSQL.app
 > ```
 >
 > Alternatively, right-click the app in Finder and choose **Open**, then confirm in the dialog.
@@ -152,7 +152,7 @@ Tests use **Vitest** and mock all database drivers so no live server is needed.
 
 ## 🤖 Local AI (Ollama-only)
 
-PrismSQL AI is designed with a strict **local-only** policy:
+KobeanSQL AI is designed with a strict **local-only** policy:
 
 - Only **Ollama** is supported in the initial release.
 - No cloud AI provider integrations.
@@ -162,12 +162,12 @@ PrismSQL AI is designed with a strict **local-only** policy:
 ### Setup
 
 1. Install and run Ollama locally.
-2. Pull at least one model (default expected by PrismSQL: `llama3.1`).
+2. Pull at least one model (default expected by KobeanSQL: `llama3.1`).
 3. Keep Ollama running at `http://127.0.0.1:11434` (default).
 
 Optional overrides:
-- `PRISMSQL_OLLAMA_URL` — override Ollama base URL (localhost/loopback only)
-- `PRISMSQL_OLLAMA_MODEL` — override default model name
+- `KOBEANSQL_OLLAMA_URL` — override Ollama base URL (localhost/loopback only)
+- `KOBEANSQL_OLLAMA_MODEL` — override default model name
 
 In the Query Editor toolbar you can use:
 - **AI Generate** (from a natural-language prompt)
@@ -185,7 +185,7 @@ In the Query Editor toolbar you can use:
 
 ## 🧾 Logging & Diagnostics
 
-- PrismSQL writes local logs using `electron-log`.
+- KobeanSQL writes local logs using `electron-log`.
 - Use the status-bar bug icon to open the logs folder quickly.
 - When reporting issues, share relevant log excerpts and redact sensitive values.
 

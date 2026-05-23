@@ -161,7 +161,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   handleWithLogging('db:export-connections', async (_event: IpcMainInvokeEvent, includePasswords = false) => {
     const result = await dialog.showSaveDialog({
       title: 'Export connections',
-      defaultPath: `prismsql-connections-${Date.now()}.json`,
+      defaultPath: `kobeansql-connections-${Date.now()}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     })
     if (result.canceled || !result.filePath) {
