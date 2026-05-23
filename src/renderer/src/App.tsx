@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -34,7 +34,8 @@ export default function App(): JSX.Element {
     runQuery,
     setSidebarWidth,
     setSidebarCollapsed,
-    setTheme
+    setTheme,
+    openLogs
   } = useAppStore()
 
   const [showConnectionModal, setShowConnectionModal] = useState(false)
@@ -309,6 +310,14 @@ export default function App(): JSX.Element {
         </button>
         <button
           className="icon-btn"
+          onClick={() => openLogs()}
+          data-tooltip="Open Logs Folder"
+          style={{ width: 20, height: 20 }}
+        >
+          <Bug size={12} />
+        </button>
+        <button
+          className="icon-btn"
           onClick={() => window.open('https://kobenguyent.github.io/PrismSQL/', '_blank')}
           data-tooltip="Documentation"
           style={{ width: 20, height: 20 }}
@@ -356,6 +365,10 @@ export default function App(): JSX.Element {
                 PrismSQL does <em>not</em> include analytics, telemetry, crash-reporting services,
                 or any third-party tracking. Network traffic is only ever initiated by the database
                 connections you explicitly configure.
+              </p>
+              <p>
+                AI features are strictly local-only and currently support <strong style={{ color: 'var(--text-primary)' }}>Ollama</strong> running on your machine.
+                PrismSQL does not send prompts or SQL to cloud AI providers.
               </p>
               <p>
                 Built by <strong style={{ color: 'var(--text-primary)' }}>JosephThien – KobeT</strong>.

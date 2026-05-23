@@ -36,9 +36,34 @@ declare global {
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
+      exportConnections(includePasswords?: boolean): Promise<{
+        success: boolean
+        canceled?: boolean
+        path?: string
+        count?: number
+        error?: string
+      }>
+      importConnections(): Promise<{
+        success: boolean
+        canceled?: boolean
+        imported?: number
+        replaced?: number
+        skippedDuplicates?: number
+        skippedInvalid?: number
+        error?: string
+      }>
       getSavedQueries(): Promise<SavedQuery[]>
       saveQuery(query: SavedQuery): Promise<{ success: boolean }>
       deleteQuery(id: string): Promise<{ success: boolean }>
+      getAISettings(): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }>
+      runAITask(request: {
+        task: 'generate' | 'explain' | 'optimize'
+        prompt?: string
+        sql?: string
+        dbType?: string
+      }): Promise<{ success: boolean; output?: string; error?: string }>
+      getLogPath(): Promise<string>
+      openLogs(): Promise<{ success: boolean; path: string }>
       getServerVersion(connectionId: string): Promise<{ version: string }>
       getSettings(): Promise<AppSettings>
       saveSettings(settings: AppSettings): Promise<{ success: boolean }>
@@ -48,6 +73,10 @@ declare global {
 
 export function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 interface SchemaNode {
@@ -115,6 +144,9 @@ interface AppState {
   deleteSavedQuery(id: string): Promise<void>
   openSavedQuery(query: SavedQuery): void
   updateSavedQuery(query: SavedQuery): Promise<void>
+  importConnections(): Promise<void>
+  exportConnections(includePasswords?: boolean): Promise<void>
+  openLogs(): Promise<void>
 
   // History actions
   addToHistory(entry: QueryHistoryEntry): void
@@ -518,6 +550,49 @@ export const useAppStore = create<AppState>()(
         const idx = s.savedQueries.findIndex((q) => q.id === query.id)
         if (idx >= 0) s.savedQueries[idx] = query
       })
+    },
+
+    importConnections: async () => {
+      try {
+        const result = await window.db.importConnections()
+        if (result.canceled) return
+        if (!result.success) {
+          get().setStatus(`Failed to import connections${result.error ? `: ${result.error}` : ''}`, 'error')
+          return
+        }
+        await get().loadConnections()
+        get().setStatus(
+          `Imported ${result.imported ?? 0}, replaced ${result.replaced ?? 0}, skipped ${result.skippedDuplicates ?? 0} duplicates`,
+          'success'
+        )
+      } catch (error) {
+        get().setStatus(`Failed to import connections: ${getErrorMessage(error)}`, 'error')
+      }
+    },
+
+    exportConnections: async (includePasswords = false) => {
+      try {
+        const result = await window.db.exportConnections(includePasswords)
+        if (result.canceled) return
+        if (!result.success) {
+          get().setStatus(`Failed to export connections${result.error ? `: ${result.error}` : ''}`, 'error')
+          return
+        }
+        get().setStatus(`Exported ${result.count ?? 0} connection(s)`, 'success')
+      } catch (error) {
+        get().setStatus(`Failed to export connections: ${getErrorMessage(error)}`, 'error')
+      }
+    },
+
+    openLogs: async () => {
+      try {
+        const result = await window.db.openLogs()
+        if (result.success) {
+          get().setStatus('Opened logs folder', 'info')
+        }
+      } catch (error) {
+        get().setStatus((error as Error).message, 'error')
+      }
     },
 
     openSavedQuery: (query) => {

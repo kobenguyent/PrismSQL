@@ -1,7 +1,9 @@
 import { app, safeStorage } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { ConnectionConfig } from './db/types'
+import { randomUUID } from 'crypto'
+import { ConnectionConfig, DatabaseType } from './db/types'
+import { appLogger } from './logger'
 
 export interface SavedQueryRecord {
   id: string
@@ -23,6 +25,7 @@ const MAX_QUERY_LIMIT = 10000
 
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
+const SUPPORTED_DB_TYPES: DatabaseType[] = ['mysql', 'mariadb', 'postgres', 'sqlite', 'mssql']
 const getSettingsPath = (): string => path.join(app.getPath('userData'), 'settings.json')
 
 /** Prefix used to distinguish safeStorage-encrypted values from plaintext. */
@@ -35,13 +38,13 @@ function encryptPassword(password: string): string {
   return password
 }
 
-function decryptPassword(stored: string): string {
+function decryptPassword(stored: string): string | undefined {
   if (stored.startsWith(ENCRYPTED_PREFIX)) {
     try {
       const buf = Buffer.from(stored.slice(ENCRYPTED_PREFIX.length), 'base64')
       return safeStorage.decryptString(buf)
     } catch {
-      return ''
+      return undefined
     }
   }
   // Legacy plaintext value — return as-is so existing data keeps working.
@@ -50,10 +53,7 @@ function decryptPassword(stored: string): string {
 
 export function loadConnections(): ConnectionConfig[] {
   try {
-    const storePath = getStorePath()
-    if (!fs.existsSync(storePath)) return []
-    const data = fs.readFileSync(storePath, 'utf-8')
-    const raw = JSON.parse(data) as ConnectionConfig[]
+    const raw = loadPersistedConnectionsRaw()
     return raw.map((c) => ({
       ...c,
       password: c.password ? decryptPassword(c.password) : c.password
@@ -73,7 +73,7 @@ export function saveConnections(connections: ConnectionConfig[]): void {
     }))
     fs.writeFileSync(storePath, JSON.stringify(persisted, null, 2), 'utf-8')
   } catch (err) {
-    console.error('Failed to save connections:', err)
+    appLogger.error('Failed to save connections', { error: (err as Error).message })
   }
 }
 
@@ -94,8 +94,129 @@ export function writeSavedQueries(queries: SavedQueryRecord[]): void {
     fs.mkdirSync(path.dirname(p), { recursive: true })
     fs.writeFileSync(p, JSON.stringify(queries, null, 2), 'utf-8')
   } catch (err) {
-    console.error('Failed to save queries:', err)
+    appLogger.error('Failed to save queries', { error: (err as Error).message })
   }
+}
+
+export interface ImportConnectionsResult {
+  imported: number
+  replaced: number
+  skippedDuplicates: number
+  skippedInvalid: number
+}
+
+export function loadPersistedConnectionsRaw(): ConnectionConfig[] {
+  const storePath = getStorePath()
+  if (!fs.existsSync(storePath)) return []
+  const data = fs.readFileSync(storePath, 'utf-8')
+  return JSON.parse(data) as ConnectionConfig[]
+}
+
+export function exportConnectionsToPath(exportPath: string, includePasswords = false): number {
+  const baseConnections = includePasswords
+    ? loadPersistedConnectionsRaw()
+    : loadConnections().map((conn) => ({ ...conn, password: undefined }))
+
+  const payload = {
+    version: 1,
+    exportedAt: Date.now(),
+    includePasswords,
+    connections: baseConnections
+  }
+  fs.writeFileSync(exportPath, JSON.stringify(payload, null, 2), 'utf-8')
+  return baseConnections.length
+}
+
+export function importConnectionsFromPath(importPath: string): ImportConnectionsResult {
+  const rawData = fs.readFileSync(importPath, 'utf-8')
+  const parsed = JSON.parse(rawData) as { connections?: unknown } | ConnectionConfig[]
+  const incomingList = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray((parsed as { connections?: unknown }).connections)
+      ? ((parsed as { connections: ConnectionConfig[] }).connections ?? [])
+      : []
+
+  const existing = loadConnections()
+  let imported = 0
+  let replaced = 0
+  let skippedDuplicates = 0
+  let skippedInvalid = 0
+
+  for (const incoming of incomingList) {
+    if (!isValidConnectionConfig(incoming)) {
+      skippedInvalid += 1
+      continue
+    }
+
+    const normalized = normalizeImportedConnection(incoming)
+    const indexById = existing.findIndex((conn) => conn.id === normalized.id)
+    if (indexById >= 0) {
+      existing[indexById] = normalized
+      replaced += 1
+      continue
+    }
+
+    const duplicateByFingerprint = existing.some((conn) => fingerprintConnection(conn) === fingerprintConnection(normalized))
+    if (duplicateByFingerprint) {
+      skippedDuplicates += 1
+      continue
+    }
+
+    existing.push(normalized)
+    imported += 1
+  }
+
+  saveConnections(existing)
+  return { imported, replaced, skippedDuplicates, skippedInvalid }
+}
+
+function isValidConnectionConfig(value: unknown): value is ConnectionConfig {
+  if (!value || typeof value !== 'object') return false
+  const record = value as Record<string, unknown>
+  if (typeof record['name'] !== 'string' || !record['name'].trim()) return false
+  if (typeof record['type'] !== 'string' || !SUPPORTED_DB_TYPES.includes(record['type'] as DatabaseType)) return false
+  if (record['id'] !== undefined && typeof record['id'] !== 'string') return false
+  return true
+}
+
+function normalizeImportedConnection(conn: ConnectionConfig): ConnectionConfig {
+  return {
+    ...conn,
+    id: conn.id?.trim() || createConnectionId(),
+    name: conn.name.trim(),
+    password: sanitizeImportedPassword(conn.password),
+    category: conn.category?.trim() || undefined
+  }
+}
+
+function createConnectionId(): string {
+  return randomUUID()
+}
+
+function sanitizeImportedPassword(password?: string): string | undefined {
+  if (!password) return undefined
+  if (!password.startsWith(ENCRYPTED_PREFIX)) {
+    return password
+  }
+  const decrypted = decryptPassword(password)
+  if (!decrypted) {
+    appLogger.warn('Dropped invalid encrypted password during import')
+    return undefined
+  }
+  // Always re-encrypt using local machine key material on save.
+  return decrypted
+}
+
+function fingerprintConnection(conn: ConnectionConfig): string {
+  return JSON.stringify({
+    type: conn.type,
+    name: conn.name.trim().toLowerCase(),
+    host: conn.host?.trim().toLowerCase() ?? '',
+    port: conn.port?.toString() ?? '',
+    user: conn.user?.trim().toLowerCase() ?? '',
+    database: conn.database?.trim().toLowerCase() ?? '',
+    filename: conn.filename?.trim().toLowerCase() ?? ''
+  })
 }
 
 export function loadSettings(): AppSettings {

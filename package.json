@@ -28,6 +28,7 @@
     "mssql": "^10.0.4",
     "mysql2": "^3.9.1",
     "pg": "^8.11.3",
+    "sql-formatter": "^15.8.0",
     "zustand": "^4.5.1"
   },
   "devDependencies": {

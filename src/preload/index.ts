@@ -13,6 +13,21 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export type AITaskType = 'generate' | 'explain' | 'optimize'
+
+export interface AIRequest {
+  task: AITaskType
+  prompt?: string
+  sql?: string
+  dbType?: string
+}
+
+export interface AIResponse {
+  success: boolean
+  output?: string
+  error?: string
+}
+
 export interface AppSettings {
   queryLimit: number
 }
@@ -39,10 +54,32 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
     ipcRenderer.invoke('db:get-procedures', connectionId, database),
+  exportConnections: (includePasswords = false): Promise<{
+    success: boolean
+    canceled?: boolean
+    path?: string
+    count?: number
+    error?: string
+  }> =>
+    ipcRenderer.invoke('db:export-connections', includePasswords),
+  importConnections: (): Promise<{
+    success: boolean
+    canceled?: boolean
+    imported?: number
+    replaced?: number
+    skippedDuplicates?: number
+    skippedInvalid?: number
+    error?: string
+  }> => ipcRenderer.invoke('db:import-connections'),
   getSavedQueries: (): Promise<SavedQueryRecord[]> => ipcRenderer.invoke('queries:get'),
   saveQuery: (query: SavedQueryRecord): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('queries:save', query),
   deleteQuery: (id: string): Promise<{ success: boolean }> => ipcRenderer.invoke('queries:delete', id),
+  getAISettings: (): Promise<{ provider: 'ollama'; baseUrl: string; model: string; localOnly: true }> =>
+    ipcRenderer.invoke('ai:get-settings'),
+  runAITask: (request: AIRequest): Promise<AIResponse> => ipcRenderer.invoke('ai:run-task', request),
+  getLogPath: (): Promise<string> => ipcRenderer.invoke('app:get-log-path'),
+  openLogs: (): Promise<{ success: boolean; path: string }> => ipcRenderer.invoke('app:open-logs'),
   getServerVersion: (connectionId: string): Promise<{ version: string }> =>
     ipcRenderer.invoke('db:get-server-version', connectionId),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),

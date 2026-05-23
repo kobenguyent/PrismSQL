@@ -1,16 +1,55 @@
-import { ipcMain, IpcMainInvokeEvent } from 'electron'
+import { dialog, ipcMain, IpcMainInvokeEvent, shell } from 'electron'
+import path from 'path'
 import { ConnectionManager } from '../db/manager'
-import { loadConnections, saveConnections, loadSavedQueries, writeSavedQueries, loadSettings, saveSettings, sanitizeSettings } from '../store'
+import {
+  exportConnectionsToPath,
+  importConnectionsFromPath,
+  loadConnections,
+  loadSavedQueries,
+  loadSettings,
+  sanitizeSettings,
+  saveSettings,
+  saveConnections,
+  writeSavedQueries
+} from '../store'
 import { ConnectionConfig } from '../db/types'
+import { appLogger } from '../logger'
+import { AIRequest, OllamaService } from '../ai/ollama'
 
 export function registerIpcHandlers(manager: ConnectionManager): void {
+  const aiService = new OllamaService()
+  const debugChannels = new Set(['db:query'])
+
+  const handleWithLogging = <TArgs extends unknown[], TResult>(
+    channel: string,
+    handler: (_event: IpcMainInvokeEvent, ...args: TArgs) => Promise<TResult> | TResult
+  ): void => {
+    ipcMain.handle(channel, async (event, ...args: TArgs) => {
+      try {
+        if (debugChannels.has(channel)) {
+          appLogger.debug('IPC request', { channel })
+        } else {
+          appLogger.info('IPC request', { channel })
+        }
+        return await handler(event, ...args)
+      } catch (error) {
+        appLogger.error('IPC handler failed', {
+          channel,
+          error: (error as Error).message,
+          stack: (error as Error).stack
+        })
+        throw error
+      }
+    })
+  }
+
   // List saved connections
-  ipcMain.handle('db:get-connections', async (_event: IpcMainInvokeEvent) => {
+  handleWithLogging('db:get-connections', async (_event: IpcMainInvokeEvent) => {
     return loadConnections()
   })
 
   // Save a connection (add or update)
-  ipcMain.handle('db:save-connection', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
+  handleWithLogging('db:save-connection', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
     const connections = loadConnections()
     const idx = connections.findIndex((c) => c.id === config.id)
     if (idx >= 0) {
@@ -23,7 +62,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   })
 
   // Delete a connection
-  ipcMain.handle('db:delete-connection', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+  handleWithLogging('db:delete-connection', async (_event: IpcMainInvokeEvent, connectionId: string) => {
     const connections = loadConnections().filter((c) => c.id !== connectionId)
     saveConnections(connections)
     await manager.disconnect(connectionId)
@@ -31,28 +70,28 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   })
 
   // Test connection (without saving)
-  ipcMain.handle('db:test-connection', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
+  handleWithLogging('db:test-connection', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
     return manager.testConnection(config)
   })
 
   // Connect to a database
-  ipcMain.handle('db:connect', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
+  handleWithLogging('db:connect', async (_event: IpcMainInvokeEvent, config: ConnectionConfig) => {
     return manager.connect(config)
   })
 
   // Disconnect
-  ipcMain.handle('db:disconnect', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+  handleWithLogging('db:disconnect', async (_event: IpcMainInvokeEvent, connectionId: string) => {
     await manager.disconnect(connectionId)
     return { success: true }
   })
 
   // Check if connected
-  ipcMain.handle('db:is-connected', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+  handleWithLogging('db:is-connected', async (_event: IpcMainInvokeEvent, connectionId: string) => {
     return manager.isConnected(connectionId)
   })
 
   // Execute a SQL query
-  ipcMain.handle(
+  handleWithLogging(
     'db:query',
     async (_event: IpcMainInvokeEvent, connectionId: string, sql: string, params?: unknown[]) => {
       return manager.query(connectionId, sql, params)
@@ -60,12 +99,12 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   )
 
   // Get databases list
-  ipcMain.handle('db:get-databases', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+  handleWithLogging('db:get-databases', async (_event: IpcMainInvokeEvent, connectionId: string) => {
     return manager.getDatabases(connectionId)
   })
 
   // Get tables list
-  ipcMain.handle(
+  handleWithLogging(
     'db:get-tables',
     async (_event: IpcMainInvokeEvent, connectionId: string, database?: string) => {
       return manager.getTables(connectionId, database)
@@ -73,7 +112,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   )
 
   // Get columns for a table
-  ipcMain.handle(
+  handleWithLogging(
     'db:get-columns',
     async (_event: IpcMainInvokeEvent, connectionId: string, table: string, database?: string) => {
       return manager.getColumns(connectionId, table, database)
@@ -81,7 +120,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   )
 
   // Get procedures / functions list
-  ipcMain.handle(
+  handleWithLogging(
     'db:get-procedures',
     async (_event: IpcMainInvokeEvent, connectionId: string, database?: string) => {
       return manager.getProcedures(connectionId, database)
@@ -89,40 +128,97 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
   )
 
   // Saved queries
-  ipcMain.handle('queries:get', async () => {
+  handleWithLogging('queries:get', async () => {
     return loadSavedQueries()
   })
 
-  ipcMain.handle('queries:save', async (_event: IpcMainInvokeEvent, query: { id: string; name: string; sql: string; createdAt: number }) => {
-    const queries = loadSavedQueries()
-    const idx = queries.findIndex((q) => q.id === query.id)
-    if (idx >= 0) {
-      queries[idx] = query
-    } else {
-      queries.push(query)
+  handleWithLogging(
+    'queries:save',
+    async (_event: IpcMainInvokeEvent, query: { id: string; name: string; sql: string; createdAt: number }) => {
+      const queries = loadSavedQueries()
+      const idx = queries.findIndex((q) => q.id === query.id)
+      if (idx >= 0) {
+        queries[idx] = query
+      } else {
+        queries.push(query)
+      }
+      writeSavedQueries(queries)
+      return { success: true }
     }
-    writeSavedQueries(queries)
-    return { success: true }
-  })
+  )
 
-  ipcMain.handle('queries:delete', async (_event: IpcMainInvokeEvent, id: string) => {
+  handleWithLogging('queries:delete', async (_event: IpcMainInvokeEvent, id: string) => {
     const queries = loadSavedQueries().filter((q) => q.id !== id)
     writeSavedQueries(queries)
     return { success: true }
   })
 
-  // Settings
-  ipcMain.handle('settings:get', async () => {
+  handleWithLogging('ai:get-settings', async () => aiService.getSettings())
+  handleWithLogging('ai:run-task', async (_event: IpcMainInvokeEvent, request: AIRequest) => {
+    return aiService.runTask(request)
+  })
+
+  handleWithLogging('db:export-connections', async (_event: IpcMainInvokeEvent, includePasswords = false) => {
+    const result = await dialog.showSaveDialog({
+      title: 'Export connections',
+      defaultPath: `prismsql-connections-${Date.now()}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (result.canceled || !result.filePath) {
+      return { success: false, canceled: true }
+    }
+    try {
+      const count = exportConnectionsToPath(result.filePath, includePasswords)
+      appLogger.info('Connections exported', { filePath: result.filePath, count, includePasswords })
+      return { success: true, count, path: result.filePath }
+    } catch (error) {
+      appLogger.error('Failed to export connections', { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  handleWithLogging('db:import-connections', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Import connections',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, canceled: true }
+    }
+    try {
+      const importResult = importConnectionsFromPath(result.filePaths[0])
+      appLogger.info('Connections imported', { filePath: result.filePaths[0], ...importResult })
+      return { success: true, ...importResult }
+    } catch (error) {
+      appLogger.error('Failed to import connections', { error: (error as Error).message })
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  handleWithLogging('app:get-log-path', async () => {
+    return appLogger.getFilePath()
+  })
+
+  handleWithLogging('app:open-logs', async () => {
+    const logPath = appLogger.getFilePath()
+    const openError = await shell.openPath(path.dirname(logPath))
+    if (openError) {
+      throw new Error(openError)
+    }
+    return { success: true, path: logPath }
+  })
+
+  handleWithLogging('settings:get', async () => {
     return loadSettings()
   })
 
-  ipcMain.handle('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
+  handleWithLogging('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
     saveSettings(sanitizeSettings(settings))
     return { success: true }
   })
 
-  // Server version
-  ipcMain.handle('db:get-server-version', async (_event: IpcMainInvokeEvent, connectionId: string) => {
+  handleWithLogging('db:get-server-version', async (_event: IpcMainInvokeEvent, connectionId: string) => {
     try {
       return { version: await manager.getServerVersion(connectionId) }
     } catch (err) {

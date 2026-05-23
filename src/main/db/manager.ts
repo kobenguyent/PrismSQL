@@ -4,7 +4,7 @@ import { PostgresAdapter } from './adapters/postgres'
 import { SQLiteAdapter } from './adapters/sqlite'
 import { MSSQLAdapter } from './adapters/mssql'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from './types'
-import log from 'electron-log'
+import { appLogger } from '../logger'
 
 /** Safely extract a human-readable message from any thrown value. */
 function extractErrorMessage(err: unknown): string {
@@ -51,10 +51,15 @@ export class ConnectionManager {
       const adapter = this.createAdapter(config.type)
       await adapter.connect(config)
       this.connections.set(config.id, adapter)
-      log.info(`Connected to ${config.name} (${config.type})`)
+      appLogger.info('Connected to database', { connectionId: config.id, name: config.name, type: config.type })
       return { success: true }
     } catch (err) {
-      log.error(`Failed to connect to ${config.name}:`, err)
+      appLogger.error('Failed to connect to database', {
+        connectionId: config.id,
+        name: config.name,
+        type: config.type,
+        error: extractErrorMessage(err)
+      })
       const message = extractErrorMessage(err)
       return { success: false, error: message }
     }
@@ -65,6 +70,7 @@ export class ConnectionManager {
     if (adapter) {
       await adapter.disconnect()
       this.connections.delete(connectionId)
+      appLogger.info('Disconnected database connection', { connectionId })
     }
   }
 
@@ -97,7 +103,23 @@ export class ConnectionManager {
   async query(connectionId: string, sql: string, params?: unknown[]): Promise<QueryResult> {
     const adapter = this.connections.get(connectionId)
     if (!adapter) throw new Error(`Not connected: ${connectionId}`)
-    return adapter.query(sql, params)
+    const startedAt = Date.now()
+    try {
+      const result = await adapter.query(sql, params)
+      appLogger.info('Query executed', {
+        connectionId,
+        durationMs: Date.now() - startedAt,
+        rowCount: result.rowCount
+      })
+      return result
+    } catch (error) {
+      appLogger.error('Query execution failed', {
+        connectionId,
+        durationMs: Date.now() - startedAt,
+        error: extractErrorMessage(error)
+      })
+      throw error
+    }
   }
 
   async getDatabases(connectionId: string): Promise<string[]> {
