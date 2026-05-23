@@ -303,25 +303,21 @@ export function ResultsTable({
    * quoteValueForDb emits the correct SQL literal (number, boolean, NULL, or string).
    */
   function coerceEditValue(editStr: string, original: unknown): unknown {
-    // Empty input for a null original → keep as NULL
-    if ((editStr === '' || editStr.toUpperCase() === 'NULL') && (original === null || original === undefined)) {
-      return null
-    }
-    if (original === null || original === undefined) {
-      // Explicit NULL keyword always → null
-      if (editStr.toUpperCase() === 'NULL') return null
-      return editStr
-    }
+    const trimmed = editStr.trim()
+    // Explicit NULL keyword (or empty string for a originally-null cell) → SQL NULL
+    if (trimmed.toUpperCase() === 'NULL') return null
+    if (trimmed === '' && (original === null || original === undefined)) return null
+    if (original === null || original === undefined) return trimmed
     if (typeof original === 'boolean') {
-      const lower = editStr.toLowerCase()
+      const lower = trimmed.toLowerCase()
       if (lower === 'true' || lower === '1') return true
       if (lower === 'false' || lower === '0') return false
-      return editStr
+      return trimmed
     }
     if (typeof original === 'number' || typeof original === 'bigint') {
-      const n = Number(editStr)
-      if (!isNaN(n) && editStr.trim() !== '') return n
-      return editStr
+      const n = Number(trimmed)
+      if (!isNaN(n) && trimmed !== '') return n
+      return trimmed
     }
     return editStr
   }
