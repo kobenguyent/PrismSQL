@@ -70,6 +70,10 @@ export function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 interface SchemaNode {
   databases: string[]
   tables: Record<string, TableInfo[]>
@@ -503,7 +507,7 @@ export const useAppStore = create<AppState>()(
           'success'
         )
       } catch (error) {
-        get().setStatus(`Failed to import connections: ${(error as Error).message}`, 'error')
+        get().setStatus(`Failed to import connections: ${getErrorMessage(error)}`, 'error')
       }
     },
 
@@ -517,7 +521,7 @@ export const useAppStore = create<AppState>()(
         }
         get().setStatus(`Exported ${result.count ?? 0} connection(s)`, 'success')
       } catch (error) {
-        get().setStatus(`Failed to export connections: ${(error as Error).message}`, 'error')
+        get().setStatus(`Failed to export connections: ${getErrorMessage(error)}`, 'error')
       }
     },
 

@@ -1,4 +1,5 @@
 import { appLogger } from '../logger'
+import { isIP } from 'node:net'
 
 export type AITaskType = 'generate' | 'explain' | 'optimize'
 
@@ -107,11 +108,10 @@ export class OllamaService {
     }
 
     const host = url.hostname.toLowerCase()
-    const isLoopback =
-      host === 'localhost' ||
-      host === '::1' ||
-      host.startsWith('127.') ||
-      host.startsWith('::ffff:127.')
+    const ipVersion = isIP(host)
+    const isIpv4Loopback = ipVersion === 4 && host.split('.')[0] === '127'
+    const isIpv6Loopback = ipVersion === 6 && (host === '::1' || host === '0:0:0:0:0:0:0:1')
+    const isLoopback = host === 'localhost' || isIpv4Loopback || isIpv6Loopback
 
     if (!isLoopback) {
       return 'PrismSQL local-only policy requires PRISMSQL_OLLAMA_URL to use localhost or loopback addresses.'

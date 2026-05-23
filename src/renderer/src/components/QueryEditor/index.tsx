@@ -133,7 +133,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
           dbType
         })
       } catch (error) {
-        setStatus(`AI ${task} failed: ${(error as Error).message}`, 'error')
+        setStatus(`AI ${task} failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
         return
       } finally {
         setAiBusyTask(null)
