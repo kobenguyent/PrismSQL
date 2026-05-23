@@ -244,12 +244,11 @@ function quoteSqliteIdentifier(identifier: string): string {
 }
 
 vi.mock('../src/main/db/adapters/sqlite', async () => {
-  const DatabaseSync = getSqliteDatabaseCtor()
-
   class SQLiteAdapter {
-    private db: InstanceType<typeof DatabaseSync> | null = null
+    private db: InstanceType<SQLiteDatabaseCtor> | null = null
 
     async connect(config: ConnectionConfig): Promise<void> {
+      const DatabaseSync = getSqliteDatabaseCtor()
       const filename = config.filename || ':memory:'
       this.db = new DatabaseSync(filename)
       this.db.exec('PRAGMA foreign_keys = ON;')
