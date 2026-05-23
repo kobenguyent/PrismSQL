@@ -8,7 +8,7 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 
 ## 📸 Screenshots
 
-### Add connection flow — connect successfully, then save
+### Add connection flow — test connection successfully, then save
 ![Add connection flow](docs/screenshots/flow-add-connection.png)
 
 ### Querying data flow — run queries successfully and view results

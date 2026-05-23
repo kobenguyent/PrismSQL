@@ -11,14 +11,22 @@ vi.mock('electron-log', () => ({
   error: vi.fn()
 }))
 
-vi.mock('../src/main/db/adapters/sqlite', async () => {
-  const sqliteModule = (process as typeof process & { getBuiltinModule?: (name: string) => unknown }).getBuiltinModule?.(
-    'node:sqlite'
-  ) as { DatabaseSync: new (filename: string) => unknown } | undefined
+function getNodeSqliteModule(): { DatabaseSync: new (filename: string) => unknown } {
+  const sqliteModule = (
+    process as typeof process & { getBuiltinModule?: (name: string) => unknown }
+  ).getBuiltinModule?.('node:sqlite') as { DatabaseSync: new (filename: string) => unknown } | undefined
   if (!sqliteModule?.DatabaseSync) {
     throw new Error('node:sqlite is required for local-db.e2e tests')
   }
-  const { DatabaseSync } = sqliteModule
+  return sqliteModule
+}
+
+function quoteSqliteIdentifier(identifier: string): string {
+  return `"${identifier.replace(/"/g, '""')}"`
+}
+
+vi.mock('../src/main/db/adapters/sqlite', async () => {
+  const { DatabaseSync } = getNodeSqliteModule()
 
   class SQLiteAdapter {
     private db: InstanceType<typeof DatabaseSync> | null = null
@@ -43,10 +51,17 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
         const isRead = trimmed.startsWith('select') || trimmed.startsWith('with') || trimmed.startsWith('pragma')
         if (isRead) {
           const rows = stmt.all(...params) as Record<string, unknown>[]
-          const columns = rows.length
-            ? Object.keys(rows[0]).map((name) => ({ name, type: 'TEXT', nullable: true, primaryKey: false }))
-            : stmt.columns().map((col) => ({
-                name: col.column,
+          const metadataColumns = stmt.columns().map((col) => ({
+            name: String(col.column ?? col.name ?? ''),
+            type: String(col.type ?? 'TEXT'),
+            nullable: true,
+            primaryKey: false
+          }))
+          const columns =
+            metadataColumns.length > 0
+              ? metadataColumns
+              : Object.keys(rows[0] ?? {}).map((name) => ({
+                  name,
                 type: 'TEXT',
                 nullable: true,
                 primaryKey: false
@@ -90,9 +105,13 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
 
     async getColumns(table: string) {
       if (!this.db) return []
-      const rows = this.db.prepare(`PRAGMA table_info(${JSON.stringify(table)})`).all() as Array<
-        Record<string, unknown>
-      >
+      const knownTable = this.db
+        .prepare("SELECT 1 FROM sqlite_master WHERE name = ? AND type IN ('table', 'view') LIMIT 1")
+        .get(table)
+      if (!knownTable) return []
+      const rows = this.db
+        .prepare(`PRAGMA table_info(${quoteSqliteIdentifier(table)})`)
+        .all() as Array<Record<string, unknown>>
       return rows.map((r) => ({
         name: r['name'] as string,
         type: (r['type'] as string) || 'TEXT',
