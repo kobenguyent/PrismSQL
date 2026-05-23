@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.2...v1.5.0) (2026-05-23)
+
+
+### Features
+
+* Add local AI provider abstraction (Ollama + OpenAI-compatible) and introduce KobeanSQL SQL DSL ([#24](https://github.com/kobenguyent/KobeanSQL/issues/24)) ([6576551](https://github.com/kobenguyent/KobeanSQL/commit/6576551f7da0f2352538604b5c27906b6b8f525c))
+
 ## [1.4.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.1...v1.4.2) (2026-05-23)
 
 
