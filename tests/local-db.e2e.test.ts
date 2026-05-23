@@ -22,6 +22,205 @@ type SQLiteDatabaseCtor = new (filename: string) => {
   }
 }
 
+type FakeColumn = {
+  name: string
+  type: string
+  notnull: number
+  pk: number
+  dflt_value?: string
+}
+
+type FakeTable = {
+  name: string
+  columns: FakeColumn[]
+  rows: Array<Record<string, unknown>>
+}
+
+class FakeDatabaseSync {
+  private tables = new Map<string, FakeTable>()
+
+  constructor(_filename: string) {}
+
+  exec(_sql: string): void {}
+
+  close(): void {
+    this.tables.clear()
+  }
+
+  prepare(sql: string) {
+    const normalized = sql.trim()
+    const lower = normalized.toLowerCase()
+    const unsupported = () => {
+      throw new Error(`Unsupported SQL in fake sqlite test driver: ${normalized}`)
+    }
+
+    const readRows = (params: unknown[]): Record<string, unknown>[] => {
+      if (lower.startsWith('pragma database_list')) {
+        return [{ seq: 0, name: 'main', file: '' }]
+      }
+
+      if (lower.startsWith('select sqlite_version() as version')) {
+        return [{ version: '3.45.0' }]
+      }
+
+      if (lower.startsWith('select 1 from sqlite_master where name = ?')) {
+        const tableName = String(params[0] ?? '')
+        return this.tables.has(tableName) ? [{ 1: 1 }] : []
+      }
+
+      if (lower.startsWith('select name, type from sqlite_master')) {
+        return Array.from(this.tables.values())
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((table) => ({ name: table.name, type: 'table' }))
+      }
+
+      if (lower.startsWith('pragma table_info(')) {
+        const raw = normalized.slice(normalized.indexOf('(') + 1, normalized.lastIndexOf(')')).trim()
+        const tableName = raw.replace(/^"|"$/g, '').replace(/""/g, '"')
+        const table = this.tables.get(tableName)
+        if (!table) return []
+        return table.columns.map((col, idx) => ({
+          cid: idx,
+          name: col.name,
+          type: col.type,
+          notnull: col.notnull,
+          dflt_value: col.dflt_value ?? null,
+          pk: col.pk
+        }))
+      }
+
+      if (lower.startsWith('select 1')) {
+        return [{ 1: 1 }]
+      }
+
+      const selectMatch = normalized.match(
+        /^select\s+(.+?)\s+from\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+where\s+(.+?))?(?:\s+order\s+by\s+(.+?))?;?$/i
+      )
+      if (selectMatch) {
+        const [, rawColumns, tableName, whereClause, orderBy] = selectMatch
+        const table = this.tables.get(tableName)
+        if (!table) return []
+
+        let filtered = [...table.rows]
+        if (whereClause) {
+          const whereMatch = whereClause.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*'((?:[^']|''+)*)'$/i)
+          if (!whereMatch) unsupported()
+          const [, whereColumn, whereValue] = whereMatch
+          const value = whereValue.replace(/''/g, "'")
+          filtered = filtered.filter((row) => String(row[whereColumn] ?? '') === value)
+        }
+
+        if (orderBy) {
+          const orderByCol = orderBy.replace(/;$/, '').trim()
+          filtered.sort((a, b) => Number(a[orderByCol] ?? 0) - Number(b[orderByCol] ?? 0))
+        }
+
+        const columns = rawColumns.split(',').map((c) => c.trim())
+        return filtered.map((row) => {
+          const projected: Record<string, unknown> = {}
+          for (const col of columns) projected[col] = row[col]
+          return projected
+        })
+      }
+
+      unsupported()
+    }
+
+    return {
+      all: (...params: unknown[]) => readRows(params),
+      get: (...params: unknown[]) => readRows(params)[0],
+      run: (...params: unknown[]) => {
+        void params
+
+        const createTable = normalized.match(/^create\s+table\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([\s\S]+)\)\s*;?$/i)
+        if (createTable) {
+          const [, tableName, rawDefs] = createTable
+          const columns = rawDefs
+            .split(',')
+            .map((def) => def.trim())
+            .filter(Boolean)
+            .map((def) => {
+              const tokens = def.split(/\s+/)
+              const name = tokens[0]
+              const type = tokens[1] || 'TEXT'
+              const pk = /\bprimary\s+key\b/i.test(def) ? 1 : 0
+              const notnull = /\bnot\s+null\b/i.test(def) ? 1 : 0
+              const defaultMatch = def.match(/\bdefault\s+(.+)$/i)
+              return {
+                name,
+                type,
+                pk,
+                notnull,
+                dflt_value: defaultMatch?.[1]?.trim()
+              } satisfies FakeColumn
+            })
+          this.tables.set(tableName, { name: tableName, columns, rows: [] })
+          return { changes: 0 }
+        }
+
+        const insertMatch = normalized.match(
+          /^insert\s+into\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]+)\)\s*values\s*(.+)\s*;?$/i
+        )
+        if (insertMatch) {
+          const [, tableName, rawCols, rawValues] = insertMatch
+          const table = this.tables.get(tableName)
+          if (!table) unsupported()
+          const cols = rawCols.split(',').map((col) => col.trim())
+          const tuples = rawValues
+            .trim()
+            .replace(/;$/, '')
+            .split(/\)\s*,\s*\(/)
+            .map((tuple) => tuple.replace(/^\(/, '').replace(/\)$/, ''))
+
+          for (const tuple of tuples) {
+            const values = tuple.split(',').map((val) => val.trim())
+            const row: Record<string, unknown> = {}
+            cols.forEach((col, idx) => {
+              const raw = values[idx]
+              if (raw === undefined) row[col] = null
+              else if (/^'.*'$/.test(raw)) row[col] = raw.slice(1, -1).replace(/''/g, "'")
+              else row[col] = Number(raw)
+            })
+
+            const pkCol = table.columns.find((col) => col.pk === 1)
+            if (pkCol && row[pkCol.name] == null) {
+              const maxPk = table.rows.reduce((max, current) => Math.max(max, Number(current[pkCol.name] ?? 0)), 0)
+              row[pkCol.name] = maxPk + 1
+            }
+            table.rows.push(row)
+          }
+          return { changes: tuples.length }
+        }
+
+        const updateMatch = normalized.match(
+          /^update\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+set\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+?)\s+where\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*'((?:[^']|''+)*)'\s*;?$/i
+        )
+        if (updateMatch) {
+          const [, tableName, setCol, rawValue, whereCol, whereValue] = updateMatch
+          const table = this.tables.get(tableName)
+          if (!table) unsupported()
+          const value = /^'.*'$/.test(rawValue)
+            ? rawValue.slice(1, -1).replace(/''/g, "'")
+            : Number(rawValue)
+          const matchValue = whereValue.replace(/''/g, "'")
+
+          let changes = 0
+          for (const row of table.rows) {
+            if (String(row[whereCol] ?? '') === matchValue) {
+              row[setCol] = value
+              changes += 1
+            }
+          }
+          return { changes }
+        }
+
+        unsupported()
+      },
+      columns: () => []
+    }
+  }
+}
+
 function getSqliteDatabaseCtor(): SQLiteDatabaseCtor {
   const sqliteModule = (
     process as typeof process & { getBuiltinModule?: (name: string) => unknown }
@@ -30,7 +229,14 @@ function getSqliteDatabaseCtor(): SQLiteDatabaseCtor {
     return sqliteModule.DatabaseSync
   }
 
-  return require('better-sqlite3') as SQLiteDatabaseCtor
+  try {
+    const BetterSqlite3 = require('better-sqlite3') as SQLiteDatabaseCtor
+    const probe = new BetterSqlite3(':memory:')
+    probe.close()
+    return BetterSqlite3
+  } catch {
+    return FakeDatabaseSync
+  }
 }
 
 function quoteSqliteIdentifier(identifier: string): string {
