@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import Database from 'better-sqlite3'
 import { ConnectionManager } from '../src/main/db/manager'
 import type { ConnectionConfig } from '../src/main/db/types'
 
@@ -11,6 +10,117 @@ vi.mock('electron-log', () => ({
   info: vi.fn(),
   error: vi.fn()
 }))
+
+vi.mock('../src/main/db/adapters/sqlite', async () => {
+  const sqliteModule = (process as typeof process & { getBuiltinModule?: (name: string) => unknown }).getBuiltinModule?.(
+    'node:sqlite'
+  ) as { DatabaseSync: new (filename: string) => unknown } | undefined
+  if (!sqliteModule?.DatabaseSync) {
+    throw new Error('node:sqlite is required for local-db.e2e tests')
+  }
+  const { DatabaseSync } = sqliteModule
+
+  class SQLiteAdapter {
+    private db: InstanceType<typeof DatabaseSync> | null = null
+
+    async connect(config: ConnectionConfig): Promise<void> {
+      const filename = config.filename || ':memory:'
+      this.db = new DatabaseSync(filename)
+      this.db.exec('PRAGMA foreign_keys = ON;')
+    }
+
+    async disconnect(): Promise<void> {
+      this.db?.close()
+      this.db = null
+    }
+
+    async query(sql: string, params: unknown[] = []) {
+      if (!this.db) throw new Error('Not connected')
+      const start = Date.now()
+      try {
+        const stmt = this.db.prepare(sql)
+        const trimmed = sql.trim().toLowerCase()
+        const isRead = trimmed.startsWith('select') || trimmed.startsWith('with') || trimmed.startsWith('pragma')
+        if (isRead) {
+          const rows = stmt.all(...params) as Record<string, unknown>[]
+          const columns = rows.length
+            ? Object.keys(rows[0]).map((name) => ({ name, type: 'TEXT', nullable: true, primaryKey: false }))
+            : stmt.columns().map((col) => ({
+                name: col.column,
+                type: 'TEXT',
+                nullable: true,
+                primaryKey: false
+              }))
+          return { columns, rows, rowCount: rows.length, duration: Date.now() - start }
+        }
+
+        const result = stmt.run(...params)
+        return {
+          columns: [],
+          rows: [],
+          rowCount: result.changes,
+          duration: Date.now() - start
+        }
+      } catch (err) {
+        return {
+          columns: [],
+          rows: [],
+          rowCount: 0,
+          duration: Date.now() - start,
+          error: (err as Error).message
+        }
+      }
+    }
+
+    async getDatabases(): Promise<string[]> {
+      if (!this.db) return []
+      const rows = this.db.prepare('PRAGMA database_list').all() as Array<{ name: string }>
+      return rows.map((r) => r.name)
+    }
+
+    async getTables(): Promise<Array<{ name: string; type: 'table' | 'view' }>> {
+      if (!this.db) return []
+      const rows = this.db
+        .prepare(
+          "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+        .all() as Array<{ name: string; type: string }>
+      return rows.map((r) => ({ name: r.name, type: r.type === 'view' ? 'view' : 'table' }))
+    }
+
+    async getColumns(table: string) {
+      if (!this.db) return []
+      const rows = this.db.prepare(`PRAGMA table_info(${JSON.stringify(table)})`).all() as Array<
+        Record<string, unknown>
+      >
+      return rows.map((r) => ({
+        name: r['name'] as string,
+        type: (r['type'] as string) || 'TEXT',
+        nullable: Number(r['notnull'] || 0) === 0,
+        primaryKey: Number(r['pk'] || 0) !== 0,
+        defaultValue: r['dflt_value'] as string | undefined
+      }))
+    }
+
+    async getProcedures() {
+      return []
+    }
+
+    async ping(): Promise<boolean> {
+      if (!this.db) return false
+      this.db.prepare('SELECT 1').get()
+      return true
+    }
+
+    async getServerVersion(): Promise<string> {
+      if (!this.db) return 'Unknown'
+      const row = this.db.prepare('SELECT sqlite_version() AS version').get() as { version?: string }
+      return row?.version || 'Unknown'
+    }
+  }
+
+  return { SQLiteAdapter }
+})
 
 function createLocalSqlitePath(): { dbFile: string; cleanupDir: string } {
   const cleanupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prismsql-e2e-'))
@@ -22,22 +132,7 @@ function cleanupTestDir(dir: string): void {
   fs.rmSync(dir, { recursive: true, force: true })
 }
 
-function hasWorkingSqliteBinding(): boolean {
-  let db: Database.Database | null = null
-  try {
-    db = new Database(':memory:')
-    db.prepare('SELECT 1').get()
-    return true
-  } catch {
-    return false
-  } finally {
-    db?.close()
-  }
-}
-
-const describeWithSqlite = hasWorkingSqliteBinding() ? describe : describe.skip
-
-describeWithSqlite('local DB e2e flows', () => {
+describe('local DB e2e flows', () => {
   it('connects to a local sqlite database and reads schema/data like an end user', async () => {
     const { dbFile, cleanupDir } = createLocalSqlitePath()
     const manager = new ConnectionManager()

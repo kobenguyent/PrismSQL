@@ -8,14 +8,14 @@ A modern, high-performance SQL database client for desktop — built with **Elec
 
 ## 📸 Screenshots
 
-### Querying data flow — sidebar, SQL editor & results panel
+### Add connection flow — connect successfully, then save
+![Add connection flow](docs/screenshots/flow-add-connection.png)
+
+### Querying data flow — run queries successfully and view results
 ![Querying data flow](docs/screenshots/flow-query-data.png)
 
 ### SQL editor flow — compose and run SQL
 ![Query editor flow](docs/screenshots/flow-query-editor.png)
-
-### Add connection flow — create, test and save connections
-![Add connection flow](docs/screenshots/flow-add-connection.png)
 
 ## ✨ Features
 
