@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/kobeansql-logo-lockup-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/kobeansql-logo-lockup-light.svg">
+    <img src="docs/assets/kobeansql-logo-lockup-light.svg" alt="KobeanSQL" width="520">
+  </picture>
+</p>
+
 # KobeanSQL
 
 > A cross-platform desktop SQL client that lets developers query, explore, and manage MySQL, MariaDB, PostgreSQL, SQLite, and SQL Server databases from a single, beautiful native app — no browser, no cloud, no data leaving your machine.
