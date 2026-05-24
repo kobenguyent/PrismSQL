@@ -151,6 +151,18 @@
 .theme-light .cm-activeLine { background: rgba(80, 80, 200, 0.04) !important; }
 .theme-light .cm-selectionBackground { background: rgba(80, 80, 200, 0.18) !important; }
 .theme-light .cm-activeLineGutter { background: rgba(80, 80, 200, 0.06) !important; }
+.theme-light .cm-editor,
+.theme-light .cm-content,
+.theme-light .cm-line {
+  color: #111827 !important;
+}
+.theme-light .cm-editor .cm-cursor,
+.theme-light .cm-editor .cm-dropCursor {
+  border-left-color: #111827 !important;
+}
+.theme-light .cm-editor .cm-placeholder {
+  color: #9ca3af !important;
+}
 .theme-light .form-input { background: var(--form-bg); }
 .theme-light .form-select { background: var(--form-bg); }
 .theme-light .editor-connection-select { background: var(--form-bg); }
@@ -563,10 +575,21 @@ html, body, #root {
 }
 .tab-name {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+.tab-dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+  flex-shrink: 0;
 }
 .tab-close {
   display: inline-flex;

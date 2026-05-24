@@ -63,6 +63,7 @@ export interface QueryTab {
   result: QueryResult | null
   isRunning: boolean
   isSaved: boolean
+  lastSavedSql?: string
   database?: string
   schema?: string
 }
