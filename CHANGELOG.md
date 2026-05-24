@@ -1,3 +1,11 @@
+# [1.8.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.7.1...v1.8.0) (2026-05-24)
+
+
+### Features
+
+* improve query tab naming and unsaved close flow ([#32](https://github.com/kobenguyent/KobeanSQL/issues/32)) ([b9fe4f4](https://github.com/kobenguyent/KobeanSQL/commit/b9fe4f47cf3b158a59d6b6715fa9229832897709))
+* **ui:** add real database logos to connection modal type selector ([#31](https://github.com/kobenguyent/KobeanSQL/issues/31)) ([87568e6](https://github.com/kobenguyent/KobeanSQL/commit/87568e6eb3f50b0ffcb104b099a6b604eb7b0ca9))
+
 ## [1.7.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.7.0...v1.7.1) (2026-05-24)
 
 
