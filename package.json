@@ -17,7 +17,9 @@
     "rebuild:sqlite": "electron-rebuild -f -w better-sqlite3",
     "install:dev": "npm install --ignore-scripts && npm run rebuild:sqlite",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e:visualizer": "npm run build && xvfb-run -a playwright test tests/database-visualizer.spec.ts",
+    "test:e2e:visualizer:update": "npm run build && xvfb-run -a playwright test tests/database-visualizer.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
@@ -53,6 +55,7 @@
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "electron-vite": "^2.1.0",
+    "playwright": "^1.60.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "semantic-release": "^25.0.3",
@@ -63,7 +66,7 @@
   "build": {
     "appId": "com.kobenguyent.kobeansql",
     "productName": "KobeanSQL",
-    "copyright": "Copyright © 2024 kobenguyent",
+    "copyright": "Copyright \u00a9 2024 kobenguyent",
     "directories": {
       "output": "dist"
     },

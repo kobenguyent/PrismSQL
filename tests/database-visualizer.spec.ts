@@ -1,0 +1,87 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { expect, test } from 'playwright/test'
+import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
+
+const REPO_ROOT = path.resolve(__dirname, '..')
+const MAIN_ENTRY = path.join(REPO_ROOT, 'out/main/index.js')
+const DB_SCRIPT = path.join(REPO_ROOT, 'scripts/setup-test-db.ts')
+const DOCS_SCREENSHOT_PATH = path.join(REPO_ROOT, 'docs/screenshots/database-visualizer.png')
+
+async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; page: Page }> {
+  const app = await electron.launch({
+    args: [MAIN_ENTRY],
+    env: {
+      ...process.env,
+      HOME: homeDir,
+      XDG_CONFIG_HOME: path.join(homeDir, '.config'),
+      ELECTRON_DISABLE_SANDBOX: '1'
+    }
+  })
+
+  const page = await app.firstWindow()
+  await page.waitForLoadState('domcontentloaded')
+  return { app, page }
+}
+
+test('renders users/posts/comments schema graph and captures docs screenshots', async () => {
+  expect(fs.existsSync(MAIN_ENTRY)).toBe(true)
+
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kobeansql-schema-viz-'))
+  const testDbPath = path.join(tmpRoot, 'schema-visualizer.sqlite')
+  const testHome = path.join(tmpRoot, 'home')
+
+  const seed = spawnSync('node', [DB_SCRIPT, testDbPath], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  })
+  expect(seed.status, seed.stderr || seed.stdout).toBe(0)
+  expect(fs.existsSync(testDbPath)).toBe(true)
+
+  let app: ElectronApplication | undefined
+  try {
+    const launched = await launchApp(testHome)
+    app = launched.app
+    const { page } = launched
+
+    await expect(page.getByText('Welcome to KobeanSQL')).toBeVisible()
+    await page.locator('.welcome-card').getByRole('button', { name: /new connection/i }).click()
+
+    const connectionModalTitle = page.locator('.modal-title', { hasText: 'New Connection' })
+    await expect(connectionModalTitle).toBeVisible()
+    const sqliteCard = page.locator('.db-type-card', { hasText: 'SQLite' })
+    await sqliteCard.click()
+    await expect(sqliteCard).toHaveClass(/selected/)
+
+    await page.locator('input[placeholder*="My SQLite DB"]').fill('Schema Visualizer E2E')
+    await page.locator('input[placeholder*="/path/to/database.db"]').fill(testDbPath)
+
+    await page.getByRole('button', { name: /^connect$/i }).click()
+    await expect(connectionModalTitle).toBeHidden()
+
+    await page.locator('button[data-tooltip="Schema Visualizer"]').click()
+
+    const renderer = page.locator('.schema-visualizer-canvas .react-flow__renderer')
+    await expect(renderer).toBeVisible()
+
+    const nodeLocator = page.locator('.schema-visualizer-canvas .schema-table-node')
+    await expect(nodeLocator).toHaveCount(3)
+    await expect(page.locator('.schema-visualizer-canvas .schema-table-name', { hasText: 'users' })).toBeVisible()
+    await expect(page.locator('.schema-visualizer-canvas .schema-table-name', { hasText: 'posts' })).toBeVisible()
+    await expect(page.locator('.schema-visualizer-canvas .schema-table-name', { hasText: 'comments' })).toBeVisible()
+
+    const edgePaths = page.locator('.schema-visualizer-canvas .react-flow__edge-path')
+    await expect(edgePaths).toHaveCount(3)
+
+    const canvasWrapper = page.locator('.schema-visualizer-canvas')
+    await fs.promises.mkdir(path.dirname(DOCS_SCREENSHOT_PATH), { recursive: true })
+    await canvasWrapper.screenshot({ path: DOCS_SCREENSHOT_PATH })
+
+    await expect(canvasWrapper).toHaveScreenshot('database-visualizer-canvas.png')
+  } finally {
+    await app?.close()
+    fs.rmSync(tmpRoot, { recursive: true, force: true })
+  }
+})
