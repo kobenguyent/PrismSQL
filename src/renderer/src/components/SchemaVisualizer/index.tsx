@@ -22,7 +22,7 @@ export function SchemaVisualizer({ connectionId, connectionName, database, onClo
     setError(null)
     try {
       const result = await window.db.getSchema(connectionId, database)
-      setSchema(result as DatabaseSchema)
+      setSchema(result)
     } catch (e) {
       setError((e as Error).message ?? 'Failed to load schema')
     } finally {

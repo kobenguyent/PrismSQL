@@ -143,7 +143,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
 
       const tables = schemaRows.map(({ tableId, tableInfo, columns }) => ({
         id: tableId,
-        name: tableInfo.name,
+        name: tableInfo.schema ? tableId : tableInfo.name,
         columns: columns.map((c) => ({
           name: c.name,
           type: c.type,

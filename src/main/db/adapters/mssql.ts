@@ -110,18 +110,27 @@ export class MSSQLAdapter implements DatabaseAdapter {
   async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
     const [schema, tableName] = table.includes('.') ? table.split('.') : ['dbo', table]
     const result = await this.query(
-      `SELECT kcu.COLUMN_NAME,
-              ccu.TABLE_SCHEMA + '.' + ccu.TABLE_NAME AS REFERENCED_TABLE,
-              ccu.COLUMN_NAME AS REFERENCED_COLUMN
-       FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
-       JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-         ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
-         AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
-       JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
-         ON ccu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
-       WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
-         AND tc.TABLE_SCHEMA = @p0
-         AND tc.TABLE_NAME = @p1`,
+      `SELECT src_col.name AS COLUMN_NAME,
+              ref_schema.name + '.' + ref_table.name AS REFERENCED_TABLE,
+              ref_col.name AS REFERENCED_COLUMN
+       FROM sys.foreign_key_columns fkc
+       JOIN sys.tables src_table
+         ON src_table.object_id = fkc.parent_object_id
+       JOIN sys.schemas src_schema
+         ON src_schema.schema_id = src_table.schema_id
+       JOIN sys.columns src_col
+         ON src_col.object_id = fkc.parent_object_id
+         AND src_col.column_id = fkc.parent_column_id
+       JOIN sys.tables ref_table
+         ON ref_table.object_id = fkc.referenced_object_id
+       JOIN sys.schemas ref_schema
+         ON ref_schema.schema_id = ref_table.schema_id
+       JOIN sys.columns ref_col
+         ON ref_col.object_id = fkc.referenced_object_id
+         AND ref_col.column_id = fkc.referenced_column_id
+       WHERE src_schema.name = @p0
+         AND src_table.name = @p1
+       ORDER BY fkc.constraint_object_id, fkc.constraint_column_id`,
       [schema, tableName]
     )
     return result.rows.map((r) => ({

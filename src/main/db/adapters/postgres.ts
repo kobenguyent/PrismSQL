@@ -106,18 +106,32 @@ export class PostgresAdapter implements DatabaseAdapter {
   async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
     const [schema, tableName] = table.includes('.') ? table.split('.') : ['public', table]
     const result = await this.query(
-      `SELECT kcu.column_name,
-              ccu.table_schema || '.' || ccu.table_name AS referenced_table,
-              ccu.column_name AS referenced_column
-       FROM information_schema.table_constraints tc
-       JOIN information_schema.key_column_usage kcu
-         ON tc.constraint_name = kcu.constraint_name
-         AND tc.table_schema = kcu.table_schema
-       JOIN information_schema.constraint_column_usage ccu
-         ON ccu.constraint_name = tc.constraint_name
-       WHERE tc.constraint_type = 'FOREIGN KEY'
-         AND tc.table_schema = $1
-         AND tc.table_name = $2`,
+      `SELECT src_att.attname AS column_name,
+              ref_ns.nspname || '.' || ref_tbl.relname AS referenced_table,
+              ref_att.attname AS referenced_column
+       FROM pg_constraint con
+       JOIN pg_class src_tbl
+         ON src_tbl.oid = con.conrelid
+       JOIN pg_namespace src_ns
+         ON src_ns.oid = src_tbl.relnamespace
+       JOIN pg_class ref_tbl
+         ON ref_tbl.oid = con.confrelid
+       JOIN pg_namespace ref_ns
+         ON ref_ns.oid = ref_tbl.relnamespace
+       JOIN LATERAL unnest(con.conkey) WITH ORDINALITY AS src_col(attnum, ordinality)
+         ON true
+       JOIN LATERAL unnest(con.confkey) WITH ORDINALITY AS ref_col(attnum, ordinality)
+         ON ref_col.ordinality = src_col.ordinality
+       JOIN pg_attribute src_att
+         ON src_att.attrelid = src_tbl.oid
+         AND src_att.attnum = src_col.attnum
+       JOIN pg_attribute ref_att
+         ON ref_att.attrelid = ref_tbl.oid
+         AND ref_att.attnum = ref_col.attnum
+       WHERE con.contype = 'f'
+         AND src_ns.nspname = $1
+         AND src_tbl.relname = $2
+       ORDER BY con.conname, src_col.ordinality`,
       [schema, tableName]
     )
     return result.rows.map((r) => ({
