@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.7.0...v1.7.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **branding:** integrate official KobeanSQL logos across app and docs ([#30](https://github.com/kobenguyent/KobeanSQL/issues/30)) ([e469eb7](https://github.com/kobenguyent/KobeanSQL/commit/e469eb70a870283c23828408a7f3a7fa9f618ea8))
+
 # [1.7.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.6.1...v1.7.0) (2026-05-24)
 
 
