@@ -176,7 +176,7 @@ Head to the [Releases page](https://github.com/kobenguyent/KobeanSQL/releases/la
 | Node.js            | 18.x LTS        | 20.x LTS recommended                                    |
 | npm                | 9.x             | Comes bundled with Node 18+                              |
 | Python             | 3.x             | Required by `node-gyp` to compile `better-sqlite3`       |
-| Build tools        | —               | **macOS:** Xcode CLT (`xcode-select --install`); **Windows:** `npm install --global windows-build-tools`; **Linux:** `build-essential` + `libsqlite3-dev` |
+| Build tools        | —               | **macOS:** Xcode CLT (`xcode-select --install`); **Windows:** Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the "Desktop development with C++" workload; **Linux:** `build-essential` + `libsqlite3-dev` |
 
 ### Development Setup
 
@@ -185,13 +185,18 @@ Head to the [Releases page](https://github.com/kobenguyent/KobeanSQL/releases/la
 git clone https://github.com/kobenguyent/KobeanSQL.git
 cd KobeanSQL
 
-# 2. Install Node dependencies
-#    --ignore-scripts skips the native compilation that requires Electron headers;
-#    we rebuild explicitly in the next step.
+# 2. Install Node dependencies and rebuild better-sqlite3 in one step
+npm run install:dev
+```
+
+`npm run install:dev` runs `npm install --ignore-scripts` followed by `npm run rebuild:sqlite`. You can also run those two steps separately if you need finer control:
+
+```bash
+# Install Node dependencies (skip native-module compilation at this stage)
 npm install --ignore-scripts
 
-# 3. Rebuild better-sqlite3 against Electron's headers
-#    (electron-rebuild downloads the correct headers automatically)
+# Rebuild better-sqlite3 against Electron's headers
+# (electron-rebuild downloads the correct headers automatically)
 npm run rebuild:sqlite
 
 # 4. Start the app in development mode with hot-reload
