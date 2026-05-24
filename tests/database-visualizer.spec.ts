@@ -9,6 +9,7 @@ const REPO_ROOT = path.resolve(__dirname, '..')
 const MAIN_ENTRY = path.join(REPO_ROOT, 'out/main/index.js')
 const DB_SCRIPT = path.join(REPO_ROOT, 'scripts/setup-test-db.ts')
 const ELECTRON_CLI = path.join(REPO_ROOT, 'node_modules/electron/cli.js')
+const ELECTRON_INSTALLER = path.join(REPO_ROOT, 'node_modules/electron/install.js')
 const DOCS_SCREENSHOT_PATH = path.join(REPO_ROOT, 'docs/screenshots/database-visualizer.png')
 
 async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; page: Page }> {
@@ -27,8 +28,19 @@ async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; p
   return { app, page }
 }
 
+function ensureElectronBinaryInstalled(): void {
+  const install = spawnSync(process.execPath, [ELECTRON_INSTALLER], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  })
+
+  expect(install.status, install.stderr || install.stdout).toBe(0)
+}
+
 test('renders users/posts/comments schema graph and captures docs screenshots', async () => {
   expect(fs.existsSync(MAIN_ENTRY)).toBe(true)
+  expect(fs.existsSync(ELECTRON_INSTALLER)).toBe(true)
+  ensureElectronBinaryInstalled()
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kobeansql-schema-viz-'))
   const testDbPath = path.join(tmpRoot, 'schema-visualizer.sqlite')
