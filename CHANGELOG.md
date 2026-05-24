@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.6.1...v1.7.0) (2026-05-24)
+
+
+### Features
+
+* **connection:** support database URI/URL connection strings ([#28](https://github.com/kobenguyent/KobeanSQL/issues/28)) ([b6e863e](https://github.com/kobenguyent/KobeanSQL/commit/b6e863e535036759a067470be9eb0d7eb7883795))
+
 ## [1.6.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.6.0...v1.6.1) (2026-05-24)
 
 
