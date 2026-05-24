@@ -1,21 +1,23 @@
 import mssql from 'mssql'
 import { DatabaseAdapter } from '../adapter'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
+import { resolveConnectionConfig } from '../connection-uri'
 
 export class MSSQLAdapter implements DatabaseAdapter {
   private pool: mssql.ConnectionPool | null = null
   private config: ConnectionConfig | null = null
 
   async connect(config: ConnectionConfig): Promise<void> {
-    this.config = config
+    const resolvedConfig = resolveConnectionConfig(config)
+    this.config = resolvedConfig
     this.pool = await mssql.connect({
-      server: config.host || 'localhost',
-      port: config.port || 1433,
-      user: config.user,
-      password: config.password,
-      database: config.database,
+      server: resolvedConfig.host || 'localhost',
+      port: resolvedConfig.port || 1433,
+      user: resolvedConfig.user,
+      password: resolvedConfig.password,
+      database: resolvedConfig.database,
       options: {
-        encrypt: config.ssl ?? true,
+        encrypt: resolvedConfig.ssl ?? true,
         trustServerCertificate: true,
         connectTimeout: 10000
       }

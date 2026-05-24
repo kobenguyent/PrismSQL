@@ -1,20 +1,22 @@
 import { Client, QueryResult as PgQueryResult } from 'pg'
 import { DatabaseAdapter } from '../adapter'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
+import { resolveConnectionConfig } from '../connection-uri'
 
 export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
   private config: ConnectionConfig | null = null
 
   async connect(config: ConnectionConfig): Promise<void> {
-    this.config = config
+    const resolvedConfig = resolveConnectionConfig(config)
+    this.config = resolvedConfig
     this.client = new Client({
-      host: config.host || 'localhost',
-      port: config.port || 5432,
-      user: config.user || 'postgres',
-      password: config.password || '',
-      database: config.database || 'postgres',
-      ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
+      host: resolvedConfig.host || 'localhost',
+      port: resolvedConfig.port || 5432,
+      user: resolvedConfig.user || 'postgres',
+      password: resolvedConfig.password || '',
+      database: resolvedConfig.database || 'postgres',
+      ssl: resolvedConfig.ssl ? { rejectUnauthorized: false } : undefined,
       connectionTimeoutMillis: 10000
     })
     await this.client.connect()

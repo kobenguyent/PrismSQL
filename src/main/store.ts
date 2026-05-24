@@ -184,6 +184,7 @@ function normalizeImportedConnection(conn: ConnectionConfig): ConnectionConfig {
     ...conn,
     id: conn.id?.trim() || createConnectionId(),
     name: conn.name.trim(),
+    connectionUri: conn.connectionUri?.trim() || undefined,
     password: sanitizeImportedPassword(conn.password),
     category: conn.category?.trim() || undefined
   }
@@ -211,6 +212,7 @@ function fingerprintConnection(conn: ConnectionConfig): string {
   return JSON.stringify({
     type: conn.type,
     name: conn.name.trim().toLowerCase(),
+    connectionUri: conn.connectionUri?.trim().toLowerCase() ?? '',
     host: conn.host?.trim().toLowerCase() ?? '',
     port: conn.port?.toString() ?? '',
     user: conn.user?.trim().toLowerCase() ?? '',
