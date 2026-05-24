@@ -139,6 +139,10 @@ interface AppState {
   newTab(connectionId?: string | null): string
   closeTab(tabId: string): void
   setActiveTab(tabId: string): void
+  moveTab(tabId: string, toIndex: number): void
+  moveTabBlock(tabIds: string[], toIndex: number): void
+  setTabColor(tabId: string, color: string | null): void
+  setTabGroup(tabId: string, title: string | null, color?: string | null): void
   updateTabSql(tabId: string, sql: string): void
   updateTabConnection(tabId: string, connectionId: string): void
   runQuery(tabId: string): Promise<void>
@@ -370,6 +374,50 @@ export const useAppStore = create<AppState>()(
     setActiveTab: (tabId) => {
       set((s) => {
         s.activeTabId = tabId
+      })
+    },
+
+    moveTab: (tabId, toIndex) => {
+      set((s) => {
+        const fromIndex = s.tabs.findIndex((t) => t.id === tabId)
+        if (fromIndex < 0) return
+        const [tab] = s.tabs.splice(fromIndex, 1)
+        const bounded = Math.max(0, Math.min(toIndex, s.tabs.length))
+        s.tabs.splice(bounded, 0, tab)
+      })
+    },
+
+    moveTabBlock: (tabIds, toIndex) => {
+      set((s) => {
+        if (tabIds.length === 0) return
+        const ids = new Set(tabIds)
+        const block = s.tabs.filter((t) => ids.has(t.id))
+        if (block.length === 0) return
+        s.tabs = s.tabs.filter((t) => !ids.has(t.id))
+        const bounded = Math.max(0, Math.min(toIndex, s.tabs.length))
+        s.tabs.splice(bounded, 0, ...block)
+      })
+    },
+
+    setTabColor: (tabId, color) => {
+      set((s) => {
+        const tab = s.tabs.find((t) => t.id === tabId)
+        if (tab) tab.tabColor = color || undefined
+      })
+    },
+
+    setTabGroup: (tabId, title, color) => {
+      set((s) => {
+        const tab = s.tabs.find((t) => t.id === tabId)
+        if (!tab) return
+        const nextTitle = title?.trim() ?? ''
+        tab.groupTitle = nextTitle ? nextTitle : undefined
+        if (color !== undefined) {
+          tab.groupColor = color || undefined
+        }
+        if (!tab.groupTitle) {
+          tab.groupColor = undefined
+        }
       })
     },
 

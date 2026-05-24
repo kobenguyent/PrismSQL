@@ -58,6 +58,9 @@ export interface QueryTab {
   id: string
   title: string
   tabType: 'query' | 'table' | 'procedure'
+  tabColor?: string
+  groupTitle?: string
+  groupColor?: string
   connectionId: string | null
   sql: string
   result: QueryResult | null
