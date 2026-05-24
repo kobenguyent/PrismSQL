@@ -43,7 +43,10 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
+
+      - name: Rebuild native modules
+        run: npm run rebuild:sqlite
 
       - name: Run schema visualizer E2E test
         run: npm run test:e2e:visualizer
