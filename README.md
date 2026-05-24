@@ -152,6 +152,53 @@ npm run test:watch  # watch mode
 
 Tests use **Vitest** and mock all database drivers so no live server is needed.
 
+### Database Schema Visualizer E2E (Playwright + Electron)
+
+Architecture flow:
+
+```text
+Playwright Test Controller
+        |
+        | seeds SQLite via scripts/setup-test-db.ts
+        v
+  Local SQLite DB (.sqlite)
+        |
+        | connection form values (renderer UI)
+        v
+Electron Renderer (React + React Flow)
+        ^
+        | IPC: db:testConnection / db:connect / db:get-schema
+        |
+Electron Main (ConnectionManager + SQLite adapter)
+```
+
+Environment setup:
+
+```bash
+npm install --ignore-scripts
+npm run rebuild:sqlite
+npx playwright install
+```
+
+> Linux CI/headless: run Electron Playwright tests through `xvfb-run -a` (already baked into npm scripts).
+
+Run the visualizer E2E suite:
+
+```bash
+npm run test:e2e:visualizer
+```
+
+Visual review lifecycle:
+
+- Auto-generated docs screenshot: `./docs/screenshots/database-visualizer.png`
+- Visual snapshot baseline: `./tests/database-visualizer.spec.ts-snapshots/`
+- Update snapshots after intentional UI/layout changes:
+
+```bash
+npm run test:e2e:visualizer:update
+```
+
+
 ## 🤖 Local AI (Provider-flexible, local-only)
 
 KobeanSQL AI is designed with a strict **local-only** policy:

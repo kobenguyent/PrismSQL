@@ -1139,3 +1139,357 @@ html, body, #root {
   margin-bottom: 28px;
   line-height: 1.6;
 }
+
+/* ============================================================
+   Schema Visualizer
+   ============================================================ */
+
+/* ── CSS variables ─────────────────────────────────────────── */
+:root {
+  --schema-edge-color: #7b7bea;
+  --schema-node-bg: rgba(18, 18, 36, 0.92);
+  --schema-node-border: rgba(123, 123, 234, 0.28);
+  --schema-node-header-bg: rgba(123, 123, 234, 0.18);
+  --schema-minimap-node: rgba(123, 123, 234, 0.4);
+  --schema-minimap-mask: rgba(8, 8, 15, 0.72);
+  --schema-handle-color: #7b7bea;
+  --schema-pk-color: #fbbf24;
+  --schema-fk-color: #60a5fa;
+}
+
+.theme-light {
+  --schema-edge-color: #5050c8;
+  --schema-node-bg: rgba(255, 255, 255, 0.92);
+  --schema-node-border: rgba(80, 80, 200, 0.25);
+  --schema-node-header-bg: rgba(80, 80, 200, 0.12);
+  --schema-minimap-node: rgba(80, 80, 200, 0.3);
+  --schema-minimap-mask: rgba(220, 225, 240, 0.75);
+  --schema-handle-color: #5050c8;
+  --schema-pk-color: #d97706;
+  --schema-fk-color: #2563eb;
+}
+
+/* ── Overlay / Panel ───────────────────────────────────────── */
+.schema-visualizer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  backdrop-filter: blur(6px);
+}
+
+.schema-visualizer-panel {
+  flex: 1;
+  margin: 18px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.schema-visualizer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.schema-visualizer-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.schema-visualizer-title-text {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.schema-visualizer-connection {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schema-visualizer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.schema-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.schema-mode-btn:hover,
+.schema-mode-btn.active {
+  background: var(--accent-dim);
+  color: var(--text-accent);
+  border-color: var(--glass-border-active);
+}
+
+.schema-mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.schema-table-select {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: var(--form-bg);
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  max-width: 180px;
+}
+
+/* ── Canvas wrapper ────────────────────────────────────────── */
+.schema-visualizer-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.schema-canvas {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+}
+
+/* React Flow overrides – keep glass theme consistent */
+.schema-canvas .react-flow__renderer {
+  background: transparent;
+}
+
+.schema-bg .react-flow__background-pattern {
+  color: rgba(255, 255, 255, 0.05);
+}
+
+.theme-light .schema-bg .react-flow__background-pattern {
+  color: rgba(0, 0, 20, 0.06);
+}
+
+.schema-controls .react-flow__controls {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.schema-controls .react-flow__controls-button {
+  background: transparent !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+}
+
+.schema-controls .react-flow__controls-button:hover {
+  background: var(--glass-bg-hover) !important;
+  color: var(--text-primary) !important;
+  fill: var(--text-primary) !important;
+}
+
+.schema-minimap {
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* ── Table Node ─────────────────────────────────────────────── */
+.schema-table-node {
+  background: var(--schema-node-bg);
+  border: 1px solid var(--schema-node-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  min-width: 220px;
+  max-width: 260px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.schema-table-node:hover {
+  border-color: var(--glass-border-active);
+  box-shadow: 0 6px 32px rgba(123, 123, 234, 0.2);
+}
+
+.schema-table-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: var(--schema-node-header-bg);
+  border-bottom: 1px solid var(--schema-node-border);
+}
+
+.schema-table-header-icon {
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.schema-table-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schema-table-body {
+  padding: 2px 0;
+}
+
+/* ── Column rows ─────────────────────────────────────────────── */
+.schema-column-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 12px;
+  min-height: 28px;
+}
+
+.schema-column-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.theme-light .schema-column-row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.schema-column-icon {
+  display: flex;
+  align-items: center;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.schema-icon-pk {
+  color: var(--schema-pk-color);
+}
+
+.schema-icon-fk {
+  color: var(--schema-fk-color);
+}
+
+.schema-icon-placeholder {
+  display: inline-block;
+  width: 10px;
+}
+
+.schema-column-name {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.schema-column-name.pk {
+  color: var(--schema-pk-color);
+  font-weight: 600;
+}
+
+.schema-column-name.fk {
+  color: var(--schema-fk-color);
+}
+
+.schema-column-type {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* ── React Flow Handles ─────────────────────────────────────── */
+.schema-handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--schema-handle-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50% !important;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.schema-column-row:hover .schema-handle,
+.react-flow__edge.selected ~ * .schema-handle {
+  opacity: 1;
+}
+
+.schema-handle-left {
+  left: -5px !important;
+}
+
+.schema-handle-right {
+  right: -5px !important;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.schema-visualizer-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 16px;
+  border-top: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── States: loading / error / empty ──────────────────────── */
+.schema-loading,
+.schema-error,
+.schema-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.schema-error {
+  color: var(--color-error);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}

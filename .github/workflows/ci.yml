@@ -5,8 +5,9 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -28,9 +29,31 @@ jobs:
       - name: Run tests
         run: npm test
 
+  e2e-visualizer:
+    name: E2E Visualizer Test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Rebuild native modules
+        run: npm run rebuild:sqlite
+
+      - name: Run schema visualizer E2E test
+        run: npm run test:e2e:visualizer
+
   build:
     name: Build (${{ matrix.os }})
-    needs: test
+    needs: [test, e2e-visualizer]
     strategy:
       fail-fast: false
       matrix:

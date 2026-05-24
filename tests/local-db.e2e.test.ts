@@ -33,6 +33,7 @@ type FakeColumn = {
 type FakeTable = {
   name: string
   columns: FakeColumn[]
+  foreignKeys: Array<{ from: string; table: string; to: string }>
   rows: Array<Record<string, unknown>>
 }
 
@@ -89,6 +90,20 @@ class FakeDatabaseSync {
         }))
       }
 
+      if (lower.startsWith('pragma foreign_key_list(')) {
+        const raw = normalized.slice(normalized.indexOf('(') + 1, normalized.lastIndexOf(')')).trim()
+        const tableName = raw.replace(/^"|"$/g, '').replace(/""/g, '"')
+        const table = this.tables.get(tableName)
+        if (!table) return []
+        return table.foreignKeys.map((fk, idx) => ({
+          id: idx,
+          seq: 0,
+          table: fk.table,
+          from: fk.from,
+          to: fk.to
+        }))
+      }
+
       if (lower.startsWith('select 1')) {
         return [{ 1: 1 }]
       }
@@ -135,10 +150,12 @@ class FakeDatabaseSync {
         const createTable = normalized.match(/^create\s+table\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([\s\S]+)\)\s*;?$/i)
         if (createTable) {
           const [, tableName, rawDefs] = createTable
-          const columns = rawDefs
+          const defs = rawDefs
             .split(',')
             .map((def) => def.trim())
             .filter(Boolean)
+          const columns = defs
+            .filter((def) => !/^foreign\s+key\b/i.test(def))
             .map((def) => {
               const tokens = def.split(/\s+/)
               const name = tokens[0]
@@ -154,7 +171,16 @@ class FakeDatabaseSync {
                 dflt_value: defaultMatch?.[1]?.trim()
               } satisfies FakeColumn
             })
-          this.tables.set(tableName, { name: tableName, columns, rows: [] })
+          const foreignKeys = defs
+            .filter((def) => /^foreign\s+key\b/i.test(def))
+            .map((def) => {
+              const match = def.match(
+                /^foreign\s+key\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)\s*references\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)$/i
+              )
+              if (!match) unsupported()
+              return { from: match[1], table: match[2], to: match[3] }
+            })
+          this.tables.set(tableName, { name: tableName, columns, foreignKeys, rows: [] })
           return { changes: 0 }
         }
 
@@ -338,6 +364,18 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
       }))
     }
 
+    async getForeignKeys(table: string) {
+      if (!this.db) return []
+      const rows = this.db
+        .prepare(`PRAGMA foreign_key_list(${quoteSqliteIdentifier(table)})`)
+        .all() as Array<Record<string, unknown>>
+      return rows.map((r) => ({
+        columnName: r['from'] as string,
+        referencedTable: r['table'] as string,
+        referencedColumn: r['to'] as string
+      }))
+    }
+
     async getProcedures() {
       return []
     }
@@ -486,6 +524,48 @@ describe('local DB e2e flows', () => {
       const badQuery = await manager.query(config.id, 'SELEC FROM broken_sql')
       expect(badQuery.error).toBeTruthy()
       expect(badQuery.rowCount).toBe(0)
+    } finally {
+      await manager.disconnectAll()
+      cleanupTestDir(cleanupDir)
+    }
+  })
+
+  it('returns sqlite foreign key mappings for schema visualizer relationships', async () => {
+    const { dbFile, cleanupDir } = createLocalSqlitePath()
+    const manager = new ConnectionManager()
+    const config: ConnectionConfig = {
+      id: 'sqlite-fk',
+      name: 'Local SQLite FK',
+      type: 'sqlite',
+      filename: dbFile
+    }
+    try {
+      await manager.connect(config)
+      await manager.query(
+        config.id,
+        `CREATE TABLE posts (
+          id INTEGER PRIMARY KEY,
+          title TEXT NOT NULL
+        );`
+      )
+      await manager.query(
+        config.id,
+        `CREATE TABLE comments (
+          id INTEGER PRIMARY KEY,
+          post_id INTEGER NOT NULL,
+          body TEXT NOT NULL,
+          FOREIGN KEY (post_id) REFERENCES posts(id)
+        );`
+      )
+
+      const foreignKeys = await manager.getForeignKeys(config.id, 'comments', 'main')
+      expect(foreignKeys).toEqual([
+        {
+          columnName: 'post_id',
+          referencedTable: 'posts',
+          referencedColumn: 'id'
+        }
+      ])
     } finally {
       await manager.disconnectAll()
       cleanupTestDir(cleanupDir)

@@ -1,6 +1,6 @@
 import { Client, QueryResult as PgQueryResult } from 'pg'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
@@ -100,6 +100,44 @@ export class PostgresAdapter implements DatabaseAdapter {
       nullable: r['is_nullable'] === 'YES',
       primaryKey: r['is_primary_key'] as boolean,
       defaultValue: r['column_default'] as string | undefined
+    }))
+  }
+
+  async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
+    const [schema, tableName] = table.includes('.') ? table.split('.') : ['public', table]
+    const result = await this.query(
+      `SELECT src_att.attname AS column_name,
+              ref_ns.nspname || '.' || ref_tbl.relname AS referenced_table,
+              ref_att.attname AS referenced_column
+       FROM pg_constraint con
+       JOIN pg_class src_tbl
+         ON src_tbl.oid = con.conrelid
+       JOIN pg_namespace src_ns
+         ON src_ns.oid = src_tbl.relnamespace
+       JOIN pg_class ref_tbl
+         ON ref_tbl.oid = con.confrelid
+       JOIN pg_namespace ref_ns
+         ON ref_ns.oid = ref_tbl.relnamespace
+       JOIN LATERAL unnest(con.conkey) WITH ORDINALITY AS src_col(attnum, ordinality)
+         ON true
+       JOIN LATERAL unnest(con.confkey) WITH ORDINALITY AS ref_col(attnum, ordinality)
+         ON ref_col.ordinality = src_col.ordinality
+       JOIN pg_attribute src_att
+         ON src_att.attrelid = src_tbl.oid
+         AND src_att.attnum = src_col.attnum
+       JOIN pg_attribute ref_att
+         ON ref_att.attrelid = ref_tbl.oid
+         AND ref_att.attnum = ref_col.attnum
+       WHERE con.contype = 'f'
+         AND src_ns.nspname = $1
+         AND src_tbl.relname = $2
+       ORDER BY con.conname, src_col.ordinality`,
+      [schema, tableName]
+    )
+    return result.rows.map((r) => ({
+      columnName: r['column_name'] as string,
+      referencedTable: r['referenced_table'] as string,
+      referencedColumn: r['referenced_column'] as string
     }))
   }
 

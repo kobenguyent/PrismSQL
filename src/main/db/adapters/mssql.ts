@@ -1,6 +1,6 @@
 import mssql from 'mssql'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class MSSQLAdapter implements DatabaseAdapter {
   private pool: mssql.ConnectionPool | null = null
@@ -104,6 +104,39 @@ export class MSSQLAdapter implements DatabaseAdapter {
       nullable: r['IS_NULLABLE'] === 'YES',
       primaryKey: r['IS_PRIMARY_KEY'] === 1,
       defaultValue: r['COLUMN_DEFAULT'] as string | undefined
+    }))
+  }
+
+  async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
+    const [schema, tableName] = table.includes('.') ? table.split('.') : ['dbo', table]
+    const result = await this.query(
+      `SELECT src_col.name AS COLUMN_NAME,
+              ref_schema.name + '.' + ref_table.name AS REFERENCED_TABLE,
+              ref_col.name AS REFERENCED_COLUMN
+       FROM sys.foreign_key_columns fkc
+       JOIN sys.tables src_table
+         ON src_table.object_id = fkc.parent_object_id
+       JOIN sys.schemas src_schema
+         ON src_schema.schema_id = src_table.schema_id
+       JOIN sys.columns src_col
+         ON src_col.object_id = fkc.parent_object_id
+         AND src_col.column_id = fkc.parent_column_id
+       JOIN sys.tables ref_table
+         ON ref_table.object_id = fkc.referenced_object_id
+       JOIN sys.schemas ref_schema
+         ON ref_schema.schema_id = ref_table.schema_id
+       JOIN sys.columns ref_col
+         ON ref_col.object_id = fkc.referenced_object_id
+         AND ref_col.column_id = fkc.referenced_column_id
+       WHERE src_schema.name = @p0
+         AND src_table.name = @p1
+       ORDER BY fkc.constraint_object_id, fkc.constraint_column_id`,
+      [schema, tableName]
+    )
+    return result.rows.map((r) => ({
+      columnName: r['COLUMN_NAME'] as string,
+      referencedTable: r['REFERENCED_TABLE'] as string,
+      referencedColumn: r['REFERENCED_COLUMN'] as string
     }))
   }
 

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
 import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery, QueryHistoryEntry, AppSettings } from '../types'
+import type { DatabaseSchema } from '@renderer/types/schema'
 import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
 
 const MAX_QUERY_HISTORY = 200
@@ -24,6 +25,7 @@ declare global {
       getDatabases(connectionId: string): Promise<string[]>
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
+      getSchema(connectionId: string, database?: string): Promise<DatabaseSchema>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
       exportConnections(includePasswords?: boolean): Promise<{
         success: boolean

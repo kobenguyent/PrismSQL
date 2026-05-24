@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 import type { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../main/db/types'
+import type { DatabaseSchema } from '../renderer/src/types/schema'
 
 export type { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo }
 
@@ -61,6 +62,8 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-tables', connectionId, database),
   getColumns: (connectionId: string, table: string, database?: string): Promise<ColumnInfo[]> =>
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
+  getSchema: (connectionId: string, database?: string): Promise<DatabaseSchema> =>
+    ipcRenderer.invoke('db:get-schema', connectionId, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
     ipcRenderer.invoke('db:get-procedures', connectionId, database),
   exportConnections: (includePasswords = false): Promise<{
