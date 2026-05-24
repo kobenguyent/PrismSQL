@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.5.0...v1.6.0) (2026-05-24)
+
+
+### Features
+
+* Database Schema Visualizer with interactive ER diagram ([#25](https://github.com/kobenguyent/KobeanSQL/issues/25)) ([22c55ef](https://github.com/kobenguyent/KobeanSQL/commit/22c55ef0103aaa52a0f06e6296257ce3f11f2c80))
+
 # [1.5.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.4.2...v1.5.0) (2026-05-23)
 
 

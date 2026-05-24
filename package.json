@@ -1,6 +1,6 @@
 {
   "name": "kobeansql",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A modern SQL database client with Apple glassmorphism UI",
   "main": "out/main/index.js",
   "author": {
@@ -66,7 +66,7 @@
   "build": {
     "appId": "com.kobenguyent.kobeansql",
     "productName": "KobeanSQL",
-    "copyright": "Copyright \u00a9 2024 kobenguyent",
+    "copyright": "Copyright © 2024 kobenguyent",
     "directories": {
       "output": "dist"
     },
