@@ -3,7 +3,7 @@ import { MySQLAdapter } from './adapters/mysql'
 import { PostgresAdapter } from './adapters/postgres'
 import { SQLiteAdapter } from './adapters/sqlite'
 import { MSSQLAdapter } from './adapters/mssql'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from './types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from './types'
 import { appLogger } from '../logger'
 
 /** Safely extract a human-readable message from any thrown value. */
@@ -138,6 +138,12 @@ export class ConnectionManager {
     const adapter = this.connections.get(connectionId)
     if (!adapter) throw new Error(`Not connected: ${connectionId}`)
     return adapter.getColumns(table, database)
+  }
+
+  async getForeignKeys(connectionId: string, table: string, database?: string): Promise<ForeignKeyInfo[]> {
+    const adapter = this.connections.get(connectionId)
+    if (!adapter) throw new Error(`Not connected: ${connectionId}`)
+    return adapter.getForeignKeys(table, database)
   }
 
   async getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]> {

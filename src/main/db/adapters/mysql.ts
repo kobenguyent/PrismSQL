@@ -1,6 +1,6 @@
 import mysql, { Pool, RowDataPacket, FieldPacket } from 'mysql2/promise'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class MySQLAdapter implements DatabaseAdapter {
   private pool: Pool | null = null
@@ -104,6 +104,30 @@ export class MySQLAdapter implements DatabaseAdapter {
       defaultValue: r['COLUMN_DEFAULT'] as string | undefined,
       comment: r['COLUMN_COMMENT'] as string | undefined
     }))
+  }
+
+  async getForeignKeys(table: string, database?: string): Promise<ForeignKeyInfo[]> {
+    const db = database || this.config?.database
+    if (!db) return []
+    const result = await this.query(
+      `SELECT kcu.COLUMN_NAME, kcu.REFERENCED_TABLE_NAME, kcu.REFERENCED_COLUMN_NAME
+       FROM information_schema.KEY_COLUMN_USAGE kcu
+       JOIN information_schema.TABLE_CONSTRAINTS tc
+         ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+         AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+         AND tc.TABLE_NAME = kcu.TABLE_NAME
+       WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+         AND kcu.TABLE_SCHEMA = ?
+         AND kcu.TABLE_NAME = ?`,
+      [db, table]
+    )
+    return result.rows
+      .filter((r) => r['REFERENCED_TABLE_NAME'] != null)
+      .map((r) => ({
+        columnName: r['COLUMN_NAME'] as string,
+        referencedTable: r['REFERENCED_TABLE_NAME'] as string,
+        referencedColumn: r['REFERENCED_COLUMN_NAME'] as string
+      }))
   }
 
   async getProcedures(database?: string): Promise<ProcedureInfo[]> {

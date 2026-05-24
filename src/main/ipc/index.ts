@@ -120,6 +120,52 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     }
   )
 
+  // Get full database schema (tables + columns + FK relationships) for the visualizer
+  handleWithLogging(
+    'db:get-schema',
+    async (_event: IpcMainInvokeEvent, connectionId: string, database?: string) => {
+      const tableInfos = await manager.getTables(connectionId, database)
+      const schemaRows = await Promise.all(
+        tableInfos.map(async (t) => {
+          const tableId = t.schema ? `${t.schema}.${t.name}` : t.name
+          const [columns, fks] = await Promise.all([
+            manager.getColumns(connectionId, tableId, database),
+            manager.getForeignKeys(connectionId, tableId, database)
+          ])
+          return { tableInfo: t, tableId, columns, fks }
+        })
+      )
+
+      const fkColumnSet = new Set<string>()
+      schemaRows.forEach(({ tableId, fks }) => {
+        fks.forEach((fk) => fkColumnSet.add(`${tableId}.${fk.columnName}`))
+      })
+
+      const tables = schemaRows.map(({ tableId, tableInfo, columns }) => ({
+        id: tableId,
+        name: tableInfo.name,
+        columns: columns.map((c) => ({
+          name: c.name,
+          type: c.type,
+          isPrimaryKey: c.primaryKey,
+          isForeignKey: fkColumnSet.has(`${tableId}.${c.name}`)
+        }))
+      }))
+
+      const relationships = schemaRows.flatMap(({ tableId, fks }) =>
+        fks.map((fk) => ({
+          id: `${tableId}.${fk.columnName}→${fk.referencedTable}.${fk.referencedColumn}`,
+          sourceTable: tableId,
+          sourceColumn: fk.columnName,
+          targetTable: fk.referencedTable,
+          targetColumn: fk.referencedColumn
+        }))
+      )
+
+      return { tables, relationships }
+    }
+  )
+
   // Get procedures / functions list
   handleWithLogging(
     'db:get-procedures',

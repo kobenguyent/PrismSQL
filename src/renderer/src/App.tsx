@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug, GitBranch } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -9,6 +9,7 @@ import { ResultsTable } from './components/ResultsTable'
 import { ConnectionModal } from './components/ConnectionModal'
 import { SettingsModal } from './components/SettingsModal'
 import { QueryHistoryPanel } from './components/QueryHistory'
+import { SchemaVisualizer } from './components/SchemaVisualizer'
 import type { ConnectionConfig } from './types'
 import { formatServerVersion } from './utils/version'
 
@@ -43,6 +44,7 @@ export default function App(): JSX.Element {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showSchemaVisualizer, setShowSchemaVisualizer] = useState(false)
 
   // Resize state
   const isResizing = useRef(false)
@@ -139,6 +141,13 @@ export default function App(): JSX.Element {
             data-tooltip="Query History"
           >
             <Clock size={15} />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => setShowSchemaVisualizer(true)}
+            data-tooltip="Schema Visualizer"
+          >
+            <GitBranch size={15} />
           </button>
           <button
             className="icon-btn"
@@ -343,6 +352,44 @@ export default function App(): JSX.Element {
       {showHistory && (
         <QueryHistoryPanel onClose={() => setShowHistory(false)} />
       )}
+
+      {/* Schema visualizer */}
+      {showSchemaVisualizer && (() => {
+        const activeTab = tabs.find((t) => t.id === activeTabId)
+        const conn = activeTab?.connectionId
+          ? connections.find((c) => c.id === activeTab.connectionId)
+          : connectedIds.size > 0
+            ? connections.find((c) => connectedIds.has(c.id))
+            : null
+        if (!conn || !connectedIds.has(conn.id)) {
+          return (
+            <div className="modal-overlay" onClick={() => setShowSchemaVisualizer(false)}>
+              <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
+                <div className="modal-header">
+                  <span className="modal-title">Schema Visualizer</span>
+                  <button className="icon-btn" onClick={() => setShowSchemaVisualizer(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                    No active database connection. Connect to a database first.
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowSchemaVisualizer(false)}>Close</button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+        return (
+          <SchemaVisualizer
+            connectionId={conn.id}
+            connectionName={conn.name}
+            database={activeTab?.database ?? conn.database}
+            onClose={() => setShowSchemaVisualizer(false)}
+          />
+        )
+      })()}
 
       {/* Privacy modal */}
       {showPrivacy && (

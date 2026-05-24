@@ -61,6 +61,20 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-tables', connectionId, database),
   getColumns: (connectionId: string, table: string, database?: string): Promise<ColumnInfo[]> =>
     ipcRenderer.invoke('db:get-columns', connectionId, table, database),
+  getSchema: (connectionId: string, database?: string): Promise<{
+    tables: Array<{
+      id: string
+      name: string
+      columns: Array<{ name: string; type: string; isPrimaryKey: boolean; isForeignKey: boolean }>
+    }>
+    relationships: Array<{
+      id: string
+      sourceTable: string
+      sourceColumn: string
+      targetTable: string
+      targetColumn: string
+    }>
+  }> => ipcRenderer.invoke('db:get-schema', connectionId, database),
   getProcedures: (connectionId: string, database?: string): Promise<ProcedureInfo[]> =>
     ipcRenderer.invoke('db:get-procedures', connectionId, database),
   exportConnections: (includePasswords = false): Promise<{

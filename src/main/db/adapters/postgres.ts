@@ -1,6 +1,6 @@
 import { Client, QueryResult as PgQueryResult } from 'pg'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
@@ -100,6 +100,30 @@ export class PostgresAdapter implements DatabaseAdapter {
       nullable: r['is_nullable'] === 'YES',
       primaryKey: r['is_primary_key'] as boolean,
       defaultValue: r['column_default'] as string | undefined
+    }))
+  }
+
+  async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
+    const [schema, tableName] = table.includes('.') ? table.split('.') : ['public', table]
+    const result = await this.query(
+      `SELECT kcu.column_name,
+              ccu.table_schema || '.' || ccu.table_name AS referenced_table,
+              ccu.column_name AS referenced_column
+       FROM information_schema.table_constraints tc
+       JOIN information_schema.key_column_usage kcu
+         ON tc.constraint_name = kcu.constraint_name
+         AND tc.table_schema = kcu.table_schema
+       JOIN information_schema.constraint_column_usage ccu
+         ON ccu.constraint_name = tc.constraint_name
+       WHERE tc.constraint_type = 'FOREIGN KEY'
+         AND tc.table_schema = $1
+         AND tc.table_name = $2`,
+      [schema, tableName]
+    )
+    return result.rows.map((r) => ({
+      columnName: r['column_name'] as string,
+      referencedTable: r['referenced_table'] as string,
+      referencedColumn: r['referenced_column'] as string
     }))
   }
 

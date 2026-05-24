@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class SQLiteAdapter implements DatabaseAdapter {
   private db: Database.Database | null = null
@@ -89,6 +89,15 @@ export class SQLiteAdapter implements DatabaseAdapter {
       nullable: r['notnull'] === 0,
       primaryKey: r['pk'] !== 0,
       defaultValue: r['dflt_value'] as string | undefined
+    }))
+  }
+
+  async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
+    const result = await this.query(`PRAGMA foreign_key_list(${JSON.stringify(table)})`)
+    return result.rows.map((r) => ({
+      columnName: r['from'] as string,
+      referencedTable: r['table'] as string,
+      referencedColumn: r['to'] as string
     }))
   }
 

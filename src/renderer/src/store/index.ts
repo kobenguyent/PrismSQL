@@ -24,6 +24,20 @@ declare global {
       getDatabases(connectionId: string): Promise<string[]>
       getTables(connectionId: string, database?: string): Promise<TableInfo[]>
       getColumns(connectionId: string, table: string, database?: string): Promise<ColumnInfo[]>
+      getSchema(connectionId: string, database?: string): Promise<{
+        tables: Array<{
+          id: string
+          name: string
+          columns: Array<{ name: string; type: string; isPrimaryKey: boolean; isForeignKey: boolean }>
+        }>
+        relationships: Array<{
+          id: string
+          sourceTable: string
+          sourceColumn: string
+          targetTable: string
+          targetColumn: string
+        }>
+      }>
       getProcedures(connectionId: string, database?: string): Promise<ProcedureInfo[]>
       exportConnections(includePasswords?: boolean): Promise<{
         success: boolean

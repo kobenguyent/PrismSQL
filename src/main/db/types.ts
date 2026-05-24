@@ -62,3 +62,12 @@ export interface SchemaInfo {
   databases: string[]
   tables: Record<string, TableInfo[]>
 }
+
+export interface ForeignKeyInfo {
+  /** The FK column on this table */
+  columnName: string
+  /** The referenced table (may be schema-qualified) */
+  referencedTable: string
+  /** The referenced column */
+  referencedColumn: string
+}

@@ -1,6 +1,6 @@
 import mssql from 'mssql'
 import { DatabaseAdapter } from '../adapter'
-import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo } from '../types'
+import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
 export class MSSQLAdapter implements DatabaseAdapter {
   private pool: mssql.ConnectionPool | null = null
@@ -104,6 +104,30 @@ export class MSSQLAdapter implements DatabaseAdapter {
       nullable: r['IS_NULLABLE'] === 'YES',
       primaryKey: r['IS_PRIMARY_KEY'] === 1,
       defaultValue: r['COLUMN_DEFAULT'] as string | undefined
+    }))
+  }
+
+  async getForeignKeys(table: string, _database?: string): Promise<ForeignKeyInfo[]> {
+    const [schema, tableName] = table.includes('.') ? table.split('.') : ['dbo', table]
+    const result = await this.query(
+      `SELECT kcu.COLUMN_NAME,
+              ccu.TABLE_SCHEMA + '.' + ccu.TABLE_NAME AS REFERENCED_TABLE,
+              ccu.COLUMN_NAME AS REFERENCED_COLUMN
+       FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+       JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+         ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+         AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+       JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu
+         ON ccu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+       WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+         AND tc.TABLE_SCHEMA = @p0
+         AND tc.TABLE_NAME = @p1`,
+      [schema, tableName]
+    )
+    return result.rows.map((r) => ({
+      columnName: r['COLUMN_NAME'] as string,
+      referencedTable: r['REFERENCED_TABLE'] as string,
+      referencedColumn: r['REFERENCED_COLUMN'] as string
     }))
   }
 
