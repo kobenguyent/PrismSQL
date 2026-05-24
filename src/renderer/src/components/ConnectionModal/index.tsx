@@ -38,6 +38,7 @@ const DB_TYPES: { value: DatabaseType; label: string; icon: string; color: strin
 const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
   name: '',
   type: 'postgres',
+  connectionUri: '',
   host: 'localhost',
   port: 5432,
   user: '',
@@ -183,6 +184,25 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
               placeholder="e.g. Production, Staging, Local…"
             />
           </div>
+
+          {!isSQLite && (
+            <div className="form-group">
+              <label className="form-label">Connection URI / URL (optional)</label>
+              <input
+                className="form-input"
+                type="text"
+                value={config.connectionUri ?? ''}
+                onChange={(e) => update('connectionUri', e.target.value)}
+                placeholder={
+                  config.type === 'postgres'
+                    ? 'postgresql://user:pass@host:5432/db'
+                    : config.type === 'mssql'
+                      ? 'mssql://user:pass@host:1433/db'
+                      : 'mysql://user:pass@host:3306/db'
+                }
+              />
+            </div>
+          )}
 
           {isSQLite ? (
             /* SQLite: file path */
