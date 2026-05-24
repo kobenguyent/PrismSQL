@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { X, LayoutGrid, Focus, RefreshCw, Loader } from 'lucide-react'
 import { SchemaCanvas } from './SchemaCanvas'
-import type { DatabaseSchema, SchemaViewMode } from '../../../types/schema'
+import type { DatabaseSchema, SchemaViewMode } from '@renderer/types/schema'
 
 interface Props {
   connectionId: string

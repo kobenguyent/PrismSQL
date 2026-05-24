@@ -15,7 +15,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import TableNode, { type TableNodeData } from './TableNode'
-import type { DatabaseSchema, SchemaViewMode } from '../../../types/schema'
+import type { DatabaseSchema, SchemaViewMode } from '@renderer/types/schema'
 
 // ─── Dagre layout constants ──────────────────────────────────────────────────
 const NODE_WIDTH = 260

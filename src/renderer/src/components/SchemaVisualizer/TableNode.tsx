@@ -1,7 +1,7 @@
 import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { Key, Link, Table } from 'lucide-react'
-import type { SchemaTable } from '../../../types/schema'
+import type { SchemaTable } from '@renderer/types/schema'
 
 export interface TableNodeData extends Record<string, unknown> {
   table: SchemaTable
