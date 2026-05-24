@@ -12,9 +12,19 @@ import { QueryHistoryPanel } from './components/QueryHistory'
 import { SchemaVisualizer } from './components/SchemaVisualizer'
 import type { ConnectionConfig } from './types'
 import { formatServerVersion } from './utils/version'
+import logoMarkLight from './assets/brand/kobeansql-logo-mark-light.svg'
+import logoTitlebarLight from './assets/brand/kobeansql-logo-titlebar-light.svg'
 
 // Read version from package.json (injected by Vite at build time)
 const APP_VERSION = __APP_VERSION__
+
+function KobeanLogo({ className, src = logoMarkLight }: { className: string; src?: string }): JSX.Element {
+  return (
+    <span className={`brand-logo ${className}`} aria-hidden="true">
+      <img className="brand-logo-img" src={src} alt="" />
+    </span>
+  )
+}
 
 export default function App(): JSX.Element {
   const {
@@ -131,7 +141,7 @@ export default function App(): JSX.Element {
       {/* Title bar */}
       <div className="titlebar">
         <div className="titlebar-brand">
-          <div className="titlebar-logo">P</div>
+          <KobeanLogo className="titlebar-logo" src={logoTitlebarLight} />
           <span className="titlebar-name">KobeanSQL</span>
         </div>
         <div className="titlebar-actions">
@@ -231,7 +241,7 @@ export default function App(): JSX.Element {
             /* Connections exist – prompt user to pick one */
             <div className="welcome-screen">
               <div className="welcome-card">
-                <div className="welcome-logo">P</div>
+                <KobeanLogo className="welcome-logo" />
                 <div className="welcome-title">KobeanSQL</div>
                 <div className="welcome-sub">
                   You have {connections.length} saved connection{connections.length !== 1 ? 's' : ''}.
@@ -251,7 +261,7 @@ export default function App(): JSX.Element {
             /* No connections yet – first-run welcome */
             <div className="welcome-screen">
               <div className="welcome-card">
-                <div className="welcome-logo">P</div>
+                <KobeanLogo className="welcome-logo" />
                 <div className="welcome-title">Welcome to KobeanSQL</div>
                 <div className="welcome-sub">
                   A modern SQL client with a beautiful glassmorphism interface.

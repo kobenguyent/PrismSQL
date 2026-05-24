@@ -14,6 +14,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "npm run build && electron-builder",
+    "logos:crop": "node scripts/crop-logo-mark.mjs",
     "rebuild:sqlite": "electron-rebuild -f -w better-sqlite3",
     "install:dev": "npm install --ignore-scripts && npm run rebuild:sqlite",
     "test": "vitest run",
