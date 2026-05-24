@@ -3,15 +3,16 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { expect, test } from 'playwright/test'
-import { _electron as electron, type ElectronApplication, type Page } from 'playwright'
+import { _electron as playwrightElectron, type ElectronApplication, type Page } from 'playwright'
 
 const REPO_ROOT = path.resolve(__dirname, '..')
 const MAIN_ENTRY = path.join(REPO_ROOT, 'out/main/index.js')
 const DB_SCRIPT = path.join(REPO_ROOT, 'scripts/setup-test-db.ts')
+const ELECTRON_CLI = path.join(REPO_ROOT, 'node_modules/electron/cli.js')
 const DOCS_SCREENSHOT_PATH = path.join(REPO_ROOT, 'docs/screenshots/database-visualizer.png')
 
 async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({
+  const app = await playwrightElectron.launch({
     args: [MAIN_ENTRY],
     env: {
       ...process.env,
@@ -33,9 +34,13 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
   const testDbPath = path.join(tmpRoot, 'schema-visualizer.sqlite')
   const testHome = path.join(tmpRoot, 'home')
 
-  const seed = spawnSync('node', [DB_SCRIPT, testDbPath], {
+  const seed = spawnSync(process.execPath, [ELECTRON_CLI, DB_SCRIPT, testDbPath], {
     cwd: REPO_ROOT,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '1'
+    }
   })
   expect(seed.status, seed.stderr || seed.stdout).toBe(0)
   expect(fs.existsSync(testDbPath)).toBe(true)
