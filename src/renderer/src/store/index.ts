@@ -71,6 +71,18 @@ export function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+function getNextNewQueryTitle(tabs: QueryTab[]): string {
+  const re = /^New Query (\d+)$/
+  let max = 0
+  for (const tab of tabs) {
+    const m = re.exec(tab.title)
+    if (!m) continue
+    const n = Number.parseInt(m[1], 10)
+    if (Number.isFinite(n)) max = Math.max(max, n)
+  }
+  return `New Query ${max + 1}`
+}
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -127,6 +139,10 @@ interface AppState {
   newTab(connectionId?: string | null): string
   closeTab(tabId: string): void
   setActiveTab(tabId: string): void
+  moveTab(tabId: string, toIndex: number): void
+  moveTabBlock(tabIds: string[], toIndex: number): void
+  setTabColor(tabId: string, color: string | null): void
+  setTabGroup(tabId: string, title: string | null, color?: string | null): void
   updateTabSql(tabId: string, sql: string): void
   updateTabConnection(tabId: string, connectionId: string): void
   runQuery(tabId: string): Promise<void>
@@ -322,15 +338,17 @@ export const useAppStore = create<AppState>()(
 
     newTab: (connectionId = null) => {
       const id = genId()
+      const tabs = get().tabs
       const tab: QueryTab = {
         id,
-        title: 'Query',
+        title: getNextNewQueryTitle(tabs),
         tabType: 'query',
-        connectionId: connectionId || get().tabs[get().tabs.length - 1]?.connectionId || null,
+        connectionId: connectionId || tabs[tabs.length - 1]?.connectionId || null,
         sql: '',
         result: null,
         isRunning: false,
-        isSaved: false
+        isSaved: false,
+        lastSavedSql: ''
       }
       set((s) => {
         s.tabs.push(tab)
@@ -356,6 +374,50 @@ export const useAppStore = create<AppState>()(
     setActiveTab: (tabId) => {
       set((s) => {
         s.activeTabId = tabId
+      })
+    },
+
+    moveTab: (tabId, toIndex) => {
+      set((s) => {
+        const fromIndex = s.tabs.findIndex((t) => t.id === tabId)
+        if (fromIndex < 0) return
+        const [tab] = s.tabs.splice(fromIndex, 1)
+        const bounded = Math.max(0, Math.min(toIndex, s.tabs.length))
+        s.tabs.splice(bounded, 0, tab)
+      })
+    },
+
+    moveTabBlock: (tabIds, toIndex) => {
+      set((s) => {
+        if (tabIds.length === 0) return
+        const ids = new Set(tabIds)
+        const block = s.tabs.filter((t) => ids.has(t.id))
+        if (block.length === 0) return
+        s.tabs = s.tabs.filter((t) => !ids.has(t.id))
+        const bounded = Math.max(0, Math.min(toIndex, s.tabs.length))
+        s.tabs.splice(bounded, 0, ...block)
+      })
+    },
+
+    setTabColor: (tabId, color) => {
+      set((s) => {
+        const tab = s.tabs.find((t) => t.id === tabId)
+        if (tab) tab.tabColor = color || undefined
+      })
+    },
+
+    setTabGroup: (tabId, title, color) => {
+      set((s) => {
+        const tab = s.tabs.find((t) => t.id === tabId)
+        if (!tab) return
+        const nextTitle = title?.trim() ?? ''
+        tab.groupTitle = nextTitle ? nextTitle : undefined
+        if (color !== undefined) {
+          tab.groupColor = color || undefined
+        }
+        if (!tab.groupTitle) {
+          tab.groupColor = undefined
+        }
       })
     },
 
@@ -519,6 +581,14 @@ export const useAppStore = create<AppState>()(
       }
       await window.db.saveQuery(query)
       await get().loadSavedQueries()
+      set((s) => {
+        const t = s.tabs.find((x) => x.id === tabId)
+        if (t) {
+          t.title = name
+          t.isSaved = true
+          t.lastSavedSql = t.sql
+        }
+      })
       get().setStatus(`Query saved: ${name}`, 'success')
     },
 
@@ -592,7 +662,8 @@ export const useAppStore = create<AppState>()(
         sql: query.sql,
         result: null,
         isRunning: false,
-        isSaved: true
+        isSaved: true,
+        lastSavedSql: query.sql
       }
       set((s) => {
         s.tabs.push(tab)
@@ -627,7 +698,8 @@ export const useAppStore = create<AppState>()(
         sql: entry.sql,
         result: null,
         isRunning: false,
-        isSaved: false
+        isSaved: false,
+        lastSavedSql: entry.sql
       }
       set((s) => {
         s.tabs.push(tab)
