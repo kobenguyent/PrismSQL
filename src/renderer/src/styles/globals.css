@@ -335,6 +335,9 @@ html, body, #root {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+  overflow: visible;
 }
 
 .sidebar-title {
@@ -1078,6 +1081,19 @@ html, body, #root {
   z-index: 200;
 }
 [data-tooltip]:hover::after { opacity: 1; }
+
+/* Sidebar header tooltips need to render below controls and stay inside
+   the left pane so they don't get clipped by the title bar/split pane edge. */
+.sidebar-header [data-tooltip]::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+.sidebar-header > .icon-btn:nth-last-child(2)[data-tooltip]::after,
+.sidebar-header > .icon-btn:last-child[data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
 
 /* ── Welcome Screen ─────────────────────────────────────────── */
 .welcome-screen {
