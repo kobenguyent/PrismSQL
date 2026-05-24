@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react'
-import { X, Loader, CheckCircle, AlertCircle, Database } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, Database } from 'lucide-react'
 import { useAppStore, genId } from '../../store'
 import type { ConnectionConfig, DatabaseType } from '../../types'
 import { DB_DEFAULT_PORTS } from '../../types'
+import { parseConnectionUriPreview } from '../../utils/connection-uri'
 
 interface Props {
   onClose: () => void
@@ -38,6 +39,7 @@ const DB_TYPES: { value: DatabaseType; label: string; icon: string; color: strin
 const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
   name: '',
   type: 'postgres',
+  connectionUri: '',
   host: 'localhost',
   port: 5432,
   user: '',
@@ -58,6 +60,16 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const isSQLite = config.type === 'sqlite'
+  const [connectionMode, setConnectionMode] = useState<'manual' | 'uri'>(
+    !isSQLite && !!config.connectionUri?.trim() ? 'uri' : 'manual'
+  )
+
+  const uriPreview = !isSQLite ? parseConnectionUriPreview(config.type, config.connectionUri) : {}
+  const uriModeInvalid = !isSQLite && connectionMode === 'uri' && !!uriPreview.error
+  const uriModeMissing = !isSQLite && connectionMode === 'uri' && !(config.connectionUri ?? '').trim()
+  const disableConnectActions = uriModeInvalid || uriModeMissing
+
   const handleTypeChange = (type: DatabaseType) => {
     const dbType = DB_TYPES.find((d) => d.value === type)
     setConfig((prev) => ({
@@ -66,6 +78,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
       port: DB_DEFAULT_PORTS[type] ?? prev.port,
       color: dbType?.color ?? prev.color
     }))
+    setConnectionMode((prev) => (type === 'sqlite' ? 'manual' : prev))
     setTestResult(null)
   }
 
@@ -75,6 +88,11 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
   }
 
   const handleTest = useCallback(async () => {
+    if (disableConnectActions) {
+      setTestResult({ success: false, error: uriModeMissing ? 'Connection URI is required' : uriPreview.error })
+      return
+    }
+
     setTesting(true)
     setTestResult(null)
     const fullConfig: ConnectionConfig = { id: editConfig?.id ?? genId(), ...config }
@@ -84,13 +102,18 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
       error: result.success ? undefined : (result.error || 'Connection failed')
     })
     setTesting(false)
-  }, [config, editConfig])
+  }, [config, editConfig, disableConnectActions, uriModeMissing, uriPreview.error])
 
   const handleSave = useCallback(async () => {
     if (!config.name.trim()) {
       setTestResult({ success: false, error: 'Connection name is required' })
       return
     }
+    if (disableConnectActions) {
+      setTestResult({ success: false, error: uriModeMissing ? 'Connection URI is required' : uriPreview.error })
+      return
+    }
+
     setSaving(true)
     try {
       const normalizedCategory = config.category?.trim()
@@ -110,9 +133,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
     } finally {
       setSaving(false)
     }
-  }, [config, editConfig, saveConnection, connect, setTestResult, onClose])
-
-  const isSQLite = config.type === 'sqlite'
+  }, [config, editConfig, saveConnection, connect, setTestResult, onClose, disableConnectActions, uriModeMissing, uriPreview.error])
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -140,7 +161,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
         </div>
 
         <div className="modal-body">
-          {/* Database type selector */}
           <div className="form-group">
             <label className="form-label">Database Type</label>
             <div className="db-type-grid">
@@ -159,7 +179,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             </div>
           </div>
 
-          {/* Connection name */}
           <div className="form-group">
             <label className="form-label">Connection Name</label>
             <input
@@ -172,7 +191,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             />
           </div>
 
-          {/* Category */}
           <div className="form-group">
             <label className="form-label">Category (optional)</label>
             <input
@@ -184,8 +202,29 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             />
           </div>
 
+          {!isSQLite && (
+            <div className="form-group">
+              <label className="form-label">Connection Method</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className={`btn ${connectionMode === 'manual' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setConnectionMode('manual')}
+                >
+                  Manual
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${connectionMode === 'uri' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setConnectionMode('uri')}
+                >
+                  URI / URL
+                </button>
+              </div>
+            </div>
+          )}
+
           {isSQLite ? (
-            /* SQLite: file path */
             <div className="form-group">
               <label className="form-label">Database File Path</label>
               <input
@@ -196,9 +235,44 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                 placeholder="/path/to/database.db (leave empty for in-memory)"
               />
             </div>
+          ) : connectionMode === 'uri' ? (
+            <>
+              <div className="form-group">
+                <label className="form-label">Connection URI / URL</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={config.connectionUri ?? ''}
+                  onChange={(e) => update('connectionUri', e.target.value)}
+                  placeholder={
+                    config.type === 'postgres'
+                      ? 'postgresql://user:pass@host:5432/db'
+                      : config.type === 'mssql'
+                        ? 'mssql://user:pass@host:1433/db'
+                        : 'mysql://user:pass@host:3306/db'
+                  }
+                />
+                <div style={{ marginTop: 6, fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                  URI credentials can be copied/shared by mistake. Prefer dedicated password fields when possible.
+                </div>
+              </div>
+              {uriPreview.error ? (
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)' }}>{uriPreview.error}</div>
+              ) : uriPreview.parsed ? (
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+                  Parsed: host <strong>{uriPreview.parsed.host ?? '-'}</strong>, port{' '}
+                  <strong>{uriPreview.parsed.port ?? '-'}</strong>, user <strong>{uriPreview.parsed.user ?? '-'}</strong>,
+                  database <strong>{uriPreview.parsed.database ?? '-'}</strong>
+                  {uriPreview.parsed.ssl !== undefined ? (
+                    <>
+                      , ssl <strong>{uriPreview.parsed.ssl ? 'enabled' : 'disabled'}</strong>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
           ) : (
             <>
-              {/* Host + Port */}
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Host</label>
@@ -222,7 +296,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                 </div>
               </div>
 
-              {/* User + Password */}
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Username</label>
@@ -248,7 +321,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                 </div>
               </div>
 
-              {/* Database */}
               <div className="form-group">
                 <label className="form-label">Database (optional)</label>
                 <input
@@ -260,7 +332,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                 />
               </div>
 
-              {/* SSL */}
               <label className="form-checkbox-row">
                 <input
                   type="checkbox"
@@ -272,7 +343,6 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             </>
           )}
 
-          {/* Test result */}
           {testResult && (
             <div
               style={{
@@ -305,7 +375,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
           </button>
           <div style={{ flex: 1 }} />
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving || disableConnectActions}>
             {saving ? <span className="spinner" style={{ width: 12, height: 12 }} /> : null}
             {editConfig ? 'Update' : 'Connect'}
           </button>

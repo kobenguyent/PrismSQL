@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.6.0...v1.6.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **sidebar:** prevent header tooltip overlap and clipping ([#26](https://github.com/kobenguyent/KobeanSQL/issues/26)) ([dd87e42](https://github.com/kobenguyent/KobeanSQL/commit/dd87e42afae6810789ba54b2d24243596e150470))
+
 # [1.6.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.5.0...v1.6.0) (2026-05-24)
 
 

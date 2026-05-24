@@ -1,20 +1,22 @@
 import mysql, { Pool, RowDataPacket, FieldPacket } from 'mysql2/promise'
 import { DatabaseAdapter } from '../adapter'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
+import { resolveConnectionConfig } from '../connection-uri'
 
 export class MySQLAdapter implements DatabaseAdapter {
   private pool: Pool | null = null
   private config: ConnectionConfig | null = null
 
   async connect(config: ConnectionConfig): Promise<void> {
-    this.config = config
+    const resolvedConfig = resolveConnectionConfig(config)
+    this.config = resolvedConfig
     this.pool = mysql.createPool({
-      host: config.host || 'localhost',
-      port: config.port || 3306,
-      user: config.user || 'root',
-      password: config.password || '',
-      database: config.database,
-      ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
+      host: resolvedConfig.host || 'localhost',
+      port: resolvedConfig.port || 3306,
+      user: resolvedConfig.user || 'root',
+      password: resolvedConfig.password || '',
+      database: resolvedConfig.database,
+      ssl: resolvedConfig.ssl ? { rejectUnauthorized: false } : undefined,
       multipleStatements: true,
       connectTimeout: 10000,
       waitForConnections: true,

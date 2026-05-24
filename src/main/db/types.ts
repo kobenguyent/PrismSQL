@@ -4,6 +4,7 @@ export interface ConnectionConfig {
   id: string
   name: string
   type: DatabaseType
+  connectionUri?: string
   host?: string
   port?: number
   user?: string
