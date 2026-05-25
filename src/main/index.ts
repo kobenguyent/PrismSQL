@@ -60,8 +60,8 @@ function createWindow(): BrowserWindow {
     }
   })
 
-  win.webContents.on('will-frame-navigate', (event, url, isMainFrame) => {
-    if (isMainFrame && !isTrustedRendererUrl(url)) {
+  win.webContents.on('will-frame-navigate', (event, url) => {
+    if (!isTrustedRendererUrl(url)) {
       event.preventDefault()
       appLogger.warn('Blocked frame navigation to untrusted URL', { url })
     }
