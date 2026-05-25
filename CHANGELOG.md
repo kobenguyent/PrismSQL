@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.2...v1.9.0) (2026-05-25)
+
+
+### Features
+
+* Add lightweight Electron update-check service with persisted settings, IPC surface, and in-app notifications ([#35](https://github.com/kobenguyent/KobeanSQL/issues/35)) ([34301e0](https://github.com/kobenguyent/KobeanSQL/commit/34301e0e4961af5d0f508e6736e5df7add77125e))
+
 ## [1.8.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.1...v1.8.2) (2026-05-25)
 
 
