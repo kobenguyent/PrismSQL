@@ -462,7 +462,7 @@
       <h1>Beautiful SQL<br>for every database</h1>
       <p>
         KobeanSQL is a modern desktop SQL client with an Apple-inspired glassmorphism interface.
-        Connect to MySQL, PostgreSQL, SQLite, or SQL Server — all from one beautiful app.
+        Connect to MySQL, MariaDB, PostgreSQL, SQLite, and SQL Server, visualize schema relationships, and use local-only AI workflows.
       </p>
       <div class="hero-actions">
         <a href="https://github.com/kobenguyent/KobeanSQL/releases/latest" class="btn-primary" target="_blank" rel="noopener">
@@ -517,12 +517,17 @@
         <div class="feature-card">
           <span class="feature-icon">🗂️</span>
           <h3>Multi-Tab Query Editor</h3>
-          <p>CodeMirror 6 SQL editor with syntax highlighting, autocompletion, bracket matching, and keyboard shortcuts.</p>
+          <p>CodeMirror 6 SQL editor with syntax highlighting, SQL beautify, built-in SQL templates, and keyboard shortcuts.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">🌲</span>
           <h3>Schema Browser</h3>
           <p>Expandable tree: connections → databases → tables/views → columns with types and PK flags. Click any table to query it instantly.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🧭</span>
+          <h3>Schema Visualizer</h3>
+          <p>Open an interactive ER diagram powered by React Flow + Dagre to inspect table relationships and foreign keys at a glance.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">📊</span>
@@ -538,6 +543,26 @@
           <span class="feature-icon">⌨️</span>
           <h3>Keyboard-First</h3>
           <p><kbd>⌘ Enter</kbd> to run, <kbd>⌘ T</kbd> for new tab. Resize panes with drag handles. Everything is reachable from the keyboard.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🕘</span>
+          <h3>Query History</h3>
+          <p>Review previously executed statements in the in-app history panel and bring queries back into your workflow faster.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔄</span>
+          <h3>Connection Import/Export</h3>
+          <p>Move connection profiles between machines with built-in import and export actions directly from the sidebar.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚙️</span>
+          <h3>Smart Defaults</h3>
+          <p>Configure global query row limits in Settings so table browsing stays fast and safe for large datasets.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <h3>Local-Only AI Assistant</h3>
+          <p>Generate, explain, and optimize SQL with local providers such as Ollama and OpenAI-compatible local servers — no cloud AI calls.</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">🔐</span>
@@ -691,14 +716,21 @@
           <div class="privacy-icon">💾</div>
           <div>
             <h4>Local-only storage</h4>
-            <p>All connection credentials and saved queries are stored locally in your operating system's user-data directory using a plain JSON file. The data never leaves your machine via KobeanSQL.</p>
+            <p>Connections, saved queries, and settings are stored in your operating system's user-data directory. Passwords are encrypted with OS-backed secure storage when available, and data is never synced by KobeanSQL.</p>
           </div>
         </div>
         <div class="privacy-row">
           <div class="privacy-icon">🌐</div>
           <div>
             <h4>Network traffic only to your databases</h4>
-            <p>The only outbound network traffic KobeanSQL initiates is the database connections you explicitly configure. No background requests are made to any KobeanSQL or third-party servers.</p>
+            <p>Outbound traffic is limited to endpoints you explicitly configure: your database hosts and, if enabled, a local AI provider endpoint. No background requests are made to KobeanSQL or third-party telemetry servers.</p>
+          </div>
+        </div>
+        <div class="privacy-row">
+          <div class="privacy-icon">🤖</div>
+          <div>
+            <h4>AI stays local</h4>
+            <p>AI features support only local providers (Ollama or OpenAI-compatible local servers). KobeanSQL does not send prompts or SQL text to cloud AI providers.</p>
           </div>
         </div>
         <div class="privacy-row">
