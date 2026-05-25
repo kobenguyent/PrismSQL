@@ -10,7 +10,15 @@ const MAIN_ENTRY = path.join(REPO_ROOT, 'out/main/index.js')
 const DB_SCRIPT = path.join(REPO_ROOT, 'scripts/setup-test-db.ts')
 const ELECTRON_CLI = path.join(REPO_ROOT, 'node_modules/electron/cli.js')
 const ELECTRON_INSTALLER = path.join(REPO_ROOT, 'node_modules/electron/install.js')
-const DOCS_SCREENSHOT_PATH = path.join(REPO_ROOT, 'docs/screenshots/database-visualizer.png')
+const DOCS_SCREENSHOTS = {
+  addConnectionFlow: path.join(REPO_ROOT, 'docs/screenshots/flow-add-connection.png'),
+  queryEditorFlow: path.join(REPO_ROOT, 'docs/screenshots/flow-query-editor.png'),
+  queryDataFlow: path.join(REPO_ROOT, 'docs/screenshots/flow-query-data.png'),
+  connectionModal: path.join(REPO_ROOT, 'docs/screenshots/connection-modal.png'),
+  mainWindow: path.join(REPO_ROOT, 'docs/screenshots/main-window.png'),
+  queryEditor: path.join(REPO_ROOT, 'docs/screenshots/query-editor.png'),
+  databaseVisualizer: path.join(REPO_ROOT, 'docs/screenshots/database-visualizer.png')
+}
 
 async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await playwrightElectron.launch({
@@ -75,8 +83,32 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await page.locator('input[placeholder*="My SQLite DB"]').fill('Schema Visualizer E2E')
     await page.locator('input[placeholder*="/path/to/database.db"]').fill(testDbPath)
 
+    await fs.promises.mkdir(path.dirname(DOCS_SCREENSHOTS.databaseVisualizer), { recursive: true })
+    const connectionModal = page.locator('.modal-panel')
+    await connectionModal.screenshot({ path: DOCS_SCREENSHOTS.addConnectionFlow })
+    await connectionModal.screenshot({ path: DOCS_SCREENSHOTS.connectionModal })
+
     await page.getByRole('button', { name: /^connect$/i }).click()
     await expect(connectionModalTitle).toBeHidden()
+    await expect(page.getByText('Schema Visualizer E2E')).toBeVisible()
+
+    const mainLayout = page.locator('.main-layout')
+    await expect(mainLayout).toBeVisible()
+    await mainLayout.screenshot({ path: DOCS_SCREENSHOTS.mainWindow })
+
+    const editor = page.locator('.cm-content')
+    await editor.click()
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
+    await page.keyboard.type('SELECT id, email, display_name FROM users ORDER BY id;')
+
+    const contentPane = page.locator('.content-pane')
+    await expect(contentPane).toBeVisible()
+    await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditorFlow })
+
+    await page.getByRole('button', { name: /^run$/i }).click()
+    await expect(page.locator('.results-pane .data-table')).toBeVisible()
+    await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryDataFlow })
+    await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditor })
 
     await page.locator('button[data-tooltip="Schema Visualizer"]').click()
 
@@ -93,8 +125,7 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await expect(edgePaths).toHaveCount(3)
 
     const canvasWrapper = page.locator('.schema-visualizer-canvas')
-    await fs.promises.mkdir(path.dirname(DOCS_SCREENSHOT_PATH), { recursive: true })
-    await canvasWrapper.screenshot({ path: DOCS_SCREENSHOT_PATH })
+    await canvasWrapper.screenshot({ path: DOCS_SCREENSHOTS.databaseVisualizer })
 
     await expect(canvasWrapper).toHaveScreenshot('database-visualizer-canvas.png')
   } finally {

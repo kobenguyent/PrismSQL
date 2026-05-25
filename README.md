@@ -28,6 +28,9 @@
 ### SQL editor flow — compose and run SQL
 ![Query editor flow](docs/screenshots/flow-query-editor.png)
 
+### Schema visualizer flow — inspect table relationships
+![Schema visualizer flow](docs/screenshots/database-visualizer.png)
+
 ---
 
 ## ✨ Key Features
@@ -48,6 +51,7 @@
 
 ### Data Visualization & Results
 - **Sortable, filterable results grid** — powered by `@tanstack/react-table` with global full-text filter and column-level sort
+- **Inline cell editing (PK-aware)** — edit table cells with generated `UPDATE` SQL and a confirmation modal before execution
 - **CSV export** — export the current result set to a `.csv` file in one click
 - **Row count + query duration** — shown in the results panel footer after every execution
 - **Database Schema Visualizer** — interactive entity-relationship diagram (built with `@xyflow/react` and `@dagrejs/dagre`) that auto-lays out tables and foreign-key relationships for the selected database
@@ -66,6 +70,7 @@
 - **macOS vibrancy & Windows 11 acrylic** — true native translucency using `vibrancy: 'under-window'` and `backgroundMaterial: 'acrylic'`
 - **Offline-first** — all connections are direct TCP/IP; no proxy server required
 - **Saved queries library** — store frequently used SQL snippets locally, categorized and searchable
+- **Query history panel** — filter and reopen recent successful/failed statements with timing and row-count metadata
 - **Configurable query limit** — prevent runaway full-table scans by setting a global default row limit (1–10,000)
 
 ---
