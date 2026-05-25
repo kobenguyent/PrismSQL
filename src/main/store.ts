@@ -61,7 +61,7 @@ function getDefaultSettings(): AppSettings {
 
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
-const SUPPORTED_DB_TYPES: DatabaseType[] = ['mysql', 'mariadb', 'postgres', 'sqlite', 'mssql']
+const SUPPORTED_DB_TYPES: DatabaseType[] = ['mysql', 'mariadb', 'postgres', 'sqlite', 'mssql', 'mongodb']
 const getSettingsPath = (): string => path.join(app.getPath('userData'), 'settings.json')
 
 /** Prefix used to distinguish safeStorage-encrypted values from plaintext. */
@@ -253,6 +253,7 @@ function fingerprintConnection(conn: ConnectionConfig): string {
     port: conn.port?.toString() ?? '',
     user: conn.user?.trim().toLowerCase() ?? '',
     database: conn.database?.trim().toLowerCase() ?? '',
+    authSource: conn.authSource?.trim().toLowerCase() ?? '',
     filename: conn.filename?.trim().toLowerCase() ?? ''
   })
 }

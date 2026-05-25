@@ -1,4 +1,4 @@
-export type DatabaseType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql'
+export type DatabaseType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'mssql' | 'mongodb'
 
 export interface ConnectionConfig {
   id: string
@@ -10,6 +10,7 @@ export interface ConnectionConfig {
   user?: string
   password?: string
   database?: string
+  authSource?: string
   filename?: string // for SQLite
   ssl?: boolean
   color?: string // connection indicator color

@@ -41,6 +41,19 @@ describe('connection URI parsing', () => {
     })
   })
 
+  it('parses mongodb URI with authSource', () => {
+    const parsed = parseConnectionUri('mongodb', 'mongodb://alice:secret@db.local:27017/app?authSource=admin')
+
+    expect(parsed).toEqual({
+      host: 'db.local',
+      port: 27017,
+      user: 'alice',
+      password: 'secret',
+      database: 'app',
+      authSource: 'admin'
+    })
+  })
+
   it('throws on invalid scheme for type', () => {
     expect(() => parseConnectionUri('postgres', 'mysql://root:pass@localhost:3306/db')).toThrow(
       'Invalid URI scheme for postgres'

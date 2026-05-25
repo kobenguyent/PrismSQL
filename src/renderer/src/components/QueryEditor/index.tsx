@@ -80,6 +80,8 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         return 'SQLite'
       case 'mssql':
         return 'SQL Server'
+      case 'mongodb':
+        return 'MongoDB'
       default:
         return 'SQL'
     }

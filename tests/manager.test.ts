@@ -61,6 +61,20 @@ vi.mock('../src/main/db/adapters/mssql', () => ({
   }
 }))
 
+vi.mock('../src/main/db/adapters/mongodb', () => ({
+  MongoAdapter: class {
+    async connect() {}
+    async disconnect() {}
+    async query() { return { columns: [], rows: [], rowCount: 0, duration: 1 } }
+    async getDatabases() { return ['admin'] }
+    async getTables() { return [] }
+    async getColumns() { return [] }
+    async getForeignKeys() { return [] }
+    async getProcedures() { return [] }
+    async ping() { return true }
+  }
+}))
+
 describe('ConnectionManager', () => {
   let manager: ConnectionManager
 

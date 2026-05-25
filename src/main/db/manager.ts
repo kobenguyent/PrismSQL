@@ -3,6 +3,7 @@ import { MySQLAdapter } from './adapters/mysql'
 import { PostgresAdapter } from './adapters/postgres'
 import { SQLiteAdapter } from './adapters/sqlite'
 import { MSSQLAdapter } from './adapters/mssql'
+import { MongoAdapter } from './adapters/mongodb'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from './types'
 import { appLogger } from '../logger'
 
@@ -38,6 +39,8 @@ export class ConnectionManager {
         return new SQLiteAdapter()
       case 'mssql':
         return new MSSQLAdapter()
+      case 'mongodb':
+        return new MongoAdapter()
       default:
         throw new Error(`Unsupported database type: ${type}`)
     }

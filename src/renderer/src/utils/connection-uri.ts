@@ -5,6 +5,7 @@ export interface ParsedConnectionUriPreview {
   port?: number
   user?: string
   database?: string
+  authSource?: string
   ssl?: boolean
 }
 
@@ -13,7 +14,8 @@ const ALLOWED_SCHEMES: Record<DatabaseType, string[]> = {
   mysql: ['mysql'],
   mariadb: ['mariadb', 'mysql'],
   mssql: ['mssql', 'sqlserver'],
-  sqlite: ['sqlite']
+  sqlite: ['sqlite'],
+  mongodb: ['mongodb', 'mongodb+srv']
 }
 
 export function parseConnectionUriPreview(
@@ -39,6 +41,7 @@ export function parseConnectionUriPreview(
   const pathDb = parsedUrl.pathname.replace(/^\/+/, '')
   const sslQuery = parsedUrl.searchParams.get('ssl') ?? parsedUrl.searchParams.get('sslmode')
   const encryptQuery = parsedUrl.searchParams.get('encrypt')
+  const authSource = parsedUrl.searchParams.get('authSource')
 
   let ssl: boolean | undefined
   if (sslQuery) {
@@ -55,6 +58,7 @@ export function parseConnectionUriPreview(
       port: parsedUrl.port ? Number(parsedUrl.port) : undefined,
       user: parsedUrl.username ? decodeURIComponent(parsedUrl.username) : undefined,
       database: pathDb ? decodeURIComponent(pathDb) : undefined,
+      authSource: authSource ? decodeURIComponent(authSource) : undefined,
       ssl
     }
   }

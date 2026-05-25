@@ -6,6 +6,7 @@ interface ParsedUriConfig {
   user?: string
   password?: string
   database?: string
+  authSource?: string
   ssl?: boolean
 }
 
@@ -14,7 +15,8 @@ const ALLOWED_SCHEMES: Record<DatabaseType, string[]> = {
   mysql: ['mysql'],
   mariadb: ['mariadb', 'mysql'],
   mssql: ['mssql', 'sqlserver'],
-  sqlite: ['sqlite']
+  sqlite: ['sqlite'],
+  mongodb: ['mongodb', 'mongodb+srv']
 }
 
 function decodePart(value: string): string {
@@ -45,13 +47,15 @@ export function parseConnectionUri(type: DatabaseType, connectionUri?: string): 
   const pathDb = parsed.pathname.replace(/^\/+/, '')
   const sslQuery = parsed.searchParams.get('ssl') ?? parsed.searchParams.get('sslmode')
   const encryptQuery = parsed.searchParams.get('encrypt')
+  const authSource = parsed.searchParams.get('authSource')
 
   const normalized: ParsedUriConfig = {
     host: parsed.hostname || undefined,
     port: parsed.port ? Number(parsed.port) : undefined,
     user: parsed.username ? decodePart(parsed.username) : undefined,
     password: parsed.password ? decodePart(parsed.password) : undefined,
-    database: pathDb ? decodePart(pathDb) : undefined
+    database: pathDb ? decodePart(pathDb) : undefined,
+    authSource: authSource ? decodePart(authSource) : undefined
   }
 
   if (sslQuery) {
@@ -76,6 +80,7 @@ export function resolveConnectionConfig(config: ConnectionConfig): ConnectionCon
     user: parsed.user ?? config.user,
     password: parsed.password ?? config.password,
     database: parsed.database ?? config.database,
+    authSource: parsed.authSource ?? config.authSource,
     ssl: parsed.ssl ?? config.ssl
   }
 }

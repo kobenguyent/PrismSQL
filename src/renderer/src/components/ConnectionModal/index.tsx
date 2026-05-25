@@ -62,6 +62,11 @@ const DB_LOGOS: Record<string, JSX.Element> = {
       <path d="M3 10v5c0 1.66 4.03 3 9 3s9-1.34 9-3v-5" fill="none" stroke="white" strokeWidth="1.5"/>
       <path d="M3 15v4c0 1.66 4.03 3 9 3s9-1.34 9-3v-4" fill="none" stroke="white" strokeWidth="1.5"/>
     </svg>
+  ),
+  mongodb: (
+    <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="white">
+      <path d="M12 2c-.9 1.5-2.7 3.4-2.7 6.5 0 2.1 1 3.6 2 4.8-.8-.1-1.7-.6-2.3-1.2.2 2.7 1.4 4.8 3 6v3.9h1.1v-3.9c1.6-1.2 2.8-3.3 3-6-.6.6-1.5 1.1-2.3 1.2 1-1.2 2-2.7 2-4.8C14.7 5.4 12.9 3.5 12 2z"/>
+    </svg>
   )
 }
 
@@ -70,7 +75,8 @@ const DB_TYPES: { value: DatabaseType; label: string; color: string }[] = [
   { value: 'mariadb', label: 'MariaDB', color: '#c084fc' },
   { value: 'postgres', label: 'PostgreSQL', color: '#1a1a2e' },
   { value: 'sqlite', label: 'SQLite', color: '#0f80cc' },
-  { value: 'mssql', label: 'SQL Server', color: '#f87171' }
+  { value: 'mssql', label: 'SQL Server', color: '#f87171' },
+  { value: 'mongodb', label: 'MongoDB', color: '#22c55e' }
 ]
 
 const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
@@ -82,6 +88,7 @@ const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
   user: '',
   password: '',
   database: '',
+  authSource: '',
   filename: '',
   ssl: false,
   color: '#60a5fa'
@@ -98,6 +105,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
   const [saving, setSaving] = useState(false)
 
   const isSQLite = config.type === 'sqlite'
+  const isMongo = config.type === 'mongodb'
   const [connectionMode, setConnectionMode] = useState<'manual' | 'uri'>(
     !isSQLite && !!config.connectionUri?.trim() ? 'uri' : 'manual'
   )
@@ -284,6 +292,8 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                   placeholder={
                     config.type === 'postgres'
                       ? 'postgresql://user:pass@host:5432/db'
+                      : config.type === 'mongodb'
+                        ? 'mongodb://user:pass@host:27017/db?authSource=admin'
                       : config.type === 'mssql'
                         ? 'mssql://user:pass@host:1433/db'
                         : 'mysql://user:pass@host:3306/db'
@@ -300,6 +310,11 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                   Parsed: host <strong>{uriPreview.parsed.host ?? '-'}</strong>, port{' '}
                   <strong>{uriPreview.parsed.port ?? '-'}</strong>, user <strong>{uriPreview.parsed.user ?? '-'}</strong>,
                   database <strong>{uriPreview.parsed.database ?? '-'}</strong>
+                  {uriPreview.parsed.authSource ? (
+                    <>
+                      , authSource <strong>{uriPreview.parsed.authSource}</strong>
+                    </>
+                  ) : null}
                   {uriPreview.parsed.ssl !== undefined ? (
                     <>
                       , ssl <strong>{uriPreview.parsed.ssl ? 'enabled' : 'disabled'}</strong>
@@ -369,13 +384,26 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
                 />
               </div>
 
+              {isMongo && (
+                <div className="form-group">
+                  <label className="form-label">Auth Source (optional)</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={config.authSource ?? ''}
+                    onChange={(e) => update('authSource', e.target.value)}
+                    placeholder="admin"
+                  />
+                </div>
+              )}
+
               <label className="form-checkbox-row">
                 <input
                   type="checkbox"
                   checked={config.ssl ?? false}
                   onChange={(e) => update('ssl', e.target.checked)}
                 />
-                <span className="form-checkbox-label">Use SSL / TLS</span>
+                <span className="form-checkbox-label">Use {isMongo ? 'TLS' : 'SSL / TLS'}</span>
               </label>
             </>
           )}

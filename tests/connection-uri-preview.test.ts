@@ -18,4 +18,16 @@ describe('connection URI preview parsing', () => {
     const result = parseConnectionUriPreview('postgres', 'mysql://root:pass@localhost:3306/test')
     expect(result.error).toContain('Invalid URI scheme for postgres')
   })
+
+  it('returns parsed preview for mongodb uri', () => {
+    const result = parseConnectionUriPreview('mongodb', 'mongodb://alice:secret@db.local:27017/app?authSource=admin')
+    expect(result.error).toBeUndefined()
+    expect(result.parsed).toMatchObject({
+      host: 'db.local',
+      port: 27017,
+      user: 'alice',
+      database: 'app',
+      authSource: 'admin'
+    })
+  })
 })
