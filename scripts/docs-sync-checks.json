@@ -1,0 +1,14 @@
+[
+  { "name": "MySQL support", "readme": "\\bMySQL\\b", "pages": "\\bMySQL\\b" },
+  { "name": "MariaDB support", "readme": "\\bMariaDB\\b", "pages": "\\bMariaDB\\b" },
+  { "name": "PostgreSQL support", "readme": "\\bPostgreSQL\\b", "pages": "\\bPostgreSQL\\b" },
+  { "name": "SQLite support", "readme": "\\bSQLite\\b", "pages": "\\bSQLite\\b" },
+  { "name": "SQL Server support", "readme": "SQL Server", "pages": "SQL Server" },
+  { "name": "Schema Visualizer", "readme": "Schema\\s*Visualizer", "pages": "Schema\\s*Visualizer" },
+  { "name": "Query History", "readme": "Query\\s*History", "pages": "Query\\s*History" },
+  { "name": "Connection import/export", "readme": "Connection import\\s*\\/\\s*export", "pages": "Connection Import\\/Export" },
+  { "name": "Configurable query limit", "readme": "Configurable query limit", "pages": "query row limits?" },
+  { "name": "Local-only AI", "readme": "Local-only AI assistant", "pages": "Local-Only AI Assistant" },
+  { "name": "Ollama provider", "readme": "\\bOllama\\b", "pages": "\\bOllama\\b" },
+  { "name": "OpenAI-compatible provider", "readme": "OpenAI-compatible", "pages": "OpenAI-compatible" }
+]
