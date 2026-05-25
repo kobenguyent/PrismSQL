@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.0...v1.8.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* Refresh README with live app flow screenshots and current feature coverage ([#33](https://github.com/kobenguyent/KobeanSQL/issues/33)) ([6d7982c](https://github.com/kobenguyent/KobeanSQL/commit/6d7982c511a42d22af37f948dec7383b217d3daa))
+
 # [1.8.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.7.1...v1.8.0) (2026-05-24)
 
 
