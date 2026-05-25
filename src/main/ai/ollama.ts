@@ -3,7 +3,7 @@ import type { AIRequest, AIResponse, LocalAIService } from './types'
 import { validateLocalBaseUrl } from './url-policy'
 
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
-const DEFAULT_OLLAMA_MODEL = 'gemma3:12b'
+const DEFAULT_OLLAMA_MODEL = 'llama3.1'
 const OLLAMA_REQUEST_TIMEOUT_MS = 15000
 
 export class OllamaService implements LocalAIService {
