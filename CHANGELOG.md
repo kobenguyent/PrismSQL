@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.9.0...v1.9.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* Harden Electron main-process trust boundaries for navigation, external URLs, and IPC ([#36](https://github.com/kobenguyent/KobeanSQL/issues/36)) ([20aafb4](https://github.com/kobenguyent/KobeanSQL/commit/20aafb4e312a508bcbe859fbebbbce327c4c4afb))
+
 # [1.9.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.2...v1.9.0) (2026-05-25)
 
 
