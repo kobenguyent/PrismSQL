@@ -54,7 +54,8 @@ export default function App(): JSX.Element {
     checkForUpdatesNow,
     dismissUpdateVersion,
     ignoreUpdateVersion,
-    openUpdateRelease
+    openUpdateRelease,
+    setStatus
   } = useAppStore()
 
   const [showConnectionModal, setShowConnectionModal] = useState(false)
@@ -95,12 +96,16 @@ export default function App(): JSX.Element {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 't') {
         e.preventDefault()
+        if (connections.length === 0) {
+          setStatus('Add a connection before creating query tabs', 'warning')
+          return
+        }
         newTab()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [newTab])
+  }, [connections.length, newTab, setStatus])
 
   // Sidebar resize
   const startResize = useCallback((e: React.MouseEvent) => {

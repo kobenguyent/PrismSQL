@@ -13,8 +13,23 @@ function TabIcon({ tabType }: { tabType: 'query' | 'table' | 'procedure' | undef
 }
 
 export function TabBar(): JSX.Element {
-  const { tabs, activeTabId, newTab, closeTab, setActiveTab, moveTab, moveTabBlock, saveCurrentQuery, setTabColor, setTabGroup } = useAppStore()
+  const {
+    tabs,
+    activeTabId,
+    connections,
+    newTab,
+    closeTab,
+    setActiveTab,
+    moveTab,
+    moveTabBlock,
+    saveCurrentQuery,
+    setTabColor,
+    setTabGroup,
+    setStatus
+  } = useAppStore()
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null)
+  const [pendingCloseSaveName, setPendingCloseSaveName] = useState('')
+  const [pendingCloseSaveCategory, setPendingCloseSaveCategory] = useState('')
   const [isSavingBeforeClose, setIsSavingBeforeClose] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ tabId: string; x: number; y: number } | null>(null)
   const [groupEditor, setGroupEditor] = useState<{ tabId: string; value: string } | null>(null)
@@ -240,25 +255,47 @@ export function TabBar(): JSX.Element {
       closeTab(tabId)
       return
     }
+    const tab = tabs.find((t) => t.id === tabId)
+    setPendingCloseSaveName(tab?.title ?? '')
+    setPendingCloseSaveCategory('')
     setPendingCloseTabId(tabId)
+  }
+
+  const clearPendingClose = (): void => {
+    setPendingCloseTabId(null)
+    setPendingCloseSaveName('')
+    setPendingCloseSaveCategory('')
   }
 
   const handleDontSave = (): void => {
     if (!pendingCloseTabId) return
     closeTab(pendingCloseTabId)
-    setPendingCloseTabId(null)
+    clearPendingClose()
   }
 
   const handleSaveAndClose = async (): Promise<void> => {
     if (!pendingCloseTab) return
+    if (!pendingCloseSaveName.trim()) return
     setIsSavingBeforeClose(true)
     try {
-      await saveCurrentQuery(pendingCloseTab.id, pendingCloseTab.title)
+      await saveCurrentQuery(
+        pendingCloseTab.id,
+        pendingCloseSaveName.trim(),
+        pendingCloseSaveCategory.trim() || undefined
+      )
       closeTab(pendingCloseTab.id)
-      setPendingCloseTabId(null)
+      clearPendingClose()
     } finally {
       setIsSavingBeforeClose(false)
     }
+  }
+
+  const handleNewTab = (): void => {
+    if (connections.length === 0) {
+      setStatus('Add a connection before creating query tabs', 'warning')
+      return
+    }
+    newTab()
   }
 
   return (
@@ -437,10 +474,10 @@ export function TabBar(): JSX.Element {
           })()
         ))}
         <div
-          className="tab-new-btn"
-          onClick={() => newTab()}
-          data-tooltip="New Query Tab (Ctrl+T)"
-          title="New Query Tab (Ctrl+T)"
+          className={`tab-new-btn${connections.length === 0 ? ' disabled' : ''}`}
+          onClick={handleNewTab}
+          data-tooltip={connections.length === 0 ? undefined : 'New Query Tab (Ctrl+T)'}
+          title={connections.length === 0 ? 'Add a connection first' : 'New Query Tab (Ctrl+T)'}
         >
           <Plus size={14} />
         </div>
@@ -626,24 +663,49 @@ export function TabBar(): JSX.Element {
         </div>
       )}
       {pendingCloseTab && (
-        <div className="modal-overlay" onClick={() => setPendingCloseTabId(null)}>
+        <div className="modal-overlay" onClick={clearPendingClose}>
           <div className="modal-panel" style={{ width: 430, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Unsaved changes</span>
+              <span className="modal-title">Save Query</span>
             </div>
             <div className="modal-body">
-              <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-                Save changes to <strong>{pendingCloseTab.title}</strong> before closing?
-              </p>
+              <div className="form-group">
+                <label className="form-label">Query Name</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={pendingCloseSaveName}
+                  onChange={(e) => setPendingCloseSaveName(e.target.value)}
+                  placeholder="My query…"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleSaveAndClose()
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category (optional)</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={pendingCloseSaveCategory}
+                  onChange={(e) => setPendingCloseSaveCategory(e.target.value)}
+                  placeholder="e.g. Analytics, Reporting…"
+                />
+              </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setPendingCloseTabId(null)} disabled={isSavingBeforeClose}>
+              <button className="btn btn-ghost" onClick={clearPendingClose} disabled={isSavingBeforeClose}>
                 Cancel
               </button>
               <button className="btn btn-ghost" onClick={handleDontSave} disabled={isSavingBeforeClose}>
                 Don&apos;t Save
               </button>
-              <button className="btn btn-primary" onClick={() => void handleSaveAndClose()} disabled={isSavingBeforeClose}>
+              <button
+                className="btn btn-primary"
+                onClick={() => void handleSaveAndClose()}
+                disabled={isSavingBeforeClose || !pendingCloseSaveName.trim()}
+              >
                 {isSavingBeforeClose ? 'Saving…' : 'Save'}
               </button>
             </div>

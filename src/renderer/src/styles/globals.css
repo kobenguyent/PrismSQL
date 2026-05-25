@@ -360,7 +360,8 @@ html, body, #root {
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   flex-shrink: 0;
   position: relative;
   z-index: 5;
@@ -373,6 +374,7 @@ html, body, #root {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  margin-right: auto;
 }
 
 .sidebar-body {
@@ -402,6 +404,11 @@ html, body, #root {
 .icon-btn.active {
   background: var(--accent-dim);
   color: var(--accent);
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ── Primary Button ─────────────────────────────────────────── */
@@ -811,6 +818,11 @@ html, body, #root {
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 .tab-new-btn:hover { background: var(--glass-bg-hover); color: var(--text-primary); }
+.tab-new-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .tab-context-overlay {
   position: fixed;
@@ -1382,6 +1394,14 @@ html, body, #root {
   z-index: 200;
 }
 [data-tooltip]:hover::after { opacity: 1; }
+
+/* Right-most statusbar tooltips should flip inward to avoid viewport clipping. */
+.statusbar > .icon-btn:nth-last-child(1)[data-tooltip]::after,
+.statusbar > .icon-btn:nth-last-child(2)[data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
 
 /* Sidebar header tooltips need to render below controls and stay inside
    the left pane so they don't get clipped by the title bar/split pane edge. */

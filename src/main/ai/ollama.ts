@@ -3,7 +3,7 @@ import type { AIRequest, AIResponse, LocalAIService } from './types'
 import { validateLocalBaseUrl } from './url-policy'
 
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
-const DEFAULT_OLLAMA_MODEL = 'llama3.1'
+const DEFAULT_OLLAMA_MODEL = 'gemma3:12b'
 const OLLAMA_REQUEST_TIMEOUT_MS = 15000
 
 export class OllamaService implements LocalAIService {
@@ -102,6 +102,8 @@ export class OllamaService implements LocalAIService {
         return [
           policy,
           `Explain the following ${dbType} SQL clearly and concisely.`,
+          'Treat the SQL below as the full input. Do not ask for additional query text.',
+          'If the SQL is partial or invalid, explain the likely intent and point out what is incomplete.',
           'Keep explanation under 10 bullet points.',
           request.sql.trim()
         ].join('\n')

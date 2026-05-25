@@ -14,6 +14,8 @@ interface Props {
 }
 
 export function QueryEditor({ tab }: Props): JSX.Element {
+  type SqlFormatterLanguage = 'mysql' | 'postgresql' | 'sqlite' | 'transactsql' | 'sql'
+
   const {
     connections,
     connectedIds,
@@ -91,16 +93,41 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     }
   }, [tab.id, tab.isRunning, runQuery])
 
-  // Keyboard shortcut: Ctrl/Cmd + Enter to run
+  const openSaveModal = useCallback(() => {
+    setSaveName(tab.title || '')
+    setSaveCategory('')
+    setShowSaveModal(true)
+  }, [tab.title])
+
+  const handleSave = useCallback(async () => {
+    if (!saveName.trim()) return
+    await saveCurrentQuery(tab.id, saveName.trim(), saveCategory.trim() || undefined)
+    setShowSaveModal(false)
+    setSaveName('')
+    setSaveCategory('')
+  }, [saveCategory, saveCurrentQuery, saveName, tab.id])
+
+  // Keyboard shortcuts: Ctrl/Cmd + Enter to run, Ctrl/Cmd + S to save
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         handleRunQuery()
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (e.repeat) return
+        if (!tab.sql.trim()) return
+        if (showSaveModal) {
+          void handleSave()
+          return
+        }
+        openSaveModal()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [handleRunQuery])
+  }, [handleRunQuery, handleSave, openSaveModal, showSaveModal, tab.sql])
 
   // Build schema map for SQL autocomplete from connected schema
   const sqlSchema = useMemo(() => {
@@ -131,15 +158,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
     [sqlSchema]
   )
 
-  const handleSave = async () => {
-    if (!saveName.trim()) return
-    await saveCurrentQuery(tab.id, saveName.trim(), saveCategory.trim() || undefined)
-    setShowSaveModal(false)
-    setSaveName('')
-    setSaveCategory('')
-  }
-
-  const getSqlLanguage = useCallback((dbType?: DatabaseType): string => {
+  const getSqlLanguage = useCallback((dbType?: DatabaseType): SqlFormatterLanguage => {
     switch (dbType) {
       case 'mysql':
       case 'mariadb':
@@ -282,7 +301,7 @@ export function QueryEditor({ tab }: Props): JSX.Element {
         {/* Save button */}
         <button
           className="icon-btn"
-          onClick={() => { setSaveName(tab.title || ''); setSaveCategory(''); setShowSaveModal(true) }}
+          onClick={openSaveModal}
           disabled={!tab.sql.trim()}
           data-tooltip="Save query"
           style={{ flexShrink: 0 }}
@@ -327,6 +346,9 @@ export function QueryEditor({ tab }: Props): JSX.Element {
 
         <span className="keyboard-hint">
           <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd>
+        </span>
+        <span className="keyboard-hint">
+          <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd> + <kbd>S</kbd>
         </span>
         <span className="keyboard-hint" style={{ color: 'var(--text-tertiary)' }}>
           AI: local-only ({aiProviderName})

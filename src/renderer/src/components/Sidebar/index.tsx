@@ -298,7 +298,8 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
         <button
           className="icon-btn"
           onClick={() => exportConnections(false)}
-          data-tooltip="Export Connections"
+          data-tooltip={connections.length === 0 ? undefined : 'Export Connections'}
+          disabled={connections.length === 0}
         >
           <Download size={14} />
         </button>

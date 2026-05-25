@@ -657,6 +657,10 @@ export const useAppStore = create<AppState>()(
     },
 
     exportConnections: async (includePasswords = false) => {
+      if (get().connections.length === 0) {
+        get().setStatus('No connections to export', 'warning')
+        return
+      }
       try {
         const result = await window.db.exportConnections(includePasswords)
         if (result.canceled) return
@@ -682,9 +686,35 @@ export const useAppStore = create<AppState>()(
     },
 
     openSavedQuery: (query) => {
-      const id = genId()
       const { tabs, activeTabId } = get()
       const activeTab = tabs.find((t) => t.id === activeTabId)
+
+      const existingTab = tabs.find(
+        (t) => t.tabType === 'query' && t.title === query.name && t.lastSavedSql === query.sql
+      )
+      if (existingTab) {
+        set((s) => {
+          s.activeTabId = existingTab.id
+        })
+        return
+      }
+
+      if (activeTab?.tabType === 'query') {
+        set((s) => {
+          const target = s.tabs.find((t) => t.id === activeTab.id)
+          if (!target) return
+          target.title = query.name
+          target.sql = query.sql
+          target.result = null
+          target.isRunning = false
+          target.isSaved = true
+          target.lastSavedSql = query.sql
+          s.activeTabId = target.id
+        })
+        return
+      }
+
+      const id = genId()
       const tab: QueryTab = {
         id,
         title: query.name,
