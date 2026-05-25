@@ -10,9 +10,28 @@ const readmePath = path.join(repoRoot, 'README.md')
 const pagesPath = path.join(repoRoot, 'docs', 'index.html')
 const checksPath = path.join(__dirname, 'docs-sync-checks.json')
 
-const readme = fs.readFileSync(readmePath, 'utf-8')
-const pages = fs.readFileSync(pagesPath, 'utf-8')
-const checkConfigs = JSON.parse(fs.readFileSync(checksPath, 'utf-8'))
+function readRequiredFile(filePath, label) {
+  try {
+    return fs.readFileSync(filePath, 'utf-8')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`Failed to read ${label} at ${filePath}: ${message}`)
+    process.exit(1)
+  }
+}
+
+const readme = readRequiredFile(readmePath, 'README')
+const pages = readRequiredFile(pagesPath, 'GitHub Pages docs')
+const checksRaw = readRequiredFile(checksPath, 'docs sync checks config')
+
+let checkConfigs
+try {
+  checkConfigs = JSON.parse(checksRaw)
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error)
+  console.error(`Failed to parse docs sync checks config at ${checksPath}: ${message}`)
+  process.exit(1)
+}
 
 const checks = checkConfigs.map((check) => {
   const flags = check.flags ?? 'i'
