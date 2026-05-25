@@ -801,7 +801,8 @@ export const useAppStore = create<AppState>()(
             s.updateStatus = status
           })
           if (status.updateAvailable) {
-            get().setStatus(`Update available: v${status.latestVersion}`, 'info')
+            const version = (status.latestVersion ?? '').replace(/^v/i, '')
+            get().setStatus(`Update available: v${version}`, 'info')
           } else if (status.error) {
             get().setStatus(status.error, 'warning')
           } else {
@@ -814,26 +815,42 @@ export const useAppStore = create<AppState>()(
     },
 
     ignoreUpdateVersion: async (version) => {
-      const status = await window.db.ignoreUpdateVersion(version)
-      if (status) {
-        set((s) => {
-          s.updateStatus = status
-        })
+      try {
+        const status = await window.db.ignoreUpdateVersion(version)
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
       }
     },
 
     dismissUpdateVersion: async (version) => {
-      const status = await window.db.dismissUpdateVersion(version)
-      if (status) {
-        set((s) => {
-          s.updateStatus = status
-        })
+      try {
+        const status = await window.db.dismissUpdateVersion(version)
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
       }
     },
 
     openUpdateRelease: async (url) => {
-      await window.db.openUpdateRelease(url)
-      get().setStatus('Opened release page', 'info')
+      try {
+        const result = await window.db.openUpdateRelease(url)
+        if (result?.success) {
+          get().setStatus('Opened release page', 'info')
+        } else {
+          get().setStatus('Failed to open release page', 'warning')
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
     },
 
     setSidebarWidth: (w) => {

@@ -67,6 +67,7 @@ export function createUpdateService(): UpdateService {
   const shouldNotify = (): boolean => {
     const settings = loadSettings()
     const { updates } = settings
+    if (!updates.autoCheckEnabled) return false
     const latestVersion = updates.cache.latestVersion
     if (!latestVersion || !isNewerVersion(latestVersion, app.getVersion())) return false
     if (updates.ignoredVersion && normalizeVersion(updates.ignoredVersion) === normalizeVersion(latestVersion)) {
@@ -212,12 +213,12 @@ export function createUpdateService(): UpdateService {
     }
 
     timer = setTimeout(() => {
-      void checkForUpdates(false)
+      void checkForUpdates(false).then(() => {
+        interval = setInterval(() => {
+          void checkForUpdates(false)
+        }, intervalMs)
+      })
     }, firstDelay)
-
-    interval = setInterval(() => {
-      void checkForUpdates(false)
-    }, intervalMs)
   }
 
   return {
@@ -263,7 +264,19 @@ export function createUpdateService(): UpdateService {
       return toStatus()
     },
     async openReleasePage(url?: string): Promise<{ success: boolean; url: string }> {
-      const target = url || loadSettings().updates.cache.releaseUrl || RELEASES_PAGE_URL
+      const settings = loadSettings()
+      const cachedUrl = settings.updates.cache.releaseUrl
+      // Only allow https GitHub release URLs; fall back to known-safe constants
+      const isAllowedUrl = (u?: string): boolean => {
+        if (!u) return false
+        try {
+          const parsed = new URL(u)
+          return parsed.protocol === 'https:' && parsed.hostname === 'github.com'
+        } catch {
+          return false
+        }
+      }
+      const target = isAllowedUrl(url) ? url! : (isAllowedUrl(cachedUrl) ? cachedUrl! : RELEASES_PAGE_URL)
       await shell.openExternal(target)
       return { success: true, url: target }
     }
