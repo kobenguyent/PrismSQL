@@ -1,7 +1,7 @@
 import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 
-const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'http:', 'mailto:'])
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:'])
 
 export function isSafeExternalUrl(rawUrl: string): boolean {
   try {

@@ -17,6 +17,7 @@ describe('main security policy', () => {
   it('allows only safe external protocols', () => {
     expect(isSafeExternalUrl('https://example.com')).toBe(true)
     expect(isSafeExternalUrl('mailto:support@example.com')).toBe(true)
+    expect(isSafeExternalUrl('http://example.com')).toBe(false)
     expect(isSafeExternalUrl('file:///etc/passwd')).toBe(false)
     expect(isSafeExternalUrl('javascript:alert(1)')).toBe(false)
   })
