@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug, GitBranch } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug, GitBranch, Download } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -35,18 +35,24 @@ export default function App(): JSX.Element {
     connectionVersions,
     statusMessage,
     statusType,
+    updateStatus,
     sidebarWidth,
     isSidebarCollapsed,
     theme,
     loadConnections,
     loadSavedQueries,
     loadSettings,
+    loadUpdateStatus,
     newTab,
     runQuery,
     setSidebarWidth,
     setSidebarCollapsed,
     setTheme,
-    openLogs
+    openLogs,
+    checkForUpdatesNow,
+    dismissUpdateVersion,
+    ignoreUpdateVersion,
+    openUpdateRelease
   } = useAppStore()
 
   const [showConnectionModal, setShowConnectionModal] = useState(false)
@@ -71,7 +77,15 @@ export default function App(): JSX.Element {
     loadConnections()
     loadSavedQueries()
     loadSettings()
-  }, [loadConnections, loadSavedQueries, loadSettings])
+    loadUpdateStatus()
+  }, [loadConnections, loadSavedQueries, loadSettings, loadUpdateStatus])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      loadUpdateStatus()
+    }, 60_000)
+    return () => window.clearInterval(timer)
+  }, [loadUpdateStatus])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -321,6 +335,14 @@ export default function App(): JSX.Element {
         </span>
         <button
           className="icon-btn"
+          onClick={() => checkForUpdatesNow()}
+          data-tooltip="Check for Updates"
+          style={{ width: 20, height: 20 }}
+        >
+          <Download size={12} />
+        </button>
+        <button
+          className="icon-btn"
           onClick={() => setShowPrivacy(true)}
           data-tooltip="Privacy & Data Collection"
           style={{ width: 20, height: 20 }}
@@ -344,6 +366,56 @@ export default function App(): JSX.Element {
           <Info size={12} />
         </button>
       </div>
+
+      {updateStatus?.shouldNotify && updateStatus.latestVersion && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 20,
+            bottom: 48,
+            zIndex: 1200,
+            maxWidth: 420,
+            borderRadius: 12,
+            border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+            background: 'color-mix(in srgb, var(--surface-elevated) 92%, black)',
+            padding: '12px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.28)'
+          }}
+        >
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
+            Update available: v{updateStatus.latestVersion}
+          </div>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+            A newer version of KobeanSQL is available on GitHub Releases.
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
+              style={{ minHeight: 30 }}
+            >
+              View release
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => dismissUpdateVersion(updateStatus.latestVersion)}
+              style={{ minHeight: 30 }}
+            >
+              Remind me later
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => ignoreUpdateVersion(updateStatus.latestVersion)}
+              style={{ minHeight: 30 }}
+            >
+              Ignore this version
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Connection modal */}
       {showConnectionModal && (
@@ -422,6 +494,10 @@ export default function App(): JSX.Element {
                 KobeanSQL does <em>not</em> include analytics, telemetry, crash-reporting services,
                 or any third-party tracking. Network traffic is only ever initiated by the database
                 connections you explicitly configure.
+              </p>
+              <p>
+                Optional update checks can contact GitHub Releases metadata to detect new versions.
+                You can disable update checks at any time in Settings.
               </p>
               <p>
                 AI features are strictly local-only and support local providers such as <strong style={{ color: 'var(--text-primary)' }}>Ollama</strong> and <strong style={{ color: 'var(--text-primary)' }}>OpenAI-compatible local servers</strong>.

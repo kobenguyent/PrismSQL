@@ -4,12 +4,14 @@ import { ConnectionManager } from './db/manager'
 import { registerIpcHandlers } from './ipc'
 import { is } from '@electron-toolkit/utils'
 import { appLogger, setupLogger } from './logger'
+import { createUpdateService } from './update/service'
 
 // Configure logger
 setupLogger()
 appLogger.info('KobeanSQL starting...')
 
 const manager = new ConnectionManager()
+const updateService = createUpdateService()
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -61,8 +63,9 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   appLogger.info('Application ready')
-  registerIpcHandlers(manager)
+  registerIpcHandlers(manager, updateService)
   createWindow()
+  updateService.initialize()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -15,13 +15,48 @@ export interface SavedQueryRecord {
 
 export interface AppSettings {
   queryLimit: number
+  updates: UpdateSettings
+}
+
+export interface UpdateSettings {
+  autoCheckEnabled: boolean
+  checkIntervalHours: number
+  ignoredVersion?: string
+  dismissedVersion?: string
+  dismissedAt?: number
+  cache: UpdateCheckCache
+}
+
+export interface UpdateCheckCache {
+  etag?: string
+  latestVersion?: string
+  releaseUrl?: string
+  releaseName?: string
+  checkedAt?: number
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  queryLimit: 100
+  queryLimit: 100,
+  updates: {
+    autoCheckEnabled: true,
+    checkIntervalHours: 24,
+    cache: {}
+  }
 }
 const MIN_QUERY_LIMIT = 1
 const MAX_QUERY_LIMIT = 10000
+const MIN_UPDATE_INTERVAL_HOURS = 6
+const MAX_UPDATE_INTERVAL_HOURS = 168
+
+function getDefaultSettings(): AppSettings {
+  return {
+    queryLimit: DEFAULT_SETTINGS.queryLimit,
+    updates: {
+      ...DEFAULT_SETTINGS.updates,
+      cache: {}
+    }
+  }
+}
 
 const getStorePath = (): string => path.join(app.getPath('userData'), 'connections.json')
 const getSavedQueriesPath = (): string => path.join(app.getPath('userData'), 'saved-queries.json')
@@ -224,11 +259,11 @@ function fingerprintConnection(conn: ConnectionConfig): string {
 export function loadSettings(): AppSettings {
   try {
     const p = getSettingsPath()
-    if (!fs.existsSync(p)) return { ...DEFAULT_SETTINGS }
+    if (!fs.existsSync(p)) return getDefaultSettings()
     const data = fs.readFileSync(p, 'utf-8')
     return sanitizeSettings(JSON.parse(data) as unknown)
   } catch {
-    return { ...DEFAULT_SETTINGS }
+    return getDefaultSettings()
   }
 }
 
@@ -238,11 +273,58 @@ function sanitizeQueryLimit(value: unknown): number {
   return Math.max(MIN_QUERY_LIMIT, Math.min(MAX_QUERY_LIMIT, Math.floor(n)))
 }
 
+function sanitizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+function sanitizeTimestamp(value: unknown): number | undefined {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return Math.floor(n)
+}
+
+function sanitizeUpdateIntervalHours(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return DEFAULT_SETTINGS.updates.checkIntervalHours
+  return Math.max(MIN_UPDATE_INTERVAL_HOURS, Math.min(MAX_UPDATE_INTERVAL_HOURS, Math.floor(n)))
+}
+
+function sanitizeUpdateCache(value: unknown): UpdateCheckCache {
+  if (!value || typeof value !== 'object') return {}
+  const source = value as UpdateCheckCache
+  return {
+    etag: sanitizeOptionalString(source.etag),
+    latestVersion: sanitizeOptionalString(source.latestVersion),
+    releaseUrl: sanitizeOptionalString(source.releaseUrl),
+    releaseName: sanitizeOptionalString(source.releaseName),
+    checkedAt: sanitizeTimestamp(source.checkedAt)
+  }
+}
+
+function sanitizeUpdateSettings(value: unknown): UpdateSettings {
+  const fallback = DEFAULT_SETTINGS.updates
+  if (!value || typeof value !== 'object') {
+    return { ...fallback, cache: { ...fallback.cache } }
+  }
+  const source = value as Partial<UpdateSettings>
+  return {
+    autoCheckEnabled: typeof source.autoCheckEnabled === 'boolean' ? source.autoCheckEnabled : fallback.autoCheckEnabled,
+    checkIntervalHours: sanitizeUpdateIntervalHours(source.checkIntervalHours),
+    ignoredVersion: sanitizeOptionalString(source.ignoredVersion),
+    dismissedVersion: sanitizeOptionalString(source.dismissedVersion),
+    dismissedAt: sanitizeTimestamp(source.dismissedAt),
+    cache: sanitizeUpdateCache(source.cache)
+  }
+}
+
 export function sanitizeSettings(settings: unknown): AppSettings {
-  if (!settings || typeof settings !== 'object') return { ...DEFAULT_SETTINGS }
+  if (!settings || typeof settings !== 'object') return getDefaultSettings()
   const source = settings as Partial<AppSettings>
   return {
-    queryLimit: sanitizeQueryLimit(source.queryLimit)
+    queryLimit: sanitizeQueryLimit(source.queryLimit),
+    updates: sanitizeUpdateSettings(source.updates)
   }
 }
 

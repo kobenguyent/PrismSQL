@@ -92,6 +92,37 @@ export interface QueryHistoryEntry {
 
 export interface AppSettings {
   queryLimit: number
+  updates: {
+    autoCheckEnabled: boolean
+    checkIntervalHours: number
+    ignoredVersion?: string
+    dismissedVersion?: string
+    dismissedAt?: number
+    cache: {
+      etag?: string
+      latestVersion?: string
+      releaseUrl?: string
+      releaseName?: string
+      checkedAt?: number
+    }
+  }
+}
+
+export interface UpdateStatus {
+  checking: boolean
+  enabled: boolean
+  intervalHours: number
+  currentVersion: string
+  latestVersion?: string
+  releaseUrl?: string
+  releaseName?: string
+  lastCheckedAt?: number
+  ignoredVersion?: string
+  dismissedVersion?: string
+  dismissedAt?: number
+  updateAvailable: boolean
+  shouldNotify: boolean
+  error?: string
 }
 
 export const DB_COLORS: Record<DatabaseType, string> = {
