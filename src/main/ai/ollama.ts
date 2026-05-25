@@ -102,6 +102,8 @@ export class OllamaService implements LocalAIService {
         return [
           policy,
           `Explain the following ${dbType} SQL clearly and concisely.`,
+          'Treat the SQL below as the full input. Do not ask for additional query text.',
+          'If the SQL is partial or invalid, explain the likely intent and point out what is incomplete.',
           'Keep explanation under 10 bullet points.',
           request.sql.trim()
         ].join('\n')
