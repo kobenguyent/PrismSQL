@@ -30,6 +30,14 @@ describe('Connection Store (persistence)', () => {
   const importPath = path.join(os.tmpdir(), 'connections-import.json')
   const exportPath = path.join(os.tmpdir(), 'connections-export.json')
   const settingsPath = path.join(os.tmpdir(), 'settings.json')
+  const defaultSettings = {
+    queryLimit: 100,
+    updates: {
+      autoCheckEnabled: true,
+      checkIntervalHours: 24,
+      cache: {}
+    }
+  }
 
   beforeEach(() => {
     // Clean up any leftover file
@@ -207,28 +215,83 @@ describe('Connection Store (persistence)', () => {
 
   it('loadSettings returns defaults when file is missing', async () => {
     const { loadSettings } = await import('../src/main/store')
-    expect(loadSettings()).toEqual({ queryLimit: 100 })
+    expect(loadSettings()).toEqual(defaultSettings)
   })
 
   it('loadSettings returns defaults on malformed JSON', async () => {
     fs.writeFileSync(settingsPath, '{bad json', 'utf-8')
     const { loadSettings } = await import('../src/main/store')
-    expect(loadSettings()).toEqual({ queryLimit: 100 })
+    expect(loadSettings()).toEqual(defaultSettings)
   })
 
   it('loadSettings sanitizes type and range for queryLimit', async () => {
     fs.writeFileSync(settingsPath, JSON.stringify({ queryLimit: '50000' }), 'utf-8')
     const { loadSettings } = await import('../src/main/store')
-    expect(loadSettings()).toEqual({ queryLimit: 10000 })
+    expect(loadSettings()).toEqual({ ...defaultSettings, queryLimit: 10000 })
 
     fs.writeFileSync(settingsPath, JSON.stringify({ queryLimit: -5 }), 'utf-8')
-    expect(loadSettings()).toEqual({ queryLimit: 1 })
+    expect(loadSettings()).toEqual({ ...defaultSettings, queryLimit: 1 })
   })
 
   it('saveSettings sanitizes queryLimit before writing', async () => {
     const { saveSettings } = await import('../src/main/store')
-    saveSettings({ queryLimit: 'abc' as unknown as number })
+    saveSettings({ ...defaultSettings, queryLimit: 'abc' as unknown as number })
     const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as { queryLimit: number }
     expect(stored.queryLimit).toBe(100)
+  })
+
+  it('loadSettings sanitizes update settings and cache', async () => {
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        updates: {
+          autoCheckEnabled: 'yes',
+          checkIntervalHours: 999,
+          ignoredVersion: '  v2.0.0  ',
+          dismissedVersion: '',
+          dismissedAt: '-10',
+          cache: {
+            etag: '  abc123  ',
+            latestVersion: ' v1.9.0 ',
+            releaseUrl: ' https://github.com/example ',
+            checkedAt: '12345'
+          }
+        }
+      }),
+      'utf-8'
+    )
+    const { loadSettings } = await import('../src/main/store')
+    expect(loadSettings()).toEqual({
+      ...defaultSettings,
+      updates: {
+        autoCheckEnabled: true,
+        checkIntervalHours: 168,
+        ignoredVersion: 'v2.0.0',
+        dismissedVersion: undefined,
+        dismissedAt: undefined,
+        cache: {
+          etag: 'abc123',
+          latestVersion: 'v1.9.0',
+          releaseUrl: 'https://github.com/example',
+          releaseName: undefined,
+          checkedAt: 12345
+        }
+      }
+    })
+  })
+
+  it('saveSettings sanitizes update interval bounds', async () => {
+    const { saveSettings } = await import('../src/main/store')
+    saveSettings({
+      ...defaultSettings,
+      updates: {
+        ...defaultSettings.updates,
+        checkIntervalHours: 1
+      }
+    })
+    const stored = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as {
+      updates: { checkIntervalHours: number }
+    }
+    expect(stored.updates.checkIntervalHours).toBe(6)
   })
 })

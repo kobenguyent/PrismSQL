@@ -40,6 +40,37 @@ export interface AISettings {
 
 export interface AppSettings {
   queryLimit: number
+  updates: {
+    autoCheckEnabled: boolean
+    checkIntervalHours: number
+    ignoredVersion?: string
+    dismissedVersion?: string
+    dismissedAt?: number
+    cache: {
+      etag?: string
+      latestVersion?: string
+      releaseUrl?: string
+      releaseName?: string
+      checkedAt?: number
+    }
+  }
+}
+
+export interface UpdateStatus {
+  checking: boolean
+  enabled: boolean
+  intervalHours: number
+  currentVersion: string
+  latestVersion?: string
+  releaseUrl?: string
+  releaseName?: string
+  lastCheckedAt?: number
+  ignoredVersion?: string
+  dismissedVersion?: string
+  dismissedAt?: number
+  updateAvailable: boolean
+  shouldNotify: boolean
+  error?: string
 }
 
 const dbAPI = {
@@ -96,7 +127,15 @@ const dbAPI = {
     ipcRenderer.invoke('db:get-server-version', connectionId),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings: AppSettings): Promise<{ success: boolean }> =>
-    ipcRenderer.invoke('settings:save', settings)
+    ipcRenderer.invoke('settings:save', settings),
+  getUpdateStatus: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('updates:get-status'),
+  checkForUpdatesNow: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('updates:check-now'),
+  ignoreUpdateVersion: (version?: string): Promise<UpdateStatus | null> =>
+    ipcRenderer.invoke('updates:ignore-version', version),
+  dismissUpdateVersion: (version?: string): Promise<UpdateStatus | null> =>
+    ipcRenderer.invoke('updates:dismiss-version', version),
+  openUpdateRelease: (url?: string): Promise<{ success: boolean; url: string }> =>
+    ipcRenderer.invoke('updates:open-release', url)
 }
 
 if (process.contextIsolated) {

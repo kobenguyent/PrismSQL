@@ -1,7 +1,19 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { enableMapSet } from 'immer'
-import type { ConnectionConfig, QueryTab, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, DatabaseType, SavedQuery, QueryHistoryEntry, AppSettings } from '../types'
+import type {
+  ConnectionConfig,
+  QueryTab,
+  QueryResult,
+  TableInfo,
+  ColumnInfo,
+  ProcedureInfo,
+  DatabaseType,
+  SavedQuery,
+  QueryHistoryEntry,
+  AppSettings,
+  UpdateStatus
+} from '../types'
 import type { DatabaseSchema } from '@renderer/types/schema'
 import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
 
@@ -63,6 +75,11 @@ declare global {
       getServerVersion(connectionId: string): Promise<{ version: string }>
       getSettings(): Promise<AppSettings>
       saveSettings(settings: AppSettings): Promise<{ success: boolean }>
+      getUpdateStatus(): Promise<UpdateStatus | null>
+      checkForUpdatesNow(): Promise<UpdateStatus | null>
+      ignoreUpdateVersion(version?: string): Promise<UpdateStatus | null>
+      dismissUpdateVersion(version?: string): Promise<UpdateStatus | null>
+      openUpdateRelease(url?: string): Promise<{ success: boolean; url: string }>
     }
   }
 }
@@ -116,6 +133,7 @@ interface AppState {
 
   // Settings
   settings: AppSettings
+  updateStatus: UpdateStatus | null
 
   // UI state
   sidebarWidth: number
@@ -168,6 +186,11 @@ interface AppState {
   // Settings actions
   loadSettings(): Promise<void>
   updateSettings(s: Partial<AppSettings>): Promise<void>
+  loadUpdateStatus(): Promise<void>
+  checkForUpdatesNow(): Promise<void>
+  ignoreUpdateVersion(version?: string): Promise<void>
+  dismissUpdateVersion(version?: string): Promise<void>
+  openUpdateRelease(url?: string): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -186,7 +209,15 @@ export const useAppStore = create<AppState>()(
     activeTabId: null,
     savedQueries: [],
     queryHistory: [],
-    settings: { queryLimit: 100 },
+    settings: {
+      queryLimit: 100,
+      updates: {
+        autoCheckEnabled: true,
+        checkIntervalHours: 24,
+        cache: {}
+      }
+    },
+    updateStatus: null,
     sidebarWidth: 280,
     isSidebarCollapsed: false,
     theme: 'dark' as 'dark' | 'light' | 'system',
@@ -713,23 +744,113 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           state.settings = s
         })
+        await get().loadUpdateStatus()
       } catch {/* ignore */}
     },
 
     updateSettings: async (partial) => {
-      const merged = { ...get().settings, ...partial }
+      const merged = {
+        ...get().settings,
+        ...partial,
+        updates: {
+          ...get().settings.updates,
+          ...(partial.updates ?? {})
+        }
+      }
       // Sanitize queryLimit to match the server-side enforced range (1–10000)
       const rawLimit = Number(merged.queryLimit)
       const queryLimit = Number.isFinite(rawLimit)
         ? Math.max(1, Math.min(10000, Math.floor(rawLimit)))
         : get().settings.queryLimit
-      const next = { ...merged, queryLimit }
+      const rawInterval = Number(merged.updates.checkIntervalHours)
+      const checkIntervalHours = Number.isFinite(rawInterval)
+        ? Math.max(6, Math.min(168, Math.floor(rawInterval)))
+        : get().settings.updates.checkIntervalHours
+      const next = {
+        ...merged,
+        queryLimit,
+        updates: {
+          ...merged.updates,
+          autoCheckEnabled: !!merged.updates.autoCheckEnabled,
+          checkIntervalHours
+        }
+      }
       set((s) => {
         s.settings = next
       })
       try {
         await window.db.saveSettings(next)
+        await get().loadUpdateStatus()
       } catch {/* ignore */}
+    },
+
+    loadUpdateStatus: async () => {
+      try {
+        const status = await window.db.getUpdateStatus()
+        set((s) => {
+          s.updateStatus = status
+        })
+      } catch {/* ignore */}
+    },
+
+    checkForUpdatesNow: async () => {
+      try {
+        const status = await window.db.checkForUpdatesNow()
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+          if (status.updateAvailable) {
+            const version = (status.latestVersion ?? '').replace(/^v/i, '')
+            get().setStatus(`Update available: v${version}`, 'info')
+          } else if (status.error) {
+            get().setStatus(status.error, 'warning')
+          } else {
+            get().setStatus('You are up to date', 'success')
+          }
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    ignoreUpdateVersion: async (version) => {
+      try {
+        const status = await window.db.ignoreUpdateVersion(version)
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    dismissUpdateVersion: async (version) => {
+      try {
+        const status = await window.db.dismissUpdateVersion(version)
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    openUpdateRelease: async (url) => {
+      try {
+        const result = await window.db.openUpdateRelease(url)
+        if (result?.success) {
+          get().setStatus('Opened release page', 'info')
+        } else {
+          get().setStatus('Failed to open release page', 'warning')
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
     },
 
     setSidebarWidth: (w) => {

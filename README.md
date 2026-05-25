@@ -64,6 +64,7 @@
 ### Local AI (Privacy-First)
 - **Local-only AI assistant** — Generate, explain, and optimize SQL using your own Ollama or OpenAI-compatible local server; zero cloud calls
 - **No telemetry** — prompts and SQL never leave your machine
+- **Optional update checks** — if enabled, KobeanSQL periodically requests GitHub release metadata to detect new versions (can be disabled in Settings)
 
 ### Native Desktop Advantages (Electron-specific)
 - **OS-native credential encryption** — passwords are encrypted at rest using Electron's `safeStorage` API (AES-256 backed by the OS keychain / DPAPI / libsecret)
