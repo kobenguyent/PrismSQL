@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.9.1...v1.10.0) (2026-05-25)
+
+
+### Features
+
+* **ux:** align save behavior and empty-state guardrails ([#37](https://github.com/kobenguyent/KobeanSQL/issues/37)) ([61ba75a](https://github.com/kobenguyent/KobeanSQL/commit/61ba75a8027e764677831a27acedd33d934e98b6))
+
 ## [1.9.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.9.0...v1.9.1) (2026-05-25)
 
 
