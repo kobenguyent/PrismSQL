@@ -60,6 +60,13 @@ function createWindow(): BrowserWindow {
     }
   })
 
+  win.webContents.on('will-frame-navigate', (event, url, isMainFrame) => {
+    if (isMainFrame && !isTrustedRendererUrl(url)) {
+      event.preventDefault()
+      appLogger.warn('Blocked frame navigation to untrusted URL', { url })
+    }
+  })
+
   // Load the app
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])

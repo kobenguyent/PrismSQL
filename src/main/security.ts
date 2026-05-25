@@ -1,4 +1,5 @@
 import path from 'path'
+import { fileURLToPath, pathToFileURL } from 'url'
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'http:', 'mailto:'])
 
@@ -12,24 +13,19 @@ export function isSafeExternalUrl(rawUrl: string): boolean {
 }
 
 export function isTrustedRendererUrl(rawUrl: string): boolean {
-  const devRendererUrl = process.env['ELECTRON_RENDERER_URL']
-  if (devRendererUrl) {
-    try {
-      const rendererOrigin = new URL(devRendererUrl).origin
-      const candidate = new URL(rawUrl)
-      if (candidate.origin === rendererOrigin) {
-        return true
-      }
-    } catch {
-      return false
-    }
-  }
-
   try {
+    const devRendererUrl = process.env['ELECTRON_RENDERER_URL']
     const candidate = new URL(rawUrl)
+    if (devRendererUrl) {
+      const rendererOrigin = new URL(devRendererUrl).origin
+      return candidate.origin === rendererOrigin
+    }
+
     if (candidate.protocol !== 'file:') return false
-    const filename = path.basename(decodeURIComponent(candidate.pathname))
-    return filename === 'index.html'
+    const expectedRendererEntry = path.resolve(__dirname, '../renderer/index.html')
+    const candidatePath = path.resolve(fileURLToPath(candidate))
+    const expectedPath = path.resolve(fileURLToPath(pathToFileURL(expectedRendererEntry)))
+    return candidatePath === expectedPath
   } catch {
     return false
   }
