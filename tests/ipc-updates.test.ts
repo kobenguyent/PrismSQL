@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import path from 'path'
+import { pathToFileURL } from 'url'
 
 const handleMock = vi.fn()
 
@@ -62,12 +64,17 @@ describe('IPC updates channels', () => {
     const handlers = Object.fromEntries(
       handleMock.mock.calls.map(([channel, fn]: [string, (...args: unknown[]) => Promise<unknown>]) => [channel, fn])
     )
+    const trustedEvent = {
+      senderFrame: {
+        url: pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).toString()
+      }
+    }
 
-    expect(await handlers['updates:get-status']({})).toEqual({ checking: false })
-    expect(await handlers['updates:check-now']({})).toEqual({ checking: false, updateAvailable: false })
-    expect(await handlers['updates:ignore-version']({}, '1.2.3')).toEqual({ ignoredVersion: '1.2.3' })
-    expect(await handlers['updates:dismiss-version']({}, '1.2.3')).toEqual({ dismissedVersion: '1.2.3' })
-    expect(await handlers['updates:open-release']({}, 'https://example.com')).toEqual({
+    expect(await handlers['updates:get-status'](trustedEvent)).toEqual({ checking: false })
+    expect(await handlers['updates:check-now'](trustedEvent)).toEqual({ checking: false, updateAvailable: false })
+    expect(await handlers['updates:ignore-version'](trustedEvent, '1.2.3')).toEqual({ ignoredVersion: '1.2.3' })
+    expect(await handlers['updates:dismiss-version'](trustedEvent, '1.2.3')).toEqual({ dismissedVersion: '1.2.3' })
+    expect(await handlers['updates:open-release'](trustedEvent, 'https://example.com')).toEqual({
       success: true,
       url: 'https://example.com'
     })

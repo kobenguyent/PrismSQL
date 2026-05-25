@@ -4,6 +4,7 @@ import { ConnectionManager } from './db/manager'
 import { registerIpcHandlers } from './ipc'
 import { is } from '@electron-toolkit/utils'
 import { appLogger, setupLogger } from './logger'
+import { isSafeExternalUrl, isTrustedRendererUrl } from './security'
 import { createUpdateService } from './update/service'
 
 // Configure logger
@@ -31,7 +32,7 @@ function createWindow(): BrowserWindow {
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       nodeIntegration: false,
       contextIsolation: true
     }
@@ -46,8 +47,28 @@ function createWindow(): BrowserWindow {
 
   // Open external links in default browser
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    if (isSafeExternalUrl(url)) {
+      void shell.openExternal(url).catch((error) => {
+        appLogger.warn('Failed to open external URL', { url, error: (error as Error).message })
+      })
+    } else {
+      appLogger.warn('Blocked unsafe external URL', { url })
+    }
     return { action: 'deny' }
+  })
+
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isTrustedRendererUrl(url)) {
+      event.preventDefault()
+      appLogger.warn('Blocked navigation to untrusted URL', { url })
+    }
+  })
+
+  win.webContents.on('will-frame-navigate', (event, url) => {
+    if (!isTrustedRendererUrl(url)) {
+      event.preventDefault()
+      appLogger.warn('Blocked frame navigation to untrusted URL', { url })
+    }
   })
 
   // Load the app

@@ -16,7 +16,14 @@ import { ConnectionConfig } from '../db/types'
 import { appLogger } from '../logger'
 import type { AIRequest } from '../ai/types'
 import { createLocalAIService } from '../ai/service'
+import { isTrustedRendererUrl } from '../security'
 import type { UpdateService } from '../update/service'
+
+class UntrustedRendererContextError extends Error {
+  constructor() {
+    super('Untrusted renderer context')
+  }
+}
 
 export function registerIpcHandlers(manager: ConnectionManager, updateService?: UpdateService): void {
   const aiService = createLocalAIService()
@@ -28,6 +35,14 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
   ): void => {
     ipcMain.handle(channel, async (event, ...args: TArgs) => {
       try {
+        if (!isTrustedRendererUrl(event.senderFrame.url)) {
+          appLogger.warn('Blocked IPC call from untrusted sender', {
+            channel,
+            senderUrl: event.senderFrame.url
+          })
+          throw new UntrustedRendererContextError()
+        }
+
         if (debugChannels.has(channel)) {
           appLogger.debug('IPC request', { channel })
         } else {
@@ -35,6 +50,9 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
         }
         return await handler(event, ...args)
       } catch (error) {
+        if (error instanceof UntrustedRendererContextError) {
+          throw error
+        }
         appLogger.error('IPC handler failed', {
           channel,
           error: (error as Error).message,
