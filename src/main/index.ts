@@ -46,7 +46,9 @@ function createWindow(): BrowserWindow {
   // Open external links in default browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (isSafeExternalUrl(url)) {
-      shell.openExternal(url)
+      void shell.openExternal(url).catch((error) => {
+        appLogger.warn('Failed to open external URL', { url, error: (error as Error).message })
+      })
     } else {
       appLogger.warn('Blocked unsafe external URL', { url })
     }

@@ -23,7 +23,10 @@ export function isTrustedRendererUrl(rawUrl: string): boolean {
 
     if (candidate.protocol !== 'file:') return false
     const expectedRendererEntry = path.resolve(__dirname, '../renderer/index.html')
-    const candidatePath = path.resolve(fileURLToPath(candidate))
+    const sanitizedCandidate = new URL(candidate.toString())
+    sanitizedCandidate.hash = ''
+    sanitizedCandidate.search = ''
+    const candidatePath = path.resolve(fileURLToPath(sanitizedCandidate))
     const expectedPath = path.resolve(fileURLToPath(pathToFileURL(expectedRendererEntry)))
     return candidatePath === expectedPath
   } catch {

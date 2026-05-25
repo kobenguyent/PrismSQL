@@ -18,6 +18,12 @@ import type { AIRequest } from '../ai/types'
 import { createLocalAIService } from '../ai/service'
 import { isTrustedRendererUrl } from '../security'
 
+class UntrustedRendererContextError extends Error {
+  constructor() {
+    super('Untrusted renderer context')
+  }
+}
+
 export function registerIpcHandlers(manager: ConnectionManager): void {
   const aiService = createLocalAIService()
   const debugChannels = new Set(['db:query'])
@@ -33,7 +39,7 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
             channel,
             senderUrl: event.senderFrame.url
           })
-          throw new Error('Untrusted renderer context')
+          throw new UntrustedRendererContextError()
         }
 
         if (debugChannels.has(channel)) {
@@ -43,6 +49,9 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
         }
         return await handler(event, ...args)
       } catch (error) {
+        if (error instanceof UntrustedRendererContextError) {
+          throw error
+        }
         appLogger.error('IPC handler failed', {
           channel,
           error: (error as Error).message,
