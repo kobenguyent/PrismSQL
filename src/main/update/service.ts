@@ -7,6 +7,8 @@ import { isNewerVersion, normalizeVersion } from './version'
 const LATEST_RELEASE_API_URL = 'https://api.github.com/repos/kobenguyent/KobeanSQL/releases/latest'
 const RELEASES_PAGE_URL = 'https://github.com/kobenguyent/KobeanSQL/releases'
 const FIRST_CHECK_DELAY_MS = 20_000
+const MIN_RESCHEDULE_DELAY_MS = 10_000
+// Keep "remind me later" temporary enough to avoid nagging every launch while still surfacing updates quickly.
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000
 const FALLBACK_INTERVAL_HOURS = 24
 
@@ -187,7 +189,8 @@ export function createUpdateService(): UpdateService {
       await fetchLatestRelease()
       lastError = undefined
     } catch (error) {
-      lastError = (error as Error).message
+      const message = (error as Error).message || 'network error'
+      lastError = `Failed to check for updates: ${message}`
       appLogger.warn('Update check failed', { error: lastError })
     } finally {
       checking = false
@@ -201,10 +204,12 @@ export function createUpdateService(): UpdateService {
     if (!settings.updates.autoCheckEnabled || is.dev) return
 
     const intervalMs = getIntervalMs(settings.updates.checkIntervalHours)
-    const elapsedMs = settings.updates.cache.checkedAt ? Date.now() - settings.updates.cache.checkedAt : Number.POSITIVE_INFINITY
-    const firstDelay = Number.isFinite(elapsedMs) && elapsedMs < intervalMs
-      ? Math.max(10_000, intervalMs - elapsedMs)
-      : FIRST_CHECK_DELAY_MS
+    const checkedAt = settings.updates.cache.checkedAt
+    const elapsedMs = checkedAt ? Date.now() - checkedAt : null
+    let firstDelay = FIRST_CHECK_DELAY_MS
+    if (elapsedMs !== null && elapsedMs < intervalMs) {
+      firstDelay = Math.max(MIN_RESCHEDULE_DELAY_MS, intervalMs - elapsedMs)
+    }
 
     timer = setTimeout(() => {
       void checkForUpdates(false)

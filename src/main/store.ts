@@ -50,9 +50,10 @@ const MAX_UPDATE_INTERVAL_HOURS = 168
 
 function getDefaultSettings(): AppSettings {
   return {
-    queryLimit: DEFAULT_SETTINGS.queryLimit,
+    queryLimit: 100,
     updates: {
-      ...DEFAULT_SETTINGS.updates,
+      autoCheckEnabled: true,
+      checkIntervalHours: 24,
       cache: {}
     }
   }

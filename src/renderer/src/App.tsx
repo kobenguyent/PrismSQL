@@ -17,6 +17,7 @@ import logoTitlebarLight from './assets/brand/kobeansql-logo-titlebar-light.svg'
 
 // Read version from package.json (injected by Vite at build time)
 const APP_VERSION = __APP_VERSION__
+const UPDATE_STATUS_POLL_MS = 5 * 60 * 1000
 
 function KobeanLogo({ className, src = logoMarkLight }: { className: string; src?: string }): JSX.Element {
   return (
@@ -36,6 +37,7 @@ export default function App(): JSX.Element {
     statusMessage,
     statusType,
     updateStatus,
+    settings,
     sidebarWidth,
     isSidebarCollapsed,
     theme,
@@ -81,11 +83,12 @@ export default function App(): JSX.Element {
   }, [loadConnections, loadSavedQueries, loadSettings, loadUpdateStatus])
 
   useEffect(() => {
+    if (!settings.updates.autoCheckEnabled) return
     const timer = window.setInterval(() => {
       loadUpdateStatus()
-    }, 60_000)
+    }, UPDATE_STATUS_POLL_MS)
     return () => window.clearInterval(timer)
-  }, [loadUpdateStatus])
+  }, [loadUpdateStatus, settings.updates.autoCheckEnabled])
 
   // Keyboard shortcuts
   useEffect(() => {

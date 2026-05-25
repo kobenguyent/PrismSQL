@@ -794,18 +794,22 @@ export const useAppStore = create<AppState>()(
     },
 
     checkForUpdatesNow: async () => {
-      const status = await window.db.checkForUpdatesNow()
-      if (status) {
-        set((s) => {
-          s.updateStatus = status
-        })
-        if (status.updateAvailable) {
-          get().setStatus(`Update available: v${status.latestVersion}`, 'info')
-        } else if (status.error) {
-          get().setStatus(status.error, 'warning')
-        } else {
-          get().setStatus('You are up to date', 'success')
+      try {
+        const status = await window.db.checkForUpdatesNow()
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+          if (status.updateAvailable) {
+            get().setStatus(`Update available: v${status.latestVersion}`, 'info')
+          } else if (status.error) {
+            get().setStatus(status.error, 'warning')
+          } else {
+            get().setStatus('You are up to date', 'success')
+          }
         }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
       }
     },
 
