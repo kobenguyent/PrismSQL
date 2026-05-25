@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.1...v1.8.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* Refresh GitHub Pages docs to reflect current KobeanSQL feature set and privacy model ([#34](https://github.com/kobenguyent/KobeanSQL/issues/34)) ([9cc6082](https://github.com/kobenguyent/KobeanSQL/commit/9cc6082636750086d9f09d91e44aac94c6e59dbf))
+
 ## [1.8.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.8.0...v1.8.1) (2026-05-25)
 
 
