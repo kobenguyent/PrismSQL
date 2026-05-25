@@ -90,13 +90,22 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
 
     await page.getByRole('button', { name: /^connect$/i }).click()
     await expect(connectionModalTitle).toBeHidden()
-    await expect(page.getByText('Schema Visualizer E2E')).toBeVisible()
+    await expect(page.locator('.sidebar .connection-name', { hasText: 'Schema Visualizer E2E' })).toBeVisible()
 
     const mainLayout = page.locator('.main-layout')
     await expect(mainLayout).toBeVisible()
     await mainLayout.screenshot({ path: DOCS_SCREENSHOTS.mainWindow })
 
-    const editor = page.locator('.cm-content')
+    const newTabButton = page.locator('.tab-new-btn')
+    await expect(newTabButton).toBeVisible()
+    await newTabButton.click()
+
+    const connectionSelect = page.locator('.editor-connection-select')
+    await expect(connectionSelect).toBeVisible()
+    await connectionSelect.selectOption({ index: 1 })
+
+    const editor = page.locator('.cm-content').first()
+    await expect(editor).toBeVisible()
     await editor.click()
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
     await page.keyboard.type('SELECT id, email, display_name FROM users ORDER BY id;')
@@ -105,7 +114,7 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await expect(contentPane).toBeVisible()
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditorFlow })
 
-    await page.getByRole('button', { name: /^run$/i }).click()
+    await page.locator('.run-btn').click()
     await expect(page.locator('.results-pane .data-table')).toBeVisible()
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryDataFlow })
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditor })
