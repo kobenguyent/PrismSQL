@@ -17,6 +17,7 @@ import { appLogger } from '../logger'
 import type { AIRequest } from '../ai/types'
 import { createLocalAIService } from '../ai/service'
 import { isTrustedRendererUrl } from '../security'
+import type { UpdateService } from '../update/service'
 
 class UntrustedRendererContextError extends Error {
   constructor() {
@@ -24,7 +25,7 @@ class UntrustedRendererContextError extends Error {
   }
 }
 
-export function registerIpcHandlers(manager: ConnectionManager): void {
+export function registerIpcHandlers(manager: ConnectionManager, updateService?: UpdateService): void {
   const aiService = createLocalAIService()
   const debugChannels = new Set(['db:query'])
 
@@ -278,8 +279,9 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     return loadSettings()
   })
 
-  handleWithLogging('settings:save', async (_event: IpcMainInvokeEvent, settings: { queryLimit: number }) => {
+  handleWithLogging('settings:save', async (_event: IpcMainInvokeEvent, settings: unknown) => {
     saveSettings(sanitizeSettings(settings))
+    updateService?.reschedule()
     return { success: true }
   })
 
@@ -289,5 +291,29 @@ export function registerIpcHandlers(manager: ConnectionManager): void {
     } catch (err) {
       return { version: 'Unknown' }
     }
+  })
+
+  handleWithLogging('updates:get-status', async () => {
+    return updateService?.getStatus() ?? null
+  })
+
+  handleWithLogging('updates:check-now', async () => {
+    if (!updateService) return null
+    return updateService.checkForUpdates(true)
+  })
+
+  handleWithLogging('updates:ignore-version', async (_event: IpcMainInvokeEvent, version?: string) => {
+    if (!updateService) return null
+    return updateService.ignoreVersion(version)
+  })
+
+  handleWithLogging('updates:dismiss-version', async (_event: IpcMainInvokeEvent, version?: string) => {
+    if (!updateService) return null
+    return updateService.dismissVersion(version)
+  })
+
+  handleWithLogging('updates:open-release', async (_event: IpcMainInvokeEvent, url?: string) => {
+    if (!updateService) return { success: false, url: '' }
+    return updateService.openReleasePage(url)
   })
 }
