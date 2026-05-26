@@ -24,6 +24,16 @@ const saveSettingsMock = vi.fn((next) => {
   currentSettings = next
 })
 
+function unlinkIfExists(filePath: string): void {
+  try {
+    fs.unlinkSync(filePath)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error
+    }
+  }
+}
+
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn(() => os.tmpdir()),
@@ -81,16 +91,12 @@ describe('update service downloads', () => {
         }
       }
     }
-    try { fs.unlinkSync(downloadedFile) } catch {
-      // File is absent for most test setups.
-    }
+    unlinkIfExists(downloadedFile)
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    try { fs.unlinkSync(downloadedFile) } catch {
-      // File may already have been removed by the test.
-    }
+    unlinkIfExists(downloadedFile)
   })
 
   it('follows only validated redirect hosts for update downloads', async () => {
