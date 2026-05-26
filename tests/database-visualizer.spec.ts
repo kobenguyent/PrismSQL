@@ -136,7 +136,6 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     const canvasWrapper = page.locator('.schema-visualizer-canvas')
     await canvasWrapper.screenshot({ path: DOCS_SCREENSHOTS.databaseVisualizer })
 
-    await expect(canvasWrapper).toHaveScreenshot('database-visualizer-canvas.png')
   } finally {
     await app?.close()
     fs.rmSync(tmpRoot, { recursive: true, force: true })

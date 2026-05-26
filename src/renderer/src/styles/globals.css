@@ -1057,10 +1057,11 @@ html, body, #root {
 
 /* Data table */
 .data-table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
   font-family: var(--font-mono);
+  table-layout: fixed;
 }
 .data-table th {
   position: sticky;
@@ -1081,6 +1082,8 @@ html, body, #root {
   cursor: pointer;
   user-select: none;
   transition: color var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .data-table th:hover { color: var(--text-primary); }
 .data-table th .sort-indicator {
@@ -1095,13 +1098,40 @@ html, body, #root {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
 }
 .data-table td.null-value { color: var(--text-tertiary); font-style: italic; }
 .data-table td.number-value { color: #80c8ff; }
 .data-table td.bool-value { color: #c084fc; }
 .data-table tr:hover td { background: rgba(123, 123, 234, 0.04); }
 .data-table tr:nth-child(even) td { background: rgba(0,0,0,0.08); }
+
+/* Column resize handle */
+.column-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 12px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  background: transparent;
+}
+.column-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.column-resize-handle:hover::before,
+.column-resize-handle.is-resizing::before {
+  background: var(--accent);
+  opacity: 0.6;
+}
 
 /* Error state */
 .error-message {
@@ -1416,6 +1446,21 @@ html, body, #root {
   transform: none;
 }
 
+/* Title bar and editor toolbar are near the top of the viewport — tooltips
+   must render below the element to stay within the visible area. */
+.titlebar-actions [data-tooltip]::after,
+.editor-toolbar [data-tooltip]::after {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+/* Right-aligned titlebar buttons should anchor to the right edge. */
+.titlebar-actions > .icon-btn:nth-last-child(1)[data-tooltip]::after,
+.titlebar-actions > .icon-btn:nth-last-child(2)[data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 /* ── Welcome Screen ─────────────────────────────────────────── */
 .welcome-screen {
   flex: 1;
@@ -1566,6 +1611,12 @@ html, body, #root {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+/* Larger click target for action icon buttons inside the visualizer panel. */
+.schema-visualizer-actions .icon-btn {
+  width: 34px;
+  height: 34px;
 }
 
 .schema-mode-btn {

@@ -6,7 +6,8 @@ import {
   getFilteredRowModel,
   flexRender,
   type SortingState,
-  type ColumnFiltersState
+  type ColumnFiltersState,
+  type ColumnSizingState
 } from '@tanstack/react-table'
 import { ArrowUp, ArrowDown, Download, Filter, Maximize2, RefreshCw, Edit2 } from 'lucide-react'
 import type { QueryResult, ColumnInfo, DatabaseType } from '../../types'
@@ -246,6 +247,7 @@ export function ResultsTable({
   const { connections } = useAppStore()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
   const [showFilter, setShowFilter] = useState(false)
 
   // Cell viewer
@@ -377,6 +379,9 @@ export function ResultsTable({
         id: col.name,
         accessorKey: col.name,
         header: col.name,
+        size: 150,
+        minSize: 60,
+        maxSize: 1200,
         filterFn: 'includesString' as const,
         cell: (info: { getValue: () => unknown; row: { index: number; original: Record<string, unknown> } }) => {
           const v = info.getValue()
@@ -412,9 +417,12 @@ export function ResultsTable({
   const table = useReactTable({
     data: result.rows,
     columns,
-    state: { sorting, columnFilters },
+    state: { sorting, columnFilters, columnSizing },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel()
@@ -545,16 +553,16 @@ export function ResultsTable({
             </tbody>
           </table>
         ) : (
-          <table className="data-table">
+          <table className="data-table" style={{ width: table.getTotalSize() }}>
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
-                  <th style={{ width: 50, color: 'var(--text-tertiary)', textAlign: 'right' }}>#</th>
+                  <th style={{ width: 50, minWidth: 50, color: 'var(--text-tertiary)', textAlign: 'right' }}>#</th>
                   {hg.headers.map((header) => (
                     <th
                       key={header.id}
                       onClick={header.column.getToggleSortingHandler()}
-                      style={{ minWidth: 80 }}
+                      style={{ width: header.getSize(), minWidth: header.column.columnDef.minSize }}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       <span className="sort-indicator">
@@ -564,15 +572,21 @@ export function ResultsTable({
                           <ArrowDown size={10} />
                         ) : null}
                       </span>
+                      <div
+                        className={`column-resize-handle${header.column.getIsResizing() ? ' is-resizing' : ''}`}
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
                     </th>
                   ))}
                 </tr>
               ))}
               {showFilter && (
                 <tr className="filter-row">
-                  <th style={{ width: 50 }} />
+                  <th style={{ width: 50, minWidth: 50 }} />
                   {table.getHeaderGroups()[0]?.headers.map((header) => (
-                    <th key={header.id} style={{ padding: '2px 4px' }}>
+                    <th key={header.id} style={{ padding: '2px 4px', width: header.getSize() }}>
                       <input
                         className="column-filter-input"
                         type="text"
