@@ -85,9 +85,9 @@ describe('i18n – getLocale() / setLocale()', () => {
 
 describe('i18n – registerLocale()', () => {
   it('allows registering a new locale and translating with it', () => {
-    registerLocale('test', { 'common.close': 'Schlissen' })
+    registerLocale('test', { 'common.close': 'Schließen' })
     setLocale('test')
-    expect(t('common.close')).toBe('Schlissen')
+    expect(t('common.close')).toBe('Schließen')
   })
 
   it('falls back to English for keys missing in a custom locale', () => {
