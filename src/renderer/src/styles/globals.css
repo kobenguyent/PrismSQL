@@ -1111,15 +1111,24 @@ html, body, #root {
   right: 0;
   top: 0;
   height: 100%;
-  width: 5px;
+  width: 12px;
   cursor: col-resize;
   user-select: none;
   touch-action: none;
   background: transparent;
-  transition: background var(--transition-fast);
 }
-.column-resize-handle:hover,
-.column-resize-handle.is-resizing {
+.column-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+.column-resize-handle:hover::before,
+.column-resize-handle.is-resizing::before {
   background: var(--accent);
   opacity: 0.6;
 }
