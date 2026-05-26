@@ -7,6 +7,8 @@ export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
   private config: ConnectionConfig | null = null
   private _connected = false
+  private _onEnd = (): void => { this._connected = false }
+  private _onError = (): void => { this._connected = false }
 
   async connect(config: ConnectionConfig): Promise<void> {
     const resolvedConfig = resolveConnectionConfig(config)
@@ -22,13 +24,15 @@ export class PostgresAdapter implements DatabaseAdapter {
     })
     await this.client.connect()
     this._connected = true
-    this.client.on('end', () => { this._connected = false })
-    this.client.on('error', () => { this._connected = false })
+    this.client.on('end', this._onEnd)
+    this.client.on('error', this._onError)
   }
 
   async disconnect(): Promise<void> {
     this._connected = false
     if (this.client) {
+      this.client.off('end', this._onEnd)
+      this.client.off('error', this._onError)
       await this.client.end()
       this.client = null
     }

@@ -7,6 +7,7 @@ export class MySQLAdapter implements DatabaseAdapter {
   private pool: Pool | null = null
   private config: ConnectionConfig | null = null
   private _connected = false
+  private _onPoolError = (): void => { this._connected = false }
 
   async connect(config: ConnectionConfig): Promise<void> {
     const resolvedConfig = resolveConnectionConfig(config)
@@ -28,12 +29,13 @@ export class MySQLAdapter implements DatabaseAdapter {
     const conn = await this.pool.getConnection()
     conn.release()
     this._connected = true
-    this.pool.on('error', () => { this._connected = false })
+    this.pool.on('error', this._onPoolError)
   }
 
   async disconnect(): Promise<void> {
     this._connected = false
     if (this.pool) {
+      this.pool.off('error', this._onPoolError)
       await this.pool.end()
       this.pool = null
     }
