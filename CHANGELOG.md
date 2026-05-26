@@ -1,3 +1,10 @@
+## [1.12.3](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.2...v1.12.3) (2026-05-26)
+
+
+### Bug Fixes
+
+* force-refresh release assets when downloadUrl is absent from cache ([#43](https://github.com/kobenguyent/KobeanSQL/issues/43)) ([6043602](https://github.com/kobenguyent/KobeanSQL/commit/604360262f139bf70446e22b4715f758c2889f99))
+
 ## [1.12.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.1...v1.12.2) (2026-05-26)
 
 
