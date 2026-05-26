@@ -15,12 +15,14 @@ const manager = new ConnectionManager()
 const updateService = createUpdateService()
 
 function createWindow(): BrowserWindow {
+  const iconPath = path.join(__dirname, '../../build/icon.png')
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 900,
     minHeight: 600,
     title: 'KobeanSQL',
+    icon: iconPath,
     // macOS vibrancy / transparency
     vibrancy: 'under-window',
     visualEffectState: 'active',

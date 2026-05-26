@@ -121,6 +121,8 @@ const dbAPI = {
   getAISettings: (): Promise<AISettings> =>
     ipcRenderer.invoke('ai:get-settings'),
   runAITask: (request: AIRequest): Promise<AIResponse> => ipcRenderer.invoke('ai:run-task', request),
+  listAIModels: (): Promise<{ success: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke('ai:list-models'),
   getLogPath: (): Promise<string> => ipcRenderer.invoke('app:get-log-path'),
   openLogs: (): Promise<{ success: boolean; path: string }> => ipcRenderer.invoke('app:open-logs'),
   getServerVersion: (connectionId: string): Promise<{ version: string }> =>

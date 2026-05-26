@@ -106,6 +106,11 @@ export interface AppSettings {
       checkedAt?: number
     }
   }
+  ai?: {
+    provider: 'ollama' | 'openai-compatible'
+    baseUrl: string
+    model: string
+  }
 }
 
 export interface UpdateStatus {

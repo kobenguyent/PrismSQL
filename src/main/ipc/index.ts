@@ -219,9 +219,48 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
     return { success: true }
   })
 
-  handleWithLogging('ai:get-settings', async () => aiService.getSettings())
+  handleWithLogging('ai:get-settings', async () => {
+    const settings = loadSettings()
+    if (settings.ai) {
+      return { ...settings.ai, localOnly: true as const }
+    }
+    return aiService.getSettings()
+  })
   handleWithLogging('ai:run-task', async (_event: IpcMainInvokeEvent, request: AIRequest) => {
-    return aiService.runTask(request)
+    // Re-read settings each time so model changes take effect without restart.
+    const settings = loadSettings()
+    const runtimeService = settings.ai
+      ? createLocalAIService(settings.ai.provider, settings.ai.baseUrl, settings.ai.model)
+      : aiService
+    return runtimeService.runTask(request)
+  })
+
+  handleWithLogging('ai:list-models', async () => {
+    const settings = loadSettings()
+    const provider = settings.ai?.provider ?? 'ollama'
+    const baseUrl = settings.ai?.baseUrl ?? 'http://127.0.0.1:11434'
+    try {
+      if (provider === 'ollama') {
+        const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+          signal: AbortSignal.timeout(5000)
+        })
+        if (!response.ok) return { success: false, models: [], error: `Ollama responded with ${response.status}` }
+        const data = (await response.json()) as { models?: Array<{ name: string }> }
+        const models = (data.models ?? []).map((m) => m.name).filter(Boolean)
+        return { success: true, models }
+      } else {
+        // OpenAI-compatible list endpoint
+        const url = baseUrl.replace(/\/+$/, '')
+        const endpoint = url.endsWith('/v1') ? `${url}/models` : `${url}/v1/models`
+        const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) })
+        if (!response.ok) return { success: false, models: [], error: `Provider responded with ${response.status}` }
+        const data = (await response.json()) as { data?: Array<{ id: string }> }
+        const models = (data.data ?? []).map((m) => m.id).filter(Boolean)
+        return { success: true, models }
+      }
+    } catch (err) {
+      return { success: false, models: [], error: (err as Error).message }
+    }
   })
 
   handleWithLogging('db:export-connections', async (_event: IpcMainInvokeEvent, includePasswords = false) => {
