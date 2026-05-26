@@ -249,9 +249,9 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
         const models = (data.models ?? []).map((m) => m.name).filter(Boolean)
         return { success: true, models }
       } else {
-        // OpenAI-compatible list endpoint
-        const url = baseUrl.replace(/\/+$/, '')
-        const endpoint = url.endsWith('/v1') ? `${url}/models` : `${url}/v1/models`
+        // OpenAI-compatible list endpoint — normalize base, then always append /v1/models
+        const base = baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+        const endpoint = `${base}/v1/models`
         const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) })
         if (!response.ok) return { success: false, models: [], error: `Provider responded with ${response.status}` }
         const data = (await response.json()) as { data?: Array<{ id: string }> }
