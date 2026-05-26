@@ -20,6 +20,7 @@ const PLATFORM_ASSET_PATTERNS: Record<string, RegExp> = {
   darwin: /\.(dmg|zip)$/i,
   linux: /\.AppImage$/i
 }
+const ARCH_TOKEN_PATTERN = /\b(arm64|aarch64|x64|amd64)\b/i
 const ALLOWED_DOWNLOAD_HOSTS = new Set([
   'github.com',
   'objects.githubusercontent.com',
@@ -186,10 +187,10 @@ export function createUpdateService(): UpdateService {
         if (archSpecificDmg) return archSpecificDmg.browser_download_url
       }
 
-      const genericZip = eligible.find((a) => /\.zip$/i.test(a.name) && !/\b(arm64|aarch64|x64|amd64)\b/i.test(a.name))
+      const genericZip = eligible.find((a) => /\.zip$/i.test(a.name) && !ARCH_TOKEN_PATTERN.test(a.name))
       if (genericZip) return genericZip.browser_download_url
 
-      const genericDmg = eligible.find((a) => /\.dmg$/i.test(a.name) && !/\b(arm64|aarch64|x64|amd64)\b/i.test(a.name))
+      const genericDmg = eligible.find((a) => /\.dmg$/i.test(a.name) && !ARCH_TOKEN_PATTERN.test(a.name))
       if (genericDmg) return genericDmg.browser_download_url
 
       if (archMatcher) {

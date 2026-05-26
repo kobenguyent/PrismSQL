@@ -98,8 +98,11 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     const latest = updateStatus?.latestVersion ?? null
+    if (!latest || !updateStatus?.shouldNotify) {
+      setClosedUpdateVersion(null)
+      return
+    }
     setClosedUpdateVersion((previous) => {
-      if (!latest || !updateStatus?.shouldNotify) return null
       if (previous && previous !== latest) return null
       return previous
     })
