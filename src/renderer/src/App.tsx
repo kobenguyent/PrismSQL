@@ -448,16 +448,13 @@ export default function App(): JSX.Element {
               </button>
             ) : (
               <>
-                {updateStatus.downloadState !== 'idle' || updateStatus.downloadState === 'idle' ? (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => downloadUpdate()}
-                    disabled={updateStatus.downloadState === 'downloading'}
-                    style={{ minHeight: 30 }}
-                  >
-                    Download Update
-                  </button>
-                ) : null}
+                <button
+                  className="btn btn-primary"
+                  onClick={() => downloadUpdate()}
+                  style={{ minHeight: 30 }}
+                >
+                  Download Update
+                </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
