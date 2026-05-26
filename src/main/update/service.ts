@@ -20,6 +20,12 @@ const PLATFORM_ASSET_PATTERNS: Record<string, RegExp> = {
   darwin: /\.dmg$/i,
   linux: /\.AppImage$/i
 }
+const ALLOWED_DOWNLOAD_HOSTS = new Set([
+  'github.com',
+  'objects.githubusercontent.com',
+  'release-assets.githubusercontent.com'
+])
+const MAX_DOWNLOAD_REDIRECTS = 5
 
 interface GithubReleaseAsset {
   name: string
@@ -164,6 +170,44 @@ export function createUpdateService(): UpdateService {
     if (!pattern) return undefined
     const asset = assets.find((a) => pattern.test(a.name))
     return asset?.browser_download_url
+  }
+
+  const isAllowedDownloadUrl = (u?: string): boolean => {
+    if (!u) return false
+    try {
+      const parsed = new URL(u)
+      return parsed.protocol === 'https:' && ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)
+    } catch {
+      return false
+    }
+  }
+
+  const fetchDownloadResponse = async (url: string): Promise<Response> => {
+    let currentUrl = url
+
+    for (let redirects = 0; redirects <= MAX_DOWNLOAD_REDIRECTS; redirects += 1) {
+      if (!isAllowedDownloadUrl(currentUrl)) {
+        throw new Error('Invalid download URL.')
+      }
+
+      const response = await fetch(currentUrl, {
+        headers: { 'User-Agent': 'KobeanSQL-Update-Checker' },
+        redirect: 'manual'
+      })
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location')
+        if (!location) {
+          throw new Error('Download redirect missing location.')
+        }
+        currentUrl = new URL(location, currentUrl).toString()
+        continue
+      }
+
+      return response
+    }
+
+    throw new Error('Too many download redirects.')
   }
 
   const fetchLatestRelease = async (): Promise<void> => {
@@ -333,15 +377,7 @@ export function createUpdateService(): UpdateService {
         return toStatus()
       }
 
-      // Validate URL is a GitHub asset URL
-      try {
-        const parsed = new URL(dlUrl)
-        if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
-          downloadState = 'error'
-          downloadError = 'Invalid download URL.'
-          return toStatus()
-        }
-      } catch {
+      if (!isAllowedDownloadUrl(dlUrl)) {
         downloadState = 'error'
         downloadError = 'Invalid download URL.'
         return toStatus()
@@ -357,9 +393,7 @@ export function createUpdateService(): UpdateService {
 
       try {
         await fs.promises.mkdir(destDir, { recursive: true })
-        const response = await fetch(dlUrl, {
-          headers: { 'User-Agent': 'KobeanSQL-Update-Checker' }
-        })
+        const response = await fetchDownloadResponse(dlUrl)
         if (!response.ok) {
           throw new Error(`Download failed (${response.status})`)
         }
@@ -367,8 +401,32 @@ export function createUpdateService(): UpdateService {
         const dest = fs.createWriteStream(destPath)
 
         await new Promise<void>((resolve, reject) => {
+          let settled = false
+          const cleanup = () => {
+            dest.off('finish', handleFinish)
+            dest.off('error', handleError)
+          }
+          const handleFinish = () => {
+            if (settled) return
+            settled = true
+            cleanup()
+            resolve()
+          }
+          const handleError = (err: Error) => {
+            if (settled) return
+            settled = true
+            cleanup()
+            if (!dest.destroyed) {
+              dest.destroy()
+            }
+            reject(err)
+          }
+
+          dest.once('finish', handleFinish)
+          dest.once('error', handleError)
+
           if (!response.body) {
-            reject(new Error('No response body'))
+            handleError(new Error('No response body'))
             return
           }
           const reader = response.body.getReader()
@@ -386,15 +444,14 @@ export function createUpdateService(): UpdateService {
                 })
               }
               dest.end()
-              dest.once('finish', resolve)
-              dest.once('error', reject)
             } catch (err) {
-              dest.destroy()
-              reject(err)
+              handleError(err instanceof Error ? err : new Error(String(err)))
             }
           }
 
-          void pump()
+          void pump().catch((err) => {
+            handleError(err instanceof Error ? err : new Error(String(err)))
+          })
         })
 
         downloadedFilePath = destPath

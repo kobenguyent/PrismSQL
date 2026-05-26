@@ -118,7 +118,9 @@ const vi = {
 
   // ── Update download ───────────────────────────────────────────
   'updates.downloadUpdate': 'Tải xuống bản cập nhật',
+  'updates.viewRelease': 'Xem bản phát hành',
   'updates.downloading': 'Đang tải xuống… {progress}%',
+  'updates.downloadingUnknown': 'Đang tải xuống…',
   'updates.installAndRestart': 'Cài đặt & Khởi động lại',
   'updates.remindLater': 'Nhắc tôi sau',
   'updates.ignoreVersion': 'Bỏ qua phiên bản này',

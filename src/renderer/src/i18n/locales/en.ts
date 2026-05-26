@@ -124,7 +124,9 @@ const en = {
 
   // ── Update download ───────────────────────────────────────────
   'updates.downloadUpdate': 'Download Update',
+  'updates.viewRelease': 'View release',
   'updates.downloading': 'Downloading… {progress}%',
+  'updates.downloadingUnknown': 'Downloading…',
   'updates.installAndRestart': 'Install & Restart',
   'updates.remindLater': 'Remind me later',
   'updates.ignoreVersion': 'Ignore this version',

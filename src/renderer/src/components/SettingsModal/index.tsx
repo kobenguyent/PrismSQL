@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getSupportedLocales, setLocale, getLocale } from '../../i18n'
@@ -22,6 +22,8 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [language, setLanguage] = useState(settings.language ?? getLocale())
+  const initialLanguageRef = useRef(settings.language ?? getLocale())
+  const hasSavedRef = useRef(false)
 
   const defaultUrlForProvider = (p: 'ollama' | 'openai-compatible') =>
     p === 'ollama' ? 'http://127.0.0.1:11434' : 'http://127.0.0.1:1234/v1'
@@ -36,6 +38,21 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang)
     setLocale(lang)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (!hasSavedRef.current) {
+        setLocale(initialLanguageRef.current)
+      }
+    }
+  }, [])
+
+  const handleClose = () => {
+    if (!hasSavedRef.current) {
+      setLocale(initialLanguageRef.current)
+    }
+    onClose()
   }
 
   const handleFetchModels = async () => {
@@ -81,16 +98,17 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
       },
       ai: aiModel ? { provider: aiProvider, baseUrl: aiBaseUrl, model: aiModel } : settings.ai
     })
+    hasSavedRef.current = true
     setSaving(false)
     onClose()
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
           <span className="modal-title">Settings</span>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <button className="icon-btn" onClick={handleClose}>✕</button>
         </div>
         <div className="modal-body">
           <div className="form-group">
@@ -234,4 +252,3 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
     </div>
   )
 }
-

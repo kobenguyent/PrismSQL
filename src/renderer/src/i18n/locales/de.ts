@@ -118,7 +118,9 @@ const de = {
 
   // ── Update download ───────────────────────────────────────────
   'updates.downloadUpdate': 'Update herunterladen',
+  'updates.viewRelease': 'Release ansehen',
   'updates.downloading': 'Herunterladen… {progress}%',
+  'updates.downloadingUnknown': 'Herunterladen…',
   'updates.installAndRestart': 'Installieren & Neu starten',
   'updates.remindLater': 'Später erinnern',
   'updates.ignoreVersion': 'Diese Version ignorieren',

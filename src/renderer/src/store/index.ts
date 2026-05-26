@@ -19,6 +19,7 @@ import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../
 import { setLocale } from '../i18n'
 
 const THEME_STORAGE_KEY = 'kobeansql-theme'
+const UPDATE_DOWNLOAD_POLL_MS = 250
 
 function loadPersistedTheme(): 'dark' | 'light' | 'system' {
   try {
@@ -906,8 +907,39 @@ export const useAppStore = create<AppState>()(
     },
 
     downloadUpdate: async () => {
+      let pollTimer: number | undefined
+      const stopPolling = () => {
+        if (pollTimer !== undefined) {
+          window.clearInterval(pollTimer)
+          pollTimer = undefined
+        }
+      }
+      const syncStatus = async () => {
+        try {
+          const polledStatus = await window.db.getUpdateStatus()
+          if (polledStatus) {
+            set((s) => {
+              s.updateStatus = polledStatus
+            })
+            if (polledStatus.downloadState && polledStatus.downloadState !== 'downloading') {
+              stopPolling()
+            }
+          }
+        } catch {/* ignore polling errors */}
+      }
       try {
+        set((s) => {
+          if (s.updateStatus) {
+            s.updateStatus.downloadState = 'downloading'
+            s.updateStatus.downloadProgress = 0
+            s.updateStatus.downloadError = undefined
+          }
+        })
+        pollTimer = window.setInterval(() => {
+          void syncStatus()
+        }, UPDATE_DOWNLOAD_POLL_MS)
         const status = await window.db.downloadUpdate()
+        stopPolling()
         if (status) {
           set((s) => {
             s.updateStatus = status
@@ -917,7 +949,15 @@ export const useAppStore = create<AppState>()(
           }
         }
       } catch (error) {
-        get().setStatus(getErrorMessage(error), 'error')
+        stopPolling()
+        const message = getErrorMessage(error)
+        set((s) => {
+          if (s.updateStatus) {
+            s.updateStatus.downloadState = 'error'
+            s.updateStatus.downloadError = message
+          }
+        })
+        get().setStatus(message, 'error')
       }
     },
 

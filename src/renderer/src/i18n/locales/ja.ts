@@ -118,7 +118,9 @@ const ja = {
 
   // ── Update download ───────────────────────────────────────────
   'updates.downloadUpdate': 'アップデートをダウンロード',
+  'updates.viewRelease': 'リリースを見る',
   'updates.downloading': 'ダウンロード中… {progress}%',
+  'updates.downloadingUnknown': 'ダウンロード中…',
   'updates.installAndRestart': 'インストールして再起動',
   'updates.remindLater': '後で通知する',
   'updates.ignoreVersion': 'このバージョンを無視',

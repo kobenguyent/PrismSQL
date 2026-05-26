@@ -52,6 +52,7 @@ export interface AppSettings {
       releaseUrl?: string
       releaseName?: string
       checkedAt?: number
+      downloadUrl?: string
     }
   }
   language?: string
