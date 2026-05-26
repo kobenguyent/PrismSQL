@@ -10,5 +10,17 @@
   { "name": "Configurable query limit", "readme": "Configurable query limit", "pages": "query row limits?" },
   { "name": "Local-only AI", "readme": "Local-only AI assistant", "pages": "Local-Only AI Assistant" },
   { "name": "Ollama provider", "readme": "\\bOllama\\b", "pages": "\\bOllama\\b" },
-  { "name": "OpenAI-compatible provider", "readme": "OpenAI-compatible", "pages": "OpenAI-compatible" }
+  { "name": "OpenAI-compatible provider", "readme": "OpenAI-compatible", "pages": "OpenAI-compatible" },
+  { "name": "Electron architecture", "readme": "Electron.*two-process architecture|contextIsolation", "pages": "contextIsolation|sandboxed" },
+  { "name": "safeStorage credential encryption", "readme": "safeStorage", "pages": "safeStorage" },
+  { "name": "Usage guide - connecting", "readme": "Step 1.*Connect", "pages": "Step 1.*Connect" },
+  { "name": "Usage guide - exporting", "readme": "Export CSV", "pages": "Export CSV" },
+  { "name": "SQL DSL section", "readme": "KobeanSQL SQL DSL", "pages": "KobeanSQL DSL|SQL DSL" },
+  { "name": "Dialect quoting rules", "readme": "Identifier quoting", "pages": "Identifier quoting" },
+  { "name": "Troubleshooting - macOS quarantine", "readme": "KobeanSQL is damaged", "pages": "KobeanSQL is damaged" },
+  { "name": "Troubleshooting - query limit", "readme": "Query Limit.*100 rows|100 rows.*query limit", "pages": "Query Limit|row limit", "flags": "i" },
+  { "name": "Log file locations", "readme": "Library\\/Logs\\/KobeanSQL", "pages": "Library\\/Logs\\/KobeanSQL" },
+  { "name": "Conventional commits", "readme": "Conventional Commits", "pages": "Conventional Commits" },
+  { "name": "SSH tunneling", "readme": "SSH.*tunnel|tunnel.*SSH", "pages": "SSH.*tunnel|tunnel.*SSH", "flags": "i" },
+  { "name": "Contributing guide", "readme": "CONTRIBUTING\\.md", "pages": "CONTRIBUTING\\.md" }
 ]

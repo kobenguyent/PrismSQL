@@ -375,6 +375,102 @@
     .tech-pill:hover { border-color: rgba(123,123,234,0.35); }
     .tech-pill span { display: block; font-size: 10px; font-weight: 400; color: var(--text3); margin-top: 2px; }
 
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 28px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent); color: white; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .step-body { flex: 1; }
+    .step-body h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--accent-dim);
+      border: 1px solid rgba(123,123,234,0.28);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 13px; color: var(--text2); line-height: 1.65;
+      margin: 16px 0;
+    }
+
+    /* ── Usage screenshot ── */
+    .usage-screenshot {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      margin: 20px 0;
+      box-shadow: var(--shadow);
+    }
+    .usage-screenshot img { width: 100%; display: block; }
+    .usage-screenshot-caption {
+      padding: 10px 16px;
+      font-size: 12px; color: var(--text3);
+      border-top: 1px solid var(--glass-border);
+      font-family: var(--mono);
+    }
+
+    /* ── Data table ── */
+    .table-wrap {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+    .data-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .data-table th {
+      text-align: left; padding: 8px 14px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--text3);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .data-table td {
+      padding: 10px 14px; color: var(--text2);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(123,123,234,0.04); }
+    .data-table code {
+      background: rgba(255,255,255,0.08); border-radius: 4px;
+      padding: 1px 6px; font-family: var(--mono); font-size: 12px;
+    }
+
+    /* ── Subsection heading ── */
+    .subsection-title {
+      font-size: 18px; font-weight: 700; margin: 40px 0 14px;
+      letter-spacing: -0.3px;
+    }
+
+    /* ── Two-column layout ── */
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Card list ── */
+    .card-list {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .card-item {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .card-item p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
     /* Responsive */
     @media (max-width: 720px) {
       .screenshots-grid { grid-template-columns: 1fr; }
@@ -442,7 +538,10 @@
           <a href="#features" class="nav-link">Features</a>
           <a href="#databases" class="nav-link">Databases</a>
           <a href="#install" class="nav-link">Install</a>
-          <a href="#privacy" class="nav-link">Privacy</a>
+          <a href="#usage" class="nav-link">Usage</a>
+          <a href="#ai" class="nav-link">AI</a>
+          <a href="#security" class="nav-link">Security</a>
+          <a href="#contributing" class="nav-link">Contribute</a>
           <a href="https://github.com/kobenguyent/KobeanSQL" class="btn-nav" target="_blank" rel="noopener">
             ★ GitHub
           </a>
@@ -698,6 +797,366 @@
 
     <hr class="divider" />
 
+    <!-- Usage Guide -->
+    <section id="usage">
+      <div class="section-eyebrow">Usage Guide</div>
+      <h2 class="section-title">Getting things done,<br>step by step.</h2>
+      <p class="section-sub">
+        A complete walkthrough from opening a connection to exporting query results.
+      </p>
+
+      <h3 class="subsection-title">Step 1 — Connect to a Database</h3>
+      <div class="usage-screenshot">
+        <img src="screenshots/connection-modal.png" alt="KobeanSQL connection modal with fields for type, host, port, user, and password" loading="lazy" />
+        <div class="usage-screenshot-caption">// Connection Manager — fill in credentials and click Test Connection before saving</div>
+      </div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:16px;">
+        Click <strong>+ Add Connection</strong> in the sidebar to open the Connection Manager. Fill in the connection type, host, port, database, username, and password. Click <strong>Test Connection</strong> to verify credentials before saving — a green banner confirms success, a red banner shows the exact driver error.
+      </p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Field</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>Name</code></td><td>Human-readable label (e.g. <code>prod-postgres-readonly</code>)</td></tr>
+            <tr><td><code>Type</code></td><td>Database engine: MySQL / MariaDB / PostgreSQL / SQLite / SQL Server</td></tr>
+            <tr><td><code>Host</code></td><td>Hostname or IP address</td></tr>
+            <tr><td><code>Port</code></td><td>Default ports are pre-filled per engine</td></tr>
+            <tr><td><code>Database</code></td><td>Default database / schema</td></tr>
+            <tr><td><code>User / Password</code></td><td>Credentials — password is encrypted at rest via <code>safeStorage</code></td></tr>
+            <tr><td><code>File</code> (SQLite)</td><td>Absolute path to <code>.sqlite</code> / <code>.db</code> file, or blank for in-memory</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">Step 2 — Explore the Schema</h3>
+      <div class="usage-screenshot">
+        <img src="screenshots/main-window.png" alt="KobeanSQL main window with sidebar schema browser showing databases, tables, and columns" loading="lazy" />
+        <div class="usage-screenshot-caption">// Schema browser — connections → databases → tables/views → columns with types and PK flags</div>
+      </div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:16px;">
+        Once connected, the sidebar populates with the full schema tree. Expand any table to inspect column names, data types, and primary-key indicators. Click the <strong>Schema Visualizer</strong> button to open an interactive ER diagram of the selected database.
+      </p>
+      <div class="usage-screenshot">
+        <img src="screenshots/database-visualizer.png" alt="KobeanSQL schema visualizer showing an ER diagram with tables and foreign-key relationships" loading="lazy" />
+        <div class="usage-screenshot-caption">// Schema Visualizer — interactive ER diagram with auto-layout via React Flow + Dagre</div>
+      </div>
+
+      <h3 class="subsection-title">Step 3 — Write &amp; Execute Queries</h3>
+      <div class="usage-screenshot">
+        <img src="screenshots/query-editor.png" alt="KobeanSQL query editor with SQL syntax highlighting and results grid below" loading="lazy" />
+        <div class="usage-screenshot-caption">// Query Editor — CodeMirror 6 with syntax highlighting, autocompletion, and results grid</div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Select a connection and open a query tab</h4>
+            <p>Click a saved connection in the sidebar to connect. Press <kbd>⌘ T</kbd> / <kbd>Ctrl T</kbd> to open a new query tab — each tab maintains independent editor and result state.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Write SQL with autocompletion</h4>
+            <p>The CodeMirror 6 editor offers SQL syntax highlighting, table/column name autocompletion, bracket matching, and keyboard shortcuts. Press <kbd>⌘ Enter</kbd> / <kbd>Ctrl Enter</kbd> to run the current query or selected SQL.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Use the KobeanSQL DSL for boilerplate</h4>
+            <p>Click the <code>&lt;/&gt;</code> toolbar button, choose a statement type (Select / Call Procedure / Call Function), enter an object name, and click <strong>Insert SQL</strong>. The DSL handles dialect-specific quoting and <code>TOP</code> vs <code>LIMIT</code> syntax automatically.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Format and review results</h4>
+            <p>Click <strong>Format</strong> to auto-format SQL via <code>sql-formatter</code>. Results appear below with sortable columns, a global text filter, row count, and query duration.</p>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">Step 4 — Export Data</h3>
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;">
+        After executing a query, click <strong>Export CSV</strong> in the results panel toolbar. An OS-native save-file dialog opens — choose a location and filename. The full result set (all rows, all columns) is written as a UTF-8 CSV file. For bulk SQL dumps use your database's native CLI tools (<code>mysqldump</code>, <code>pg_dump</code>, <code>sqlite3 .dump</code>).
+      </p>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Architecture -->
+    <section id="architecture">
+      <div class="section-eyebrow">Architecture</div>
+      <h2 class="section-title">How KobeanSQL<br>is built.</h2>
+      <p class="section-sub">
+        A strictly sandboxed Electron app with contextIsolation: true and nodeIntegration: false — the renderer has no direct access to Node.js.
+      </p>
+
+      <div class="code-block" style="margin-bottom:32px;">
+        <div style="color:var(--text2);">┌──────────────────────────────────────────────────────────┐</div>
+        <div style="color:var(--text2);">│  Main Process (Node.js + Electron)                       │</div>
+        <div style="color:var(--text2);">│  ConnectionManager · store.ts · AI Service · IPC handlers│</div>
+        <div style="color:var(--text2);">└───────────────────────┬──────────────────────────────────┘</div>
+        <div style="color:var(--text2);">                        │  IPC (ipcMain / ipcRenderer)</div>
+        <div style="color:var(--text2);">┌───────────────────────▼──────────────────────────────────┐</div>
+        <div style="color:var(--text2);">│  Preload (contextBridge) → window.db typed API            │</div>
+        <div style="color:var(--text2);">└───────────────────────┬──────────────────────────────────┘</div>
+        <div style="color:var(--text2);">                        │  window.db.*</div>
+        <div style="color:var(--text2);">┌───────────────────────▼──────────────────────────────────┐</div>
+        <div style="color:var(--text2);">│  Renderer (React + Vite, sandboxed)                       │</div>
+        <div style="color:var(--text2);">│  Zustand + Immer state  ←→  React components              │</div>
+        <div style="color:var(--text2);">└──────────────────────────────────────────────────────────┘</div>
+      </div>
+
+      <div class="two-col">
+        <div class="card-item">
+          <h4>Main Process</h4>
+          <p>Opens and manages all database TCP/IP connections via <code>ConnectionManager</code>. Encrypts and persists connection configs using <code>safeStorage</code>. Registers all IPC handlers (<code>ipcMain.handle</code>) and dispatches AI tasks to local providers.</p>
+        </div>
+        <div class="card-item">
+          <h4>Renderer Process</h4>
+          <p>All UI rendering via React 18. Application state managed by Zustand + Immer. Calls <code>window.db.*</code> methods exposed by the preload bridge — never talking directly to database drivers.</p>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">Core Tech Stack</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Layer</th><th>Technology</th><th>Version</th></tr></thead>
+          <tbody>
+            <tr><td>Shell</td><td>Electron</td><td>29</td></tr>
+            <tr><td>Build</td><td>electron-vite + Vite</td><td>2 / 5</td></tr>
+            <tr><td>UI</td><td>React + TypeScript</td><td>18 / 5</td></tr>
+            <tr><td>State</td><td>Zustand + Immer</td><td>4 / 10</td></tr>
+            <tr><td>SQL editor</td><td>CodeMirror 6 (<code>@uiw/react-codemirror</code>)</td><td>6</td></tr>
+            <tr><td>Data grid</td><td><code>@tanstack/react-table</code></td><td>8</td></tr>
+            <tr><td>Schema diagram</td><td><code>@xyflow/react</code> + <code>@dagrejs/dagre</code></td><td>12 / 3</td></tr>
+            <tr><td>DB drivers</td><td>mysql2, pg, better-sqlite3, mssql</td><td>—</td></tr>
+            <tr><td>Tests</td><td>Vitest + Playwright</td><td>1 / 1</td></tr>
+            <tr><td>Packaging</td><td>electron-builder</td><td>24</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">Project Structure</h3>
+      <div class="code-block">
+        <div><span class="comment">src/</span></div>
+        <div><span class="arg">├── main/</span><span class="comment">         # Electron main process (Node.js)</span></div>
+        <div><span class="arg">│   ├── index.ts</span><span class="comment">      # BrowserWindow, lifecycle, IPC registration</span></div>
+        <div><span class="arg">│   ├── store.ts</span><span class="comment">      # JSON persistence + safeStorage</span></div>
+        <div><span class="arg">│   ├── ipc/</span><span class="comment">          # All ipcMain.handle registrations</span></div>
+        <div><span class="arg">│   ├── ai/</span><span class="comment">           # Ollama + OpenAI-compatible service</span></div>
+        <div><span class="arg">│   └── db/</span><span class="comment">           # Adapters: MySQL, PostgreSQL, SQLite, MSSQL</span></div>
+        <div><span class="arg">├── preload/</span><span class="comment">      # contextBridge → window.db typed API</span></div>
+        <div><span class="arg">└── renderer/</span><span class="comment">     # React app (sandboxed)</span></div>
+        <div><span class="arg">    └── src/</span></div>
+        <div><span class="arg">        ├── App.tsx</span><span class="comment">       # Root layout</span></div>
+        <div><span class="arg">        ├── sql/dsl.ts</span><span class="comment">    # Dialect-aware SQL DSL</span></div>
+        <div><span class="arg">        ├── store/</span><span class="comment">        # Zustand + Immer global state</span></div>
+        <div><span class="arg">        └── components/</span><span class="comment">   # ConnectionModal, Sidebar, QueryEditor, …</span></div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Local AI -->
+    <section id="ai">
+      <div class="section-eyebrow">Local AI</div>
+      <h2 class="section-title">AI that never<br>leaves your machine.</h2>
+      <p class="section-sub">
+        Generate, explain, and optimize SQL using a local Ollama or OpenAI-compatible server. Zero cloud calls — prompts and SQL never leave your machine.
+      </p>
+
+      <h3 class="subsection-title">Supported Providers</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Provider</th><th>Default Endpoint</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td>Ollama</td><td><code>http://127.0.0.1:11434</code></td><td>Ollama (any model)</td></tr>
+            <tr><td>OpenAI-compatible</td><td><code>http://127.0.0.1:1234/v1</code></td><td>LM Studio, LocalAI, llama.cpp server</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">Setup</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Start your local provider</h4>
+            <p>Launch Ollama (<code>ollama serve</code>) or an OpenAI-compatible server (e.g. LM Studio) and pull or load at least one model.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Configure with environment variables (optional)</h4>
+            <p>Override the defaults by setting variables before launching KobeanSQL:</p>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:16px;">
+        <table class="data-table">
+          <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>KOBEANSQL_AI_PROVIDER</code></td><td><code>ollama</code></td><td><code>ollama</code> or <code>openai-compatible</code></td></tr>
+            <tr><td><code>KOBEANSQL_OLLAMA_URL</code></td><td><code>http://127.0.0.1:11434</code></td><td>Ollama base URL (loopback only)</td></tr>
+            <tr><td><code>KOBEANSQL_OLLAMA_MODEL</code></td><td>model-dependent</td><td>Model name to use with Ollama</td></tr>
+            <tr><td><code>KOBEANSQL_OPENAI_URL</code></td><td><code>http://127.0.0.1:1234/v1</code></td><td>OpenAI-compat base URL (loopback only)</td></tr>
+            <tr><td><code>KOBEANSQL_OPENAI_MODEL</code></td><td>model-dependent</td><td>Model name for OpenAI-compat server</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="steps" style="margin-top:16px;">
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Use the AI buttons in the Query Editor toolbar</h4>
+            <p><strong>AI Generate</strong> — describe what you want in plain English; the model returns SQL. <strong>AI Explain</strong> — the model explains your SQL. <strong>AI Optimize</strong> — get an improved query with reasoning.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- SQL DSL -->
+    <section id="dsl">
+      <div class="section-eyebrow">SQL DSL</div>
+      <h2 class="section-title">Dialect-aware SQL<br>from a click.</h2>
+      <p class="section-sub">
+        The KobeanSQL DSL generates correct, dialect-specific SQL so you never need to remember whether SQL Server uses <code>[brackets]</code> or <code>TOP</code>.
+      </p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Dialect</th><th>Identifier quoting</th><th>Row limit syntax</th></tr></thead>
+          <tbody>
+            <tr><td>SQL Server</td><td><code>[identifier]</code></td><td><code>SELECT TOP n * FROM …</code></td></tr>
+            <tr><td>MySQL / MariaDB</td><td><code>`identifier`</code></td><td><code>SELECT * FROM … LIMIT n</code></td></tr>
+            <tr><td>PostgreSQL / SQLite</td><td><code>"identifier"</code></td><td><code>SELECT * FROM … LIMIT n</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box">
+        <strong>How to use:</strong> Open a query tab → click <code>&lt;/&gt;</code> in the toolbar → choose statement type (Select / Call Procedure / Call Function) → enter the object name → review the live SQL preview → click <strong>Insert SQL</strong>.
+      </div>
+      <div class="code-block">
+        <div><span class="comment">// PostgreSQL SELECT with limit</span></div>
+        <div><span class="cmd">buildSelectTableSql</span><span class="arg">('postgres', 'users', 'public', 25)</span></div>
+        <div><span class="comment">// → SELECT * FROM "public"."users" LIMIT 25;</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment">// SQL Server procedure call</span></div>
+        <div><span class="cmd">buildProcedureCallSql</span><span class="arg">('mssql', 'syncUsers', 'procedure', 'dbo')</span></div>
+        <div><span class="comment">// → EXEC [dbo].[syncUsers];</span></div>
+        <div>&nbsp;</div>
+        <div><span class="comment">// MySQL identifier quoting</span></div>
+        <div><span class="cmd">quoteIdentifier</span><span class="arg">('Order Details', 'mysql')</span></div>
+        <div><span class="comment">// → `Order Details`</span></div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Connection Import/Export -->
+    <section id="import-export">
+      <div class="section-eyebrow">Connection Import / Export</div>
+      <h2 class="section-title">Move connections<br>between machines.</h2>
+      <p class="section-sub">
+        Back up or share your connection list with the built-in import and export actions directly from the sidebar header.
+      </p>
+      <div class="two-col">
+        <div class="card-item">
+          <h4>Export</h4>
+          <p>Opens a native save dialog. Defaults to <strong>omitting passwords</strong> for safe sharing with teammates. Output is a versioned JSON file: <code>&#123; "version": 1, "connections": […] &#125;</code></p>
+        </div>
+        <div class="card-item">
+          <h4>Import</h4>
+          <p>Accepts the versioned export format or a plain <code>ConnectionConfig[]</code> array. Same-ID entries are replaced; same-fingerprint entries (type + host + port + user + database) are skipped as duplicates; invalid records are skipped and counted.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Security -->
+    <section id="security">
+      <div class="section-eyebrow">Security</div>
+      <h2 class="section-title">Credentials encrypted<br>by your OS.</h2>
+      <p class="section-sub">
+        KobeanSQL uses Electron's <code>safeStorage</code> API to encrypt passwords before writing them to disk — backed by your OS keychain.
+      </p>
+      <div class="table-wrap" style="margin-bottom:32px;">
+        <table class="data-table">
+          <thead><tr><th>Platform</th><th>Encryption backend</th></tr></thead>
+          <tbody>
+            <tr><td>macOS</td><td>macOS Keychain Services (AES-256 with login-keychain-derived key)</td></tr>
+            <tr><td>Windows</td><td>DPAPI (Data Protection API — tied to the Windows user account)</td></tr>
+            <tr><td>Linux</td><td>libsecret (GNOME Keyring / KWallet); falls back to password-derived key</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 class="subsection-title">Best Practices</h3>
+      <div class="card-list">
+        <div class="card-item">
+          <h4>🔑 Use a dedicated read-only user</h4>
+          <p>Never connect with <code>root</code> / <code>sa</code> / <code>postgres</code> superuser accounts for routine querying. Create a read-only database user for KobeanSQL.</p>
+        </div>
+        <div class="card-item">
+          <h4>📤 Export connections without passwords</h4>
+          <p>When sharing connection backups with teammates, the export dialog defaults to <code>includePasswords = false</code>. Passwords are stripped from the JSON output.</p>
+        </div>
+        <div class="card-item">
+          <h4>🔒 SSH tunneling</h4>
+          <p>KobeanSQL has no built-in SSH tunnel UI. Use OS port-forwarding before connecting: <code>ssh -L 127.0.0.1:5433:db.internal:5432 user@bastion -N</code>. Always bind to <code>127.0.0.1</code>, not <code>0.0.0.0</code>.</p>
+        </div>
+        <div class="card-item">
+          <h4>🔄 Rotate credentials regularly</h4>
+          <p>Treat <code>connections.json</code> (in your OS user-data directory) as sensitive. It contains encrypted passwords bound to your OS user account.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Troubleshooting -->
+    <section id="troubleshooting">
+      <div class="section-eyebrow">Troubleshooting</div>
+      <h2 class="section-title">Common issues<br>and fixes.</h2>
+      <p class="section-sub">
+        Quick solutions for the most frequently encountered problems.
+      </p>
+      <div class="card-list">
+        <div class="card-item">
+          <h4>🪟 White / blank screen on startup</h4>
+          <p>The renderer failed to load. Open DevTools (<kbd>F12</kbd> in development) and check for errors. In production, inspect the log file for <code>[error]</code> lines. On Linux, ensure <code>libgtk-3-0</code>, <code>libnotify4</code>, and <code>libnss3</code> are installed.</p>
+        </div>
+        <div class="card-item">
+          <h4>🍎 "KobeanSQL is damaged and can't be opened" on macOS</h4>
+          <p>A Gatekeeper quarantine flag applied to apps not notarized. The app is not damaged. Run: <code>xattr -cr /Applications/KobeanSQL.app</code></p>
+        </div>
+        <div class="card-item">
+          <h4>🐌 Query result freezes with large datasets</h4>
+          <p>KobeanSQL renders the full result set in the DOM. For very large queries, set a conservative row limit in <strong>Settings → Query Limit</strong> (default: 100 rows, max: 10,000). Use <code>WHERE</code>, <code>LIMIT</code> / <code>TOP</code>, and pagination in your SQL.</p>
+        </div>
+        <div class="card-item">
+          <h4>🔧 <code>better-sqlite3</code> fails after Electron upgrade</h4>
+          <p>Native Node addons must be recompiled against the Electron version they run in. Run: <code>npm run rebuild:sqlite</code></p>
+        </div>
+        <div class="card-item">
+          <h4>📂 Log file locations</h4>
+          <p>
+            macOS: <code>~/Library/Logs/KobeanSQL/main.log</code><br/>
+            Windows: <code>%APPDATA%\KobeanSQL\logs\main.log</code><br/>
+            Linux: <code>~/.config/KobeanSQL/logs/main.log</code><br/>
+            Shortcut: click the <strong>bug icon 🐛</strong> in the status bar to open the logs folder.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
     <!-- Privacy -->
     <section id="privacy">
       <div class="section-eyebrow">Privacy &amp; Data Collection</div>
@@ -749,6 +1208,55 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- Contributing -->
+    <section id="contributing">
+      <div class="section-eyebrow">Contributing</div>
+      <h2 class="section-title">Join the project.</h2>
+      <p class="section-sub">
+        Contributions are welcome! Please read <a href="https://github.com/kobenguyent/KobeanSQL/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener" style="color:var(--accent)">CONTRIBUTING.md</a> before opening a PR.
+      </p>
+
+      <h3 class="subsection-title">Quick Start</h3>
+      <div class="code-block" style="margin-bottom:32px;">
+        <div><span class="prompt">$ </span><span class="cmd">git clone</span> <span class="arg">https://github.com/kobenguyent/KobeanSQL.git</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">cd</span> <span class="arg">KobeanSQL</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">install:dev</span>   <span class="comment"># install + rebuild sqlite</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">dev</span>           <span class="comment"># start with hot reload</span></div>
+        <div>&nbsp;</div>
+        <div><span class="prompt">$ </span><span class="cmd">npm test</span>              <span class="comment"># run unit tests (Vitest)</span></div>
+        <div><span class="prompt">$ </span><span class="cmd">npm run</span> <span class="arg">test:e2e:visualizer</span>  <span class="comment"># E2E Playwright suite</span></div>
+      </div>
+
+      <h3 class="subsection-title">PR Title Conventions</h3>
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:16px;">
+        This project uses <a href="https://www.conventionalcommits.org/" target="_blank" rel="noopener" style="color:var(--accent)">Conventional Commits</a> for automatic semantic versioning. All PR titles must follow:
+        <code style="display:block;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:6px;">&lt;type&gt;(&lt;scope&gt;): &lt;short description&gt;</code>
+      </p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Type</th><th>Triggers</th></tr></thead>
+          <tbody>
+            <tr><td><code>fix</code></td><td>patch release</td></tr>
+            <tr><td><code>feat</code></td><td>minor release</td></tr>
+            <tr><td><code>feat!</code></td><td>major release</td></tr>
+            <tr><td><code>docs</code> / <code>chore</code> / <code>refactor</code> / <code>test</code> / <code>ci</code></td><td>no release</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box">
+        PRs must be merged via <strong>squash merge</strong> so the PR title becomes the commit message that <code>semantic-release</code> reads. A CI workflow validates the title format before merge is allowed.
+      </div>
+
+      <h3 class="subsection-title">Issue Reporting</h3>
+      <p style="font-size:13px;color:var(--text2);line-height:1.65;">
+        When filing a bug, include: KobeanSQL version, OS and version, database engine and version, relevant log lines (redacted), and steps to reproduce.
+        <br /><br />
+        <a href="https://github.com/kobenguyent/KobeanSQL/issues" target="_blank" rel="noopener" class="btn-ghost" style="font-size:13px;padding:9px 20px;display:inline-flex;margin-top:8px;">Open an issue →</a>
+      </p>
     </section>
 
     <hr class="divider" />
