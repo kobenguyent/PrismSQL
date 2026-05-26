@@ -925,8 +925,8 @@ export const useAppStore = create<AppState>()(
               stopPolling()
             }
           }
-        } catch {
-          /* ignore polling errors */
+        } catch (error) {
+          console.debug('Failed to poll update download status', error)
         }
       }
       try {

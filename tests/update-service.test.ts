@@ -81,12 +81,16 @@ describe('update service downloads', () => {
         }
       }
     }
-    try { fs.unlinkSync(downloadedFile) } catch {}
+    try { fs.unlinkSync(downloadedFile) } catch {
+      // File is absent for most test setups.
+    }
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
-    try { fs.unlinkSync(downloadedFile) } catch {}
+    try { fs.unlinkSync(downloadedFile) } catch {
+      // File may already have been removed by the test.
+    }
   })
 
   it('follows only validated redirect hosts for update downloads', async () => {
