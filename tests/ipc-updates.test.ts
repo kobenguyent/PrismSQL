@@ -86,7 +86,9 @@ describe('IPC updates channels', () => {
       checkForUpdates: vi.fn(async () => ({ checking: false, updateAvailable: false })),
       ignoreVersion: vi.fn(async () => ({ ignoredVersion: '1.2.3' })),
       dismissVersion: vi.fn(async () => ({ dismissedVersion: '1.2.3' })),
-      openReleasePage: vi.fn(async () => ({ success: true, url: 'https://example.com' }))
+      openReleasePage: vi.fn(async () => ({ success: true, url: 'https://example.com' })),
+      downloadUpdate: vi.fn(async () => ({ downloadState: 'ready', downloadProgress: 100 })),
+      installUpdate: vi.fn(async () => ({ success: true }))
     }
     const manager = getManagerStub()
 
@@ -108,6 +110,64 @@ describe('IPC updates channels', () => {
     expect(updateService.ignoreVersion).toHaveBeenCalledWith('1.2.3')
     expect(updateService.dismissVersion).toHaveBeenCalledWith('1.2.3')
     expect(updateService.openReleasePage).toHaveBeenCalledWith('https://example.com')
+  })
+
+  it('delegates download to update service', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const downloadStatus = { downloadState: 'ready', downloadProgress: 100 }
+    const updateService = {
+      reschedule: vi.fn(),
+      getStatus: vi.fn(() => ({ checking: false })),
+      checkForUpdates: vi.fn(),
+      ignoreVersion: vi.fn(),
+      dismissVersion: vi.fn(),
+      openReleasePage: vi.fn(),
+      downloadUpdate: vi.fn(async () => downloadStatus),
+      installUpdate: vi.fn()
+    }
+
+    registerIpcHandlers(getManagerStub() as never, updateService as never)
+    const handlers = getHandlers()
+
+    const result = await handlers['updates:download'](getTrustedEvent())
+    expect(result).toEqual(downloadStatus)
+    expect(updateService.downloadUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('delegates install to update service', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const updateService = {
+      reschedule: vi.fn(),
+      getStatus: vi.fn(() => ({ checking: false })),
+      checkForUpdates: vi.fn(),
+      ignoreVersion: vi.fn(),
+      dismissVersion: vi.fn(),
+      openReleasePage: vi.fn(),
+      downloadUpdate: vi.fn(),
+      installUpdate: vi.fn(async () => ({ success: true }))
+    }
+
+    registerIpcHandlers(getManagerStub() as never, updateService as never)
+    const handlers = getHandlers()
+
+    const result = await handlers['updates:install'](getTrustedEvent())
+    expect(result).toEqual({ success: true })
+    expect(updateService.installUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('returns null for download when no update service', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    expect(await handlers['updates:download'](getTrustedEvent())).toBeNull()
+  })
+
+  it('returns error for install when no update service', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    const result = await handlers['updates:install'](getTrustedEvent())
+    expect(result).toMatchObject({ success: false })
   })
 })
 

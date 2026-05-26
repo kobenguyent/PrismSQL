@@ -107,6 +107,30 @@ const ja = {
   // ── Privacy / About ───────────────────────────────────────────
   'about.title': 'KobeanSQL について',
   'privacy.title': 'プライバシーとセキュリティ',
+
+  // ── Language names ────────────────────────────────────────────
+  'lang.en': 'English',
+  'lang.de': 'Deutsch',
+  'lang.es': 'Español',
+  'lang.fr': 'Français',
+  'lang.ja': '日本語',
+  'lang.vi': 'Tiếng Việt',
+
+  // ── Update download ───────────────────────────────────────────
+  'updates.downloadUpdate': 'アップデートをダウンロード',
+  'updates.viewRelease': 'リリースを見る',
+  'updates.downloading': 'ダウンロード中… {progress}%',
+  'updates.downloadingUnknown': 'ダウンロード中…',
+  'updates.installAndRestart': 'インストールして再起動',
+  'updates.remindLater': '後で通知する',
+  'updates.ignoreVersion': 'このバージョンを無視',
+  'updates.available': 'アップデートあり: v{version}',
+  'updates.availableSub': 'より新しいバージョンの KobeanSQL が GitHub Releases で公開されています。',
+  'updates.downloadError': 'ダウンロード失敗: {error}',
+
+  // ── Settings – new keys ───────────────────────────────────────
+  'settings.language': 'インターフェース言語',
+  'settings.languageHelp': 'アプリケーションインターフェースの優先言語を選択してください。',
 } as const
 
 export default ja

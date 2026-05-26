@@ -52,8 +52,10 @@ export interface AppSettings {
       releaseUrl?: string
       releaseName?: string
       checkedAt?: number
+      downloadUrl?: string
     }
   }
+  language?: string
 }
 
 export interface UpdateStatus {
@@ -71,6 +73,9 @@ export interface UpdateStatus {
   updateAvailable: boolean
   shouldNotify: boolean
   error?: string
+  downloadState?: 'idle' | 'downloading' | 'ready' | 'error'
+  downloadProgress?: number
+  downloadError?: string
 }
 
 const dbAPI = {
@@ -140,7 +145,9 @@ const dbAPI = {
   dismissUpdateVersion: (version?: string): Promise<UpdateStatus | null> =>
     ipcRenderer.invoke('updates:dismiss-version', version),
   openUpdateRelease: (url?: string): Promise<{ success: boolean; url: string }> =>
-    ipcRenderer.invoke('updates:open-release', url)
+    ipcRenderer.invoke('updates:open-release', url),
+  downloadUpdate: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('updates:download'),
+  installUpdate: (): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('updates:install')
 }
 
 if (process.contextIsolated) {

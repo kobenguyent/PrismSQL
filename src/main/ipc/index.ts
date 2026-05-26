@@ -372,4 +372,14 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
     if (!updateService) return { success: false, url: '' }
     return updateService.openReleasePage(url)
   })
+
+  handleWithLogging('updates:download', async () => {
+    if (!updateService) return null
+    return updateService.downloadUpdate()
+  })
+
+  handleWithLogging('updates:install', async () => {
+    if (!updateService) return { success: false, error: 'Update service unavailable' }
+    return updateService.installUpdate()
+  })
 }

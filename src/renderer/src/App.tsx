@@ -12,6 +12,7 @@ import { QueryHistoryPanel } from './components/QueryHistory'
 import { SchemaVisualizer } from './components/SchemaVisualizer'
 import type { ConnectionConfig } from './types'
 import { formatServerVersion } from './utils/version'
+import { useTranslation } from './hooks/useTranslation'
 import logoMarkLight from './assets/brand/kobeansql-logo-mark-light.svg'
 import logoTitlebarLight from './assets/brand/kobeansql-logo-titlebar-light.svg'
 
@@ -28,6 +29,7 @@ function KobeanLogo({ className, src = logoMarkLight }: { className: string; src
 }
 
 export default function App(): JSX.Element {
+  const { t } = useTranslation()
   const {
     tabs,
     activeTabId,
@@ -55,6 +57,8 @@ export default function App(): JSX.Element {
     dismissUpdateVersion,
     ignoreUpdateVersion,
     openUpdateRelease,
+    downloadUpdate,
+    installUpdate,
     setStatus
   } = useAppStore()
 
@@ -394,32 +398,87 @@ export default function App(): JSX.Element {
           }}
         >
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
-            Update available: v{updateStatus.latestVersion}
+            {t('updates.available', { version: updateStatus.latestVersion })}
           </div>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
-            A newer version of KobeanSQL is available on GitHub Releases.
+            {t('updates.availableSub')}
           </div>
+
+          {updateStatus.downloadState === 'downloading' && (
+            <div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+                {updateStatus.downloadProgress != null && updateStatus.downloadProgress >= 0
+                  ? t('updates.downloading', { progress: updateStatus.downloadProgress })
+                  : t('updates.downloadingUnknown')}
+              </div>
+              <div style={{
+                height: 4,
+                background: 'var(--border-subtle)',
+                borderRadius: 2,
+                overflow: 'hidden'
+              }}>
+                {updateStatus.downloadProgress != null && updateStatus.downloadProgress >= 0 && (
+                  <div style={{
+                    height: '100%',
+                    width: `${updateStatus.downloadProgress}%`,
+                    background: 'var(--accent)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {updateStatus.downloadState === 'error' && updateStatus.downloadError && (
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)' }}>
+              {updateStatus.downloadError}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
-              style={{ minHeight: 30 }}
-            >
-              View release
-            </button>
+            {updateStatus.downloadState === 'ready' ? (
+              <button
+                className="btn btn-primary"
+                onClick={() => installUpdate()}
+                style={{ minHeight: 30 }}
+              >
+                {t('updates.installAndRestart')}
+              </button>
+            ) : updateStatus.downloadState === 'downloading' ? (
+              <button className="btn btn-primary" disabled style={{ minHeight: 30 }}>
+                {t('updates.downloadingUnknown')}
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => downloadUpdate()}
+                  style={{ minHeight: 30 }}
+                >
+                  {t('updates.downloadUpdate')}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
+                  style={{ minHeight: 30 }}
+                >
+                  {t('updates.viewRelease')}
+                </button>
+              </>
+            )}
             <button
               className="btn btn-secondary"
               onClick={() => dismissUpdateVersion(updateStatus.latestVersion)}
               style={{ minHeight: 30 }}
             >
-              Remind me later
+              {t('updates.remindLater')}
             </button>
             <button
               className="btn btn-secondary"
               onClick={() => ignoreUpdateVersion(updateStatus.latestVersion)}
               style={{ minHeight: 30 }}
             >
-              Ignore this version
+              {t('updates.ignoreVersion')}
             </button>
           </div>
         </div>

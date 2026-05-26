@@ -16,8 +16,10 @@ import type {
 } from '../types'
 import type { DatabaseSchema } from '@renderer/types/schema'
 import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
+import { setLocale } from '../i18n'
 
 const THEME_STORAGE_KEY = 'kobeansql-theme'
+const UPDATE_DOWNLOAD_POLL_MS = 250
 
 function loadPersistedTheme(): 'dark' | 'light' | 'system' {
   try {
@@ -94,6 +96,8 @@ declare global {
       ignoreUpdateVersion(version?: string): Promise<UpdateStatus | null>
       dismissUpdateVersion(version?: string): Promise<UpdateStatus | null>
       openUpdateRelease(url?: string): Promise<{ success: boolean; url: string }>
+      downloadUpdate(): Promise<UpdateStatus | null>
+      installUpdate(): Promise<{ success: boolean; error?: string }>
     }
   }
 }
@@ -205,6 +209,8 @@ interface AppState {
   ignoreUpdateVersion(version?: string): Promise<void>
   dismissUpdateVersion(version?: string): Promise<void>
   openUpdateRelease(url?: string): Promise<void>
+  downloadUpdate(): Promise<void>
+  installUpdate(): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -788,6 +794,9 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           state.settings = s
         })
+        if (s.language) {
+          setLocale(s.language)
+        }
         await get().loadUpdateStatus()
       } catch {/* ignore */}
     },
@@ -891,6 +900,74 @@ export const useAppStore = create<AppState>()(
           get().setStatus('Opened release page', 'info')
         } else {
           get().setStatus('Failed to open release page', 'warning')
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    downloadUpdate: async () => {
+      let pollTimer: ReturnType<typeof window.setInterval> | undefined
+      const stopPolling = () => {
+        if (pollTimer !== undefined) {
+          window.clearInterval(pollTimer)
+          pollTimer = undefined
+        }
+      }
+      const syncStatus = async () => {
+        try {
+          const polledStatus = await window.db.getUpdateStatus()
+          if (polledStatus) {
+            set((s) => {
+              s.updateStatus = polledStatus
+            })
+            if (polledStatus.downloadState && polledStatus.downloadState !== 'downloading') {
+              stopPolling()
+            }
+          }
+        } catch (error) {
+          console.debug('Failed to poll update download status', error)
+        }
+      }
+      try {
+        set((s) => {
+          if (s.updateStatus) {
+            s.updateStatus.downloadState = 'downloading'
+            s.updateStatus.downloadProgress = 0
+            s.updateStatus.downloadError = undefined
+          }
+        })
+        pollTimer = window.setInterval(() => {
+          void syncStatus()
+        }, UPDATE_DOWNLOAD_POLL_MS)
+        const status = await window.db.downloadUpdate()
+        stopPolling()
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+          if (status.downloadState === 'error') {
+            get().setStatus(status.downloadError ?? 'Download failed', 'error')
+          }
+        }
+      } catch (error) {
+        stopPolling()
+        const message = getErrorMessage(error)
+        set((s) => {
+          if (s.updateStatus) {
+            s.updateStatus.downloadState = 'error'
+            s.updateStatus.downloadError = message
+          }
+        })
+        get().setStatus(message, 'error')
+      }
+    },
+
+    installUpdate: async () => {
+      try {
+        const result = await window.db.installUpdate()
+        if (!result?.success) {
+          get().setStatus(result?.error ?? 'Install failed', 'error')
         }
       } catch (error) {
         get().setStatus(getErrorMessage(error), 'error')

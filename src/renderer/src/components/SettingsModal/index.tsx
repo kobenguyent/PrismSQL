@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store'
+import { useTranslation } from '../../hooks/useTranslation'
+import { getSupportedLocales, setLocale, getLocale } from '../../i18n'
 
 interface Props {
   onClose: () => void
@@ -7,6 +9,7 @@ interface Props {
 
 export function SettingsModal({ onClose }: Props): JSX.Element {
   const { settings, updateSettings } = useAppStore()
+  const { t } = useTranslation()
   const [queryLimit, setQueryLimit] = useState(String(settings.queryLimit))
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(settings.updates.autoCheckEnabled)
   const [checkIntervalHours, setCheckIntervalHours] = useState(String(settings.updates.checkIntervalHours))
@@ -18,6 +21,9 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [language, setLanguage] = useState(settings.language ?? getLocale())
+  const initialLanguageRef = useRef(settings.language ?? getLocale())
+  const hasSavedRef = useRef(false)
 
   const defaultUrlForProvider = (p: 'ollama' | 'openai-compatible') =>
     p === 'ollama' ? 'http://127.0.0.1:11434' : 'http://127.0.0.1:1234/v1'
@@ -27,6 +33,26 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
     setAiBaseUrl(defaultUrlForProvider(p))
     setModels([])
     setModelsError(null)
+  }
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang)
+    setLocale(lang)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (!hasSavedRef.current) {
+        setLocale(initialLanguageRef.current)
+      }
+    }
+  }, [])
+
+  const handleClose = () => {
+    if (!hasSavedRef.current) {
+      setLocale(initialLanguageRef.current)
+    }
+    onClose()
   }
 
   const handleFetchModels = async () => {
@@ -64,6 +90,7 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
     setError(null)
     await updateSettings({
       queryLimit: limit,
+      language,
       updates: {
         ...settings.updates,
         autoCheckEnabled,
@@ -71,18 +98,37 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
       },
       ai: aiModel ? { provider: aiProvider, baseUrl: aiBaseUrl, model: aiModel } : settings.ai
     })
+    hasSavedRef.current = true
     setSaving(false)
     onClose()
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
           <span className="modal-title">Settings</span>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <button className="icon-btn" onClick={handleClose}>✕</button>
         </div>
         <div className="modal-body">
+          <div className="form-group">
+            <label className="form-label">{t('settings.language')}</label>
+            <select
+              className="form-input"
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+            >
+              {getSupportedLocales().map((locale) => (
+                <option key={locale} value={locale}>{t(`lang.${locale}` as Parameters<typeof t>[0])}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+              {t('settings.languageHelp')}
+            </span>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '12px 0' }} />
+
           <div className="form-group">
             <label className="form-label">Default Query Row Limit</label>
             <input
