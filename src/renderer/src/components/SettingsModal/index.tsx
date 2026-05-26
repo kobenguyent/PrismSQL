@@ -10,8 +10,44 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
   const [queryLimit, setQueryLimit] = useState(String(settings.queryLimit))
   const [autoCheckEnabled, setAutoCheckEnabled] = useState(settings.updates.autoCheckEnabled)
   const [checkIntervalHours, setCheckIntervalHours] = useState(String(settings.updates.checkIntervalHours))
+  const [aiProvider, setAiProvider] = useState<'ollama' | 'openai-compatible'>(settings.ai?.provider ?? 'ollama')
+  const [aiBaseUrl, setAiBaseUrl] = useState(settings.ai?.baseUrl ?? 'http://127.0.0.1:11434')
+  const [aiModel, setAiModel] = useState(settings.ai?.model ?? '')
+  const [models, setModels] = useState<string[]>([])
+  const [fetchingModels, setFetchingModels] = useState(false)
+  const [modelsError, setModelsError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const defaultUrlForProvider = (p: 'ollama' | 'openai-compatible') =>
+    p === 'ollama' ? 'http://127.0.0.1:11434' : 'http://127.0.0.1:1234/v1'
+
+  const handleProviderChange = (p: 'ollama' | 'openai-compatible') => {
+    setAiProvider(p)
+    setAiBaseUrl(defaultUrlForProvider(p))
+    setModels([])
+    setModelsError(null)
+  }
+
+  const handleFetchModels = async () => {
+    setFetchingModels(true)
+    setModelsError(null)
+    try {
+      const result = await window.db.listAIModels({ provider: aiProvider, baseUrl: aiBaseUrl })
+      if (result.success) {
+        setModels(result.models)
+        if (result.models.length > 0 && !aiModel) {
+          setAiModel(result.models[0])
+        }
+      } else {
+        setModelsError(result.error ?? 'Failed to fetch models')
+      }
+    } catch (err) {
+      setModelsError((err as Error).message || 'Failed to fetch models')
+    } finally {
+      setFetchingModels(false)
+    }
+  }
 
   const handleSave = async () => {
     const limit = parseInt(queryLimit, 10)
@@ -32,7 +68,8 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
         ...settings.updates,
         autoCheckEnabled,
         checkIntervalHours: interval
-      }
+      },
+      ai: aiModel ? { provider: aiProvider, baseUrl: aiBaseUrl, model: aiModel } : settings.ai
     })
     setSaving(false)
     onClose()
@@ -40,7 +77,7 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
           <span className="modal-title">Settings</span>
           <button className="icon-btn" onClick={onClose}>✕</button>
@@ -89,6 +126,72 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
               <option value="168">Every 7 days</option>
             </select>
           </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '12px 0' }} />
+          <div className="form-group">
+            <label className="form-label">Local AI Provider</label>
+            <select
+              className="form-input"
+              value={aiProvider}
+              onChange={(e) => handleProviderChange(e.target.value as 'ollama' | 'openai-compatible')}
+            >
+              <option value="ollama">Ollama</option>
+              <option value="openai-compatible">OpenAI-compatible (e.g. LM Studio)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Base URL</label>
+            <input
+              className="form-input"
+              type="text"
+              value={aiBaseUrl}
+              onChange={(e) => setAiBaseUrl(e.target.value)}
+              placeholder={defaultUrlForProvider(aiProvider)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Model</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {models.length > 0 ? (
+                <select
+                  className="form-input"
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  {models.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="form-input"
+                  type="text"
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  placeholder="e.g. llama3.1"
+                  style={{ flex: 1 }}
+                />
+              )}
+              <button
+                className="btn btn-secondary"
+                onClick={handleFetchModels}
+                disabled={fetchingModels || !aiBaseUrl}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {fetchingModels ? 'Fetching…' : 'Fetch Models'}
+              </button>
+            </div>
+            {modelsError && (
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)' }}>
+                {modelsError}
+              </span>
+            )}
+            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+              Click "Fetch Models" to load available models from your local AI provider.
+            </span>
+          </div>
+
           {error && (
             <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-xs)' }}>{error}</div>
           )}

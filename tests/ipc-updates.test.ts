@@ -1,8 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import path from 'path'
 import { pathToFileURL } from 'url'
 
 const handleMock = vi.fn()
+const loadSettingsMock = vi.fn(() => ({
+  queryLimit: 100,
+  updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} }
+}))
 
 vi.mock('electron', () => ({
   ipcMain: { handle: handleMock },
@@ -15,7 +19,7 @@ vi.mock('../src/main/store', () => ({
   saveConnections: vi.fn(),
   loadSavedQueries: vi.fn(() => []),
   writeSavedQueries: vi.fn(),
-  loadSettings: vi.fn(() => ({ queryLimit: 100, updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} } })),
+  loadSettings: loadSettingsMock,
   sanitizeSettings: vi.fn((s) => s),
   saveSettings: vi.fn(),
   exportConnectionsToPath: vi.fn(),
@@ -29,9 +33,49 @@ vi.mock('../src/main/ai/service', () => ({
   }))
 }))
 
+function getTrustedEvent(): { senderFrame: { url: string } } {
+  return {
+    senderFrame: {
+      url: pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).toString()
+    }
+  }
+}
+
+function getHandlers() {
+  return Object.fromEntries(
+    handleMock.mock.calls.map(([channel, fn]: [string, (...args: unknown[]) => Promise<unknown>]) => [channel, fn])
+  )
+}
+
+function getManagerStub() {
+  return {
+    disconnectAll: vi.fn(),
+    disconnect: vi.fn(),
+    testConnection: vi.fn(),
+    connect: vi.fn(),
+    isConnected: vi.fn(),
+    query: vi.fn(),
+    getDatabases: vi.fn(),
+    getTables: vi.fn(),
+    getColumns: vi.fn(),
+    getForeignKeys: vi.fn(),
+    getProcedures: vi.fn(),
+    getServerVersion: vi.fn()
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('IPC updates channels', () => {
   beforeEach(() => {
     handleMock.mockReset()
+    loadSettingsMock.mockReset()
+    loadSettingsMock.mockReturnValue({
+      queryLimit: 100,
+      updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} }
+    })
   })
 
   it('wires update status and actions through update service', async () => {
@@ -44,31 +88,12 @@ describe('IPC updates channels', () => {
       dismissVersion: vi.fn(async () => ({ dismissedVersion: '1.2.3' })),
       openReleasePage: vi.fn(async () => ({ success: true, url: 'https://example.com' }))
     }
-    const manager = {
-      disconnectAll: vi.fn(),
-      disconnect: vi.fn(),
-      testConnection: vi.fn(),
-      connect: vi.fn(),
-      isConnected: vi.fn(),
-      query: vi.fn(),
-      getDatabases: vi.fn(),
-      getTables: vi.fn(),
-      getColumns: vi.fn(),
-      getForeignKeys: vi.fn(),
-      getProcedures: vi.fn(),
-      getServerVersion: vi.fn()
-    }
+    const manager = getManagerStub()
 
     registerIpcHandlers(manager as never, updateService as never)
 
-    const handlers = Object.fromEntries(
-      handleMock.mock.calls.map(([channel, fn]: [string, (...args: unknown[]) => Promise<unknown>]) => [channel, fn])
-    )
-    const trustedEvent = {
-      senderFrame: {
-        url: pathToFileURL(path.resolve(__dirname, '../src/renderer/index.html')).toString()
-      }
-    }
+    const handlers = getHandlers()
+    const trustedEvent = getTrustedEvent()
 
     expect(await handlers['updates:get-status'](trustedEvent)).toEqual({ checking: false })
     expect(await handlers['updates:check-now'](trustedEvent)).toEqual({ checking: false, updateAvailable: false })
@@ -83,5 +108,96 @@ describe('IPC updates channels', () => {
     expect(updateService.ignoreVersion).toHaveBeenCalledWith('1.2.3')
     expect(updateService.dismissVersion).toHaveBeenCalledWith('1.2.3')
     expect(updateService.openReleasePage).toHaveBeenCalledWith('https://example.com')
+  })
+})
+
+describe('IPC ai:list-models channel', () => {
+  beforeEach(() => {
+    handleMock.mockReset()
+    loadSettingsMock.mockReset()
+    loadSettingsMock.mockReturnValue({
+      queryLimit: 100,
+      updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} }
+    })
+  })
+
+  it('lists Ollama models from /api/tags with timeout signal', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ models: [{ name: 'llama3.1' }, { name: 'mistral' }] })
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    loadSettingsMock.mockReturnValue({
+      queryLimit: 100,
+      updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} },
+      ai: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'llama3.1' }
+    })
+
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    const result = await handlers['ai:list-models'](getTrustedEvent())
+
+    expect(result).toEqual({ success: true, models: ['llama3.1', 'mistral'] })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:11434/api/tags',
+      expect.objectContaining({ signal: expect.any(Object) })
+    )
+  })
+
+  it('normalizes OpenAI-compatible /v1/models endpoint', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: [{ id: 'local-model' }] })
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    const result = await handlers['ai:list-models'](getTrustedEvent(), {
+      provider: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:1234/v1/'
+    })
+
+    expect(result).toEqual({ success: true, models: ['local-model'] })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:1234/v1/models',
+      expect.objectContaining({ signal: expect.any(Object) })
+    )
+  })
+
+  it('rejects non-local URLs before fetch', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    const result = await handlers['ai:list-models'](getTrustedEvent(), {
+      provider: 'openai-compatible',
+      baseUrl: 'https://example.com/v1'
+    })
+
+    expect(result).toEqual({
+      success: false,
+      models: [],
+      error: expect.stringContaining('local-only policy')
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('returns a failure payload when fetch rejects', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const fetchMock = vi.fn(async () => {
+      throw new Error('network down')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    registerIpcHandlers(getManagerStub() as never)
+    const handlers = getHandlers()
+    const result = await handlers['ai:list-models'](getTrustedEvent())
+
+    expect(result).toEqual({ success: false, models: [], error: 'network down' })
   })
 })

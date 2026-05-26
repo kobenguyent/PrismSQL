@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { X, CheckCircle, AlertCircle, Database } from 'lucide-react'
 import { useAppStore, genId } from '../../store'
 import type { ConnectionConfig, DatabaseType } from '../../types'
@@ -75,20 +75,20 @@ const DB_TYPES: { value: DatabaseType; label: string; color: string }[] = [
 
 const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
   name: '',
-  type: 'postgres',
+  type: 'mysql',
   connectionUri: '',
   host: 'localhost',
-  port: 5432,
+  port: 3306,
   user: '',
   password: '',
   database: '',
   filename: '',
   ssl: false,
-  color: '#60a5fa'
+  color: '#f97316'
 })
 
 export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
-  const { saveConnection, connect } = useAppStore()
+  const { saveConnection, connect, connections } = useAppStore()
 
   const [config, setConfig] = useState<Omit<ConnectionConfig, 'id'>>(() =>
     editConfig ? { ...editConfig } : defaultConfig()
@@ -96,6 +96,15 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Collect distinct existing categories for the datalist
+  const existingCategories = useMemo(() => {
+    const cats = new Set<string>()
+    for (const conn of connections) {
+      if (conn.category?.trim()) cats.add(conn.category.trim())
+    }
+    return Array.from(cats).sort()
+  }, [connections])
 
   const isSQLite = config.type === 'sqlite'
   const [connectionMode, setConnectionMode] = useState<'manual' | 'uri'>(
@@ -233,10 +242,18 @@ export function ConnectionModal({ onClose, editConfig }: Props): JSX.Element {
             <input
               className="form-input"
               type="text"
+              list="category-suggestions"
               value={config.category ?? ''}
               onChange={(e) => update('category', e.target.value || undefined)}
               placeholder="e.g. Production, Staging, Local…"
             />
+            {existingCategories.length > 0 && (
+              <datalist id="category-suggestions">
+                {existingCategories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            )}
           </div>
 
           {!isSQLite && (

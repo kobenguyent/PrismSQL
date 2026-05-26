@@ -17,6 +17,16 @@ import type {
 import type { DatabaseSchema } from '@renderer/types/schema'
 import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
 
+const THEME_STORAGE_KEY = 'kobeansql-theme'
+
+function loadPersistedTheme(): 'dark' | 'light' | 'system' {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    if (stored === 'dark' || stored === 'light' || stored === 'system') return stored
+  } catch {/* ignore */}
+  return 'dark'
+}
+
 const MAX_QUERY_HISTORY = 200
 
 // Required for Immer to handle Set and Map mutations inside producers
@@ -70,6 +80,10 @@ declare global {
         sql?: string
         dbType?: string
       }): Promise<{ success: boolean; output?: string; error?: string }>
+      listAIModels(request?: {
+        provider?: 'ollama' | 'openai-compatible'
+        baseUrl?: string
+      }): Promise<{ success: boolean; models: string[]; error?: string }>
       getLogPath(): Promise<string>
       openLogs(): Promise<{ success: boolean; path: string }>
       getServerVersion(connectionId: string): Promise<{ version: string }>
@@ -220,7 +234,7 @@ export const useAppStore = create<AppState>()(
     updateStatus: null,
     sidebarWidth: 280,
     isSidebarCollapsed: false,
-    theme: 'dark' as 'dark' | 'light' | 'system',
+    theme: loadPersistedTheme(),
     statusMessage: null,
     statusType: 'info',
     loadConnections: async () => {
@@ -899,6 +913,9 @@ export const useAppStore = create<AppState>()(
       set((s) => {
         s.theme = t
       })
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, t)
+      } catch {/* ignore */}
     },
 
     setStatus: (msg, type = 'info') => {

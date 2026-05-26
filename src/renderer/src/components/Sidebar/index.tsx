@@ -46,27 +46,27 @@ const SQL_TEMPLATES = [
   {
     id: 'select-all',
     name: 'Select all rows',
-    sql: 'SELECT *\nFROM your_table\nLIMIT 100;'
+    sql: 'SELECT *\nFROM {table}\nLIMIT 100;'
   },
   {
     id: 'insert-row',
     name: 'Insert row',
-    sql: 'INSERT INTO your_table (column1, column2)\nVALUES (value1, value2);'
+    sql: 'INSERT INTO {table} (column1, column2)\nVALUES (value1, value2);'
   },
   {
     id: 'update-row',
     name: 'Update rows',
-    sql: 'UPDATE your_table\nSET column1 = value1\nWHERE condition;'
+    sql: 'UPDATE {table}\nSET column1 = value1\nWHERE condition;'
   },
   {
     id: 'delete-row',
     name: 'Delete rows',
-    sql: 'DELETE FROM your_table\nWHERE condition;'
+    sql: 'DELETE FROM {table}\nWHERE condition;'
   },
   {
     id: 'count-rows',
     name: 'Count rows',
-    sql: 'SELECT COUNT(*) AS total_rows\nFROM your_table;'
+    sql: 'SELECT COUNT(*) AS total_rows\nFROM {table};'
   }
 ]
 
@@ -231,16 +231,32 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Eleme
   const applyTemplate = useCallback((sql: string) => {
     const state = useAppStore.getState()
     const activeTab = state.tabs.find((t) => t.id === state.activeTabId)
+
+    // Resolve the active table name for {table} placeholder substitution.
+    // Priority: (1) table name from the active tab, (2) selected table in the tree.
+    let resolvedTable = ''
+    if (activeTab?.title && activeTab.tabType === 'table') {
+      resolvedTable = activeTab.title
+    } else if (tree.selectedTable) {
+      // tree.selectedTable is "connId/dbName/tableName" or "connId/dbName/schema.tableName"
+      const parts = tree.selectedTable.split('/')
+      resolvedTable = parts[parts.length - 1] ?? ''
+    }
+
+    const resolvedSql = resolvedTable
+      ? sql.replaceAll('{table}', resolvedTable)
+      : sql
+
     const isQueryTab = activeTab?.tabType === 'query'
     const targetTabId = isQueryTab
       ? activeTab!.id
       : newTab(activeTab?.connectionId ?? null)
     const tab = useAppStore.getState().tabs.find((t) => t.id === targetTabId)
     const trimmedSql = (tab?.sql ?? '').trimEnd()
-    const nextSql = trimmedSql ? `${trimmedSql}\n\n${sql}` : sql
+    const nextSql = trimmedSql ? `${trimmedSql}\n\n${resolvedSql}` : resolvedSql
     updateTabSql(targetTabId, nextSql)
     setStatus('SQL template inserted', 'success')
-  }, [newTab, setStatus, updateTabSql])
+  }, [newTab, setStatus, updateTabSql, tree.selectedTable])
 
   const cancelRename = useCallback(() => {
     setRenamingQueryId(null)
