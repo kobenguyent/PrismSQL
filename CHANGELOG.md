@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.1...v1.12.2) (2026-05-26)
+
+
+### Bug Fixes
+
+* tooltip viewport clipping, schema visualizer button targets, data table column resizing ([#42](https://github.com/kobenguyent/KobeanSQL/issues/42)) ([95b0444](https://github.com/kobenguyent/KobeanSQL/commit/95b04447af773205a1c5de6f93173720744598f0))
+
 ## [1.12.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.0...v1.12.1) (2026-05-26)
 
 
