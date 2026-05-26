@@ -39,6 +39,7 @@ type FakeTable = {
 
 class FakeDatabaseSync {
   private tables = new Map<string, FakeTable>()
+  open = true
 
   constructor(_filename: string) {}
 
@@ -46,6 +47,7 @@ class FakeDatabaseSync {
 
   close(): void {
     this.tables.clear()
+    this.open = false
   }
 
   prepare(sql: string) {
@@ -378,6 +380,10 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
 
     async getProcedures() {
       return []
+    }
+
+    isConnected(): boolean {
+      return this.db !== null
     }
 
     async ping(): Promise<boolean> {

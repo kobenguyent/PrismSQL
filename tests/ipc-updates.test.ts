@@ -49,6 +49,7 @@ function getHandlers() {
 
 function getManagerStub() {
   return {
+    on: vi.fn(),
     disconnectAll: vi.fn(),
     disconnect: vi.fn(),
     testConnection: vi.fn(),

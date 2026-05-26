@@ -31,6 +31,10 @@ export class MSSQLAdapter implements DatabaseAdapter {
     }
   }
 
+  isConnected(): boolean {
+    return this.pool !== null && this.pool.connected
+  }
+
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
     if (!this.pool) throw new Error('Not connected')
     const start = Date.now()

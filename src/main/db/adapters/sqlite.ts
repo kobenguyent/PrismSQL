@@ -20,6 +20,10 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
   }
 
+  isConnected(): boolean {
+    return this.db !== null && this.db.open
+  }
+
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
     if (!this.db) throw new Error('Not connected')
     const start = Date.now()

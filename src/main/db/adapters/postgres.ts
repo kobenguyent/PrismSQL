@@ -6,6 +6,7 @@ import { resolveConnectionConfig } from '../connection-uri'
 export class PostgresAdapter implements DatabaseAdapter {
   private client: Client | null = null
   private config: ConnectionConfig | null = null
+  private _connected = false
 
   async connect(config: ConnectionConfig): Promise<void> {
     const resolvedConfig = resolveConnectionConfig(config)
@@ -20,13 +21,21 @@ export class PostgresAdapter implements DatabaseAdapter {
       connectionTimeoutMillis: 10000
     })
     await this.client.connect()
+    this._connected = true
+    this.client.on('end', () => { this._connected = false })
+    this.client.on('error', () => { this._connected = false })
   }
 
   async disconnect(): Promise<void> {
+    this._connected = false
     if (this.client) {
       await this.client.end()
       this.client = null
     }
+  }
+
+  isConnected(): boolean {
+    return this._connected && this.client !== null
   }
 
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {

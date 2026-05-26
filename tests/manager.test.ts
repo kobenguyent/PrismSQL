@@ -13,6 +13,7 @@ vi.mock('../src/main/db/adapters/mysql', () => ({
   MySQLAdapter: class {
     async connect() {}
     async disconnect() {}
+    isConnected() { return true }
     async query() { return { columns: [], rows: [], rowCount: 0, duration: 1 } }
     async getDatabases() { return ['testdb'] }
     async getTables() { return [{ name: 'users', type: 'table' }] }
@@ -26,6 +27,7 @@ vi.mock('../src/main/db/adapters/postgres', () => ({
   PostgresAdapter: class {
     async connect() {}
     async disconnect() {}
+    isConnected() { return true }
     async query() { return { columns: [], rows: [], rowCount: 0, duration: 1 } }
     async getDatabases() { return ['postgres'] }
     async getTables() { return [] }
@@ -39,6 +41,7 @@ vi.mock('../src/main/db/adapters/sqlite', () => ({
   SQLiteAdapter: class {
     async connect() {}
     async disconnect() {}
+    isConnected() { return true }
     async query() { return { columns: [], rows: [], rowCount: 0, duration: 1 } }
     async getDatabases() { return ['main'] }
     async getTables() { return [] }
@@ -52,6 +55,7 @@ vi.mock('../src/main/db/adapters/mssql', () => ({
   MSSQLAdapter: class {
     async connect() {}
     async disconnect() {}
+    isConnected() { return true }
     async query() { return { columns: [], rows: [], rowCount: 0, duration: 1 } }
     async getDatabases() { return ['master'] }
     async getTables() { return [] }
@@ -214,5 +218,40 @@ describe('ConnectionManager', () => {
     expect(procs.length).toBeGreaterThan(0)
     expect(procs[0]).toHaveProperty('specificName')
     expect(procs[0].specificName).toBe('my_func_12345')
+  })
+
+  it('isConnected delegates to adapter.isConnected()', async () => {
+    const config = { id: 'conn-9', name: 'Test', type: 'mysql' as const }
+    await manager.connect(config)
+    // Adapter mock returns true by default
+    expect(manager.isConnected('conn-9')).toBe(true)
+  })
+
+  it('isConnected cleans up stale connection and emits connection-lost when adapter reports disconnected', async () => {
+    // Use a custom module mock with controllable isConnected state
+    let adapterConnected = true
+    const { MySQLAdapter } = await import('../src/main/db/adapters/mysql')
+    // Override the prototype temporarily so the newly created adapter uses our state
+    const originalIsConnected = MySQLAdapter.prototype.isConnected
+    MySQLAdapter.prototype.isConnected = () => adapterConnected
+
+    const config = { id: 'conn-lost', name: 'Stale', type: 'mysql' as const }
+    await manager.connect(config)
+    expect(manager.isConnected('conn-lost')).toBe(true)
+
+    // Simulate pool closing unexpectedly
+    adapterConnected = false
+
+    const lostIds: string[] = []
+    manager.on('connection-lost', (id: string) => lostIds.push(id))
+
+    expect(manager.isConnected('conn-lost')).toBe(false)
+    expect(lostIds).toContain('conn-lost')
+    // Stale entry should have been removed; second call must NOT re-emit
+    expect(manager.isConnected('conn-lost')).toBe(false)
+    expect(lostIds).toHaveLength(1)
+
+    // Restore original prototype method
+    MySQLAdapter.prototype.isConnected = originalIsConnected
   })
 })
