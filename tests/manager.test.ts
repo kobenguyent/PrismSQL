@@ -233,25 +233,27 @@ describe('ConnectionManager', () => {
     const { MySQLAdapter } = await import('../src/main/db/adapters/mysql')
     // Override the prototype temporarily so the newly created adapter uses our state
     const originalIsConnected = MySQLAdapter.prototype.isConnected
-    MySQLAdapter.prototype.isConnected = () => adapterConnected
+    try {
+      MySQLAdapter.prototype.isConnected = () => adapterConnected
 
-    const config = { id: 'conn-lost', name: 'Stale', type: 'mysql' as const }
-    await manager.connect(config)
-    expect(manager.isConnected('conn-lost')).toBe(true)
+      const config = { id: 'conn-lost', name: 'Stale', type: 'mysql' as const }
+      await manager.connect(config)
+      expect(manager.isConnected('conn-lost')).toBe(true)
 
-    // Simulate pool closing unexpectedly
-    adapterConnected = false
+      // Simulate pool closing unexpectedly
+      adapterConnected = false
 
-    const lostIds: string[] = []
-    manager.on('connection-lost', (id: string) => lostIds.push(id))
+      const lostIds: string[] = []
+      manager.on('connection-lost', (id: string) => lostIds.push(id))
 
-    expect(manager.isConnected('conn-lost')).toBe(false)
-    expect(lostIds).toContain('conn-lost')
-    // Stale entry should have been removed; second call must NOT re-emit
-    expect(manager.isConnected('conn-lost')).toBe(false)
-    expect(lostIds).toHaveLength(1)
-
-    // Restore original prototype method
-    MySQLAdapter.prototype.isConnected = originalIsConnected
+      expect(manager.isConnected('conn-lost')).toBe(false)
+      expect(lostIds).toContain('conn-lost')
+      // Stale entry should have been removed; second call must NOT re-emit
+      expect(manager.isConnected('conn-lost')).toBe(false)
+      expect(lostIds).toHaveLength(1)
+    } finally {
+      // Restore original prototype method
+      MySQLAdapter.prototype.isConnected = originalIsConnected
+    }
   })
 })

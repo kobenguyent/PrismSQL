@@ -3,12 +3,14 @@ import path from 'path'
 import { pathToFileURL } from 'url'
 
 const handleMock = vi.fn()
+const getAllWindowsMock = vi.fn(() => [])
 const loadSettingsMock = vi.fn(() => ({
   queryLimit: 100,
   updates: { autoCheckEnabled: true, checkIntervalHours: 24, cache: {} }
 }))
 
 vi.mock('electron', () => ({
+  BrowserWindow: { getAllWindows: getAllWindowsMock },
   ipcMain: { handle: handleMock },
   dialog: {},
   shell: { openPath: vi.fn() }
@@ -72,6 +74,8 @@ afterEach(() => {
 describe('IPC updates channels', () => {
   beforeEach(() => {
     handleMock.mockReset()
+    getAllWindowsMock.mockReset()
+    getAllWindowsMock.mockReturnValue([])
     loadSettingsMock.mockReset()
     loadSettingsMock.mockReturnValue({
       queryLimit: 100,
@@ -169,6 +173,46 @@ describe('IPC updates channels', () => {
     const handlers = getHandlers()
     const result = await handlers['updates:install'](getTrustedEvent())
     expect(result).toMatchObject({ success: false })
+  })
+
+  it('skips destroyed windows when forwarding connection-lost', async () => {
+    const { registerIpcHandlers } = await import('../src/main/ipc')
+    const manager = getManagerStub()
+    const sendLive = vi.fn()
+    const sendDestroyed = vi.fn()
+    getAllWindowsMock.mockReturnValue([
+      {
+        isDestroyed: () => false,
+        webContents: {
+          isDestroyed: () => false,
+          send: sendLive
+        }
+      },
+      {
+        isDestroyed: () => true,
+        webContents: {
+          isDestroyed: () => false,
+          send: sendDestroyed
+        }
+      },
+      {
+        isDestroyed: () => false,
+        webContents: {
+          isDestroyed: () => true,
+          send: sendDestroyed
+        }
+      }
+    ])
+
+    registerIpcHandlers(manager as never)
+    const onConnectionLost = manager.on.mock.calls.find(([event]: [string]) => event === 'connection-lost')?.[1] as
+      | ((connectionId: string) => void)
+      | undefined
+
+    expect(onConnectionLost).toBeTypeOf('function')
+    expect(() => onConnectionLost?.('conn-1')).not.toThrow()
+    expect(sendLive).toHaveBeenCalledWith('db:connection-lost', 'conn-1')
+    expect(sendDestroyed).not.toHaveBeenCalled()
   })
 })
 

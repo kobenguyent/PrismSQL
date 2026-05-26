@@ -17,7 +17,7 @@ const FALLBACK_INTERVAL_HOURS = 24
 /** Pattern matching GitHub asset names for each platform. */
 const PLATFORM_ASSET_PATTERNS: Record<string, RegExp> = {
   win32: /\.exe$/i,
-  darwin: /\.dmg$/i,
+  darwin: /\.(dmg|zip)$/i,
   linux: /\.AppImage$/i
 }
 const ALLOWED_DOWNLOAD_HOSTS = new Set([
@@ -168,7 +168,37 @@ export function createUpdateService(): UpdateService {
     if (!assets || assets.length === 0) return undefined
     const pattern = PLATFORM_ASSET_PATTERNS[process.platform]
     if (!pattern) return undefined
-    const asset = assets.find((a) => pattern.test(a.name))
+    const eligible = assets.filter((a) => pattern.test(a.name))
+    if (eligible.length === 0) return undefined
+
+    if (process.platform === 'darwin') {
+      const arch = process.arch
+      const archMatcher =
+        arch === 'arm64'
+          ? /\b(arm64|aarch64)\b/i
+          : arch === 'x64'
+            ? /\b(x64|amd64)\b/i
+            : undefined
+      if (archMatcher) {
+        const archSpecificZip = eligible.find((a) => archMatcher.test(a.name) && /\.zip$/i.test(a.name))
+        if (archSpecificZip) return archSpecificZip.browser_download_url
+        const archSpecificDmg = eligible.find((a) => archMatcher.test(a.name) && /\.dmg$/i.test(a.name))
+        if (archSpecificDmg) return archSpecificDmg.browser_download_url
+      }
+
+      const genericZip = eligible.find((a) => /\.zip$/i.test(a.name) && !/\b(arm64|aarch64|x64|amd64)\b/i.test(a.name))
+      if (genericZip) return genericZip.browser_download_url
+
+      const genericDmg = eligible.find((a) => /\.dmg$/i.test(a.name) && !/\b(arm64|aarch64|x64|amd64)\b/i.test(a.name))
+      if (genericDmg) return genericDmg.browser_download_url
+
+      if (archMatcher) {
+        const archSpecific = eligible.find((a) => archMatcher.test(a.name))
+        if (archSpecific) return archSpecific.browser_download_url
+      }
+    }
+
+    const asset = eligible[0]
     return asset?.browser_download_url
   }
 

@@ -34,7 +34,15 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
   manager.on('connection-lost', (connectionId: string) => {
     appLogger.info('Forwarding connection-lost event to renderer', { connectionId })
     BrowserWindow.getAllWindows().forEach((win) => {
-      win.webContents.send('db:connection-lost', connectionId)
+      if (win.isDestroyed() || win.webContents.isDestroyed()) return
+      try {
+        win.webContents.send('db:connection-lost', connectionId)
+      } catch (error) {
+        appLogger.warn('Failed to forward connection-lost event', {
+          connectionId,
+          error: (error as Error).message
+        })
+      }
     })
   })
 

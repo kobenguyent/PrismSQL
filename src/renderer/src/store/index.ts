@@ -1028,7 +1028,9 @@ export const useAppStore = create<AppState>()(
 
 // Register the connection-lost push listener so the UI reflects unexpected disconnections
 if (typeof window !== 'undefined' && window.db?.onConnectionLost) {
-  window.db.onConnectionLost((connectionId: string) => {
+  const runtimeWindow = window as Window & { __kobeansqlConnectionLostUnsubscribe?: () => void }
+  runtimeWindow.__kobeansqlConnectionLostUnsubscribe?.()
+  runtimeWindow.__kobeansqlConnectionLostUnsubscribe = window.db.onConnectionLost((connectionId: string) => {
     useAppStore.getState().handleConnectionLost(connectionId)
   })
 }

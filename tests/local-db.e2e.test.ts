@@ -383,7 +383,7 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
     }
 
     isConnected(): boolean {
-      return this.db !== null
+      return !!this.db?.open
     }
 
     async ping(): Promise<boolean> {
