@@ -1083,6 +1083,7 @@ html, body, #root {
   user-select: none;
   transition: color var(--transition-fast);
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 .data-table th:hover { color: var(--text-primary); }
 .data-table th .sort-indicator {
