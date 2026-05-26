@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.10.0...v1.11.0) (2026-05-26)
+
+
+### Features
+
+* MySQL default, icon branding, category autocomplete, theme persistence, i18n, SQL templates, local LLM selection ([#38](https://github.com/kobenguyent/KobeanSQL/issues/38)) ([9cf5a95](https://github.com/kobenguyent/KobeanSQL/commit/9cf5a95fe96190553083a81ef38e887fc4c39cd4))
+
 # [1.10.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.9.1...v1.10.0) (2026-05-25)
 
 
