@@ -68,6 +68,7 @@ export default function App(): JSX.Element {
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showSchemaVisualizer, setShowSchemaVisualizer] = useState(false)
+  const [closedUpdateVersion, setClosedUpdateVersion] = useState<string | null>(null)
 
   // Resize state
   const isResizing = useRef(false)
@@ -94,6 +95,18 @@ export default function App(): JSX.Element {
     }, UPDATE_STATUS_POLL_MS)
     return () => window.clearInterval(timer)
   }, [loadUpdateStatus, settings.updates.autoCheckEnabled])
+
+  useEffect(() => {
+    const latest = updateStatus?.latestVersion ?? null
+    if (!latest || !updateStatus?.shouldNotify) {
+      setClosedUpdateVersion(null)
+      return
+    }
+    setClosedUpdateVersion((previous) => {
+      if (previous && previous !== latest) return null
+      return previous
+    })
+  }, [updateStatus?.latestVersion, updateStatus?.shouldNotify])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -379,7 +392,9 @@ export default function App(): JSX.Element {
         </button>
       </div>
 
-      {updateStatus?.shouldNotify && updateStatus.latestVersion && (
+      {updateStatus?.shouldNotify &&
+        updateStatus.latestVersion &&
+        closedUpdateVersion !== updateStatus.latestVersion && (
         <div
           style={{
             position: 'fixed',
@@ -397,6 +412,14 @@ export default function App(): JSX.Element {
             boxShadow: '0 8px 24px rgba(0,0,0,0.28)'
           }}
         >
+          <button
+            className="icon-btn"
+            onClick={() => setClosedUpdateVersion(updateStatus.latestVersion ?? null)}
+            aria-label="Close update notification"
+            style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20 }}
+          >
+            ✕
+          </button>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', fontWeight: 600 }}>
             {t('updates.available', { version: updateStatus.latestVersion })}
           </div>

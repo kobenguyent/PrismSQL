@@ -147,7 +147,12 @@ const dbAPI = {
   openUpdateRelease: (url?: string): Promise<{ success: boolean; url: string }> =>
     ipcRenderer.invoke('updates:open-release', url),
   downloadUpdate: (): Promise<UpdateStatus | null> => ipcRenderer.invoke('updates:download'),
-  installUpdate: (): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('updates:install')
+  installUpdate: (): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('updates:install'),
+  onConnectionLost: (callback: (connectionId: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, connectionId: string): void => callback(connectionId)
+    ipcRenderer.on('db:connection-lost', handler)
+    return () => ipcRenderer.off('db:connection-lost', handler)
+  }
 }
 
 if (process.contextIsolated) {

@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import { DatabaseAdapter } from './adapter'
 import { MySQLAdapter } from './adapters/mysql'
 import { PostgresAdapter } from './adapters/postgres'
@@ -24,7 +25,7 @@ function extractErrorMessage(err: unknown): string {
   return 'Unknown error'
 }
 
-export class ConnectionManager {
+export class ConnectionManager extends EventEmitter {
   private connections = new Map<string, DatabaseAdapter>()
 
   private createAdapter(type: ConnectionConfig['type']): DatabaseAdapter {
@@ -81,7 +82,15 @@ export class ConnectionManager {
   }
 
   isConnected(connectionId: string): boolean {
-    return this.connections.has(connectionId)
+    const adapter = this.connections.get(connectionId)
+    if (!adapter) return false
+    const live = adapter.isConnected()
+    if (!live) {
+      this.connections.delete(connectionId)
+      appLogger.info('Connection lost, removed stale entry', { connectionId })
+      this.emit('connection-lost', connectionId)
+    }
+    return live
   }
 
   async testConnection(config: ConnectionConfig): Promise<{ success: boolean; error?: string }> {

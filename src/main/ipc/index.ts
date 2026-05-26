@@ -1,4 +1,4 @@
-import { dialog, ipcMain, IpcMainInvokeEvent, shell } from 'electron'
+import { BrowserWindow, dialog, ipcMain, IpcMainInvokeEvent, shell } from 'electron'
 import path from 'path'
 import { ConnectionManager } from '../db/manager'
 import {
@@ -29,6 +29,22 @@ class UntrustedRendererContextError extends Error {
 export function registerIpcHandlers(manager: ConnectionManager, updateService?: UpdateService): void {
   const aiService = createLocalAIService()
   const debugChannels = new Set(['db:query'])
+
+  // Forward unexpected connection-lost events from the manager to all renderer windows
+  manager.on('connection-lost', (connectionId: string) => {
+    appLogger.info('Forwarding connection-lost event to renderer', { connectionId })
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (win.isDestroyed() || win.webContents.isDestroyed()) return
+      try {
+        win.webContents.send('db:connection-lost', connectionId)
+      } catch (error) {
+        appLogger.warn('Failed to forward connection-lost event', {
+          connectionId,
+          error: (error as Error).message
+        })
+      }
+    })
+  })
 
   const handleWithLogging = <TArgs extends unknown[], TResult>(
     channel: string,

@@ -23,6 +23,8 @@ const loadSettingsMock = vi.fn(() => currentSettings)
 const saveSettingsMock = vi.fn((next) => {
   currentSettings = next
 })
+const originalProcessPlatform = process.platform
+const originalProcessArch = process.arch
 
 function unlinkIfExists(filePath: string): void {
   try {
@@ -96,6 +98,8 @@ describe('update service downloads', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    Object.defineProperty(process, 'platform', { value: originalProcessPlatform })
+    Object.defineProperty(process, 'arch', { value: originalProcessArch })
     unlinkIfExists(downloadedFile)
   })
 
@@ -145,5 +149,40 @@ describe('update service downloads', () => {
     expect(status.downloadError).toBe('Invalid download URL.')
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fs.existsSync(downloadedFile)).toBe(false)
+  })
+
+  it('prefers arm64 mac assets and falls back to zip when selecting download URL', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' })
+    Object.defineProperty(process, 'arch', { value: 'arm64' })
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tag_name: 'v2.0.0',
+          html_url: 'https://github.com/kobenguyent/KobeanSQL/releases/tag/v2.0.0',
+          assets: [
+            {
+              name: 'KobeanSQL-2.0.0-x64.dmg',
+              browser_download_url:
+                'https://github.com/kobenguyent/KobeanSQL/releases/download/v2.0.0/KobeanSQL-2.0.0-x64.dmg'
+            },
+            {
+              name: 'KobeanSQL-2.0.0-arm64-mac.zip',
+              browser_download_url:
+                'https://github.com/kobenguyent/KobeanSQL/releases/download/v2.0.0/KobeanSQL-2.0.0-arm64-mac.zip'
+            }
+          ]
+        }),
+        { status: 200, headers: { etag: 'abc' } }
+      )
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { createUpdateService } = await import('../src/main/update/service')
+    const service = createUpdateService()
+    await service.checkForUpdates(true)
+
+    expect(currentSettings.updates.cache.downloadUrl).toBe(
+      'https://github.com/kobenguyent/KobeanSQL/releases/download/v2.0.0/KobeanSQL-2.0.0-arm64-mac.zip'
+    )
   })
 })

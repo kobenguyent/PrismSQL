@@ -98,6 +98,7 @@ declare global {
       openUpdateRelease(url?: string): Promise<{ success: boolean; url: string }>
       downloadUpdate(): Promise<UpdateStatus | null>
       installUpdate(): Promise<{ success: boolean; error?: string }>
+      onConnectionLost(callback: (connectionId: string) => void): () => void
     }
   }
 }
@@ -166,6 +167,7 @@ interface AppState {
   deleteConnection(id: string): Promise<void>
   connect(config: ConnectionConfig): Promise<{ success: boolean; error?: string }>
   disconnect(id: string): Promise<void>
+  handleConnectionLost(id: string): void
   loadDatabases(connectionId: string): Promise<void>
   loadTables(connectionId: string, database: string): Promise<void>
   loadColumns(connectionId: string, table: string, database?: string): Promise<void>
@@ -304,6 +306,16 @@ export const useAppStore = create<AppState>()(
       })
       const conn = get().connections.find((c) => c.id === id)
       get().setStatus(`Disconnected from ${conn?.name}`, 'info')
+    },
+
+    handleConnectionLost: (id) => {
+      set((s) => {
+        s.connectedIds.delete(id)
+        delete s.schema[id]
+        delete s.connectionVersions[id]
+      })
+      const conn = get().connections.find((c) => c.id === id)
+      get().setStatus(`Connection to ${conn?.name ?? id} was lost`, 'error')
     },
 
     loadDatabases: async (connectionId) => {
@@ -1013,3 +1025,12 @@ export const useAppStore = create<AppState>()(
     }
   }))
 )
+
+// Register the connection-lost push listener so the UI reflects unexpected disconnections
+if (typeof window !== 'undefined' && window.db?.onConnectionLost) {
+  const runtimeWindow = window as Window & { __kobeansqlConnectionLostUnsubscribe?: () => void }
+  runtimeWindow.__kobeansqlConnectionLostUnsubscribe?.()
+  runtimeWindow.__kobeansqlConnectionLostUnsubscribe = window.db.onConnectionLost((connectionId: string) => {
+    useAppStore.getState().handleConnectionLost(connectionId)
+  })
+}

@@ -3,6 +3,7 @@ import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, Fo
 export interface DatabaseAdapter {
   connect(config: ConnectionConfig): Promise<void>
   disconnect(): Promise<void>
+  isConnected(): boolean
   query(sql: string, params?: unknown[]): Promise<QueryResult>
   getDatabases(): Promise<string[]>
   getTables(database?: string): Promise<TableInfo[]>
