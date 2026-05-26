@@ -10,11 +10,17 @@
  *
  * To add a new language:
  *   1. Create `src/renderer/src/i18n/locales/<lang>.ts` mirroring `en.ts`.
- *   2. Import and register it with `registerLocale('<lang>', messages)`.
+ *   2. Import it in this file, add it to the `registry` object, and export it.
  *   3. Call `setLocale('<lang>')` from your settings UI.
+ *   For dynamic / plugin locales use `registerLocale('<lang>', messages)` instead.
  */
 
 import en, { TranslationKey } from './locales/en'
+import de from './locales/de'
+import es from './locales/es'
+import fr from './locales/fr'
+import ja from './locales/ja'
+import vi from './locales/vi'
 
 const LOCALE_STORAGE_KEY = 'kobeansql-locale'
 
@@ -22,7 +28,12 @@ type Messages = Record<string, string>
 type Params = Record<string, string | number>
 
 const registry: Record<string, Messages> = {
-  en: en as unknown as Messages
+  de: de as unknown as Messages,
+  en: en as unknown as Messages,
+  es: es as unknown as Messages,
+  fr: fr as unknown as Messages,
+  ja: ja as unknown as Messages,
+  vi: vi as unknown as Messages,
 }
 
 let currentLocale = 'en'
@@ -70,6 +81,13 @@ export function t(key: TranslationKey, params?: Params): string {
   }
 
   return template
+}
+
+/**
+ * Returns a list of all registered locale codes (e.g. ['de', 'en', 'es', 'fr', 'ja', 'vi']).
+ */
+export function getSupportedLocales(): string[] {
+  return Object.keys(registry)
 }
 
 // Restore persisted locale on module load (runs once in the renderer process)

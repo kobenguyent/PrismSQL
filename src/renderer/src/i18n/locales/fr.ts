@@ -1,0 +1,112 @@
+/**
+ * French locale strings for KobeanSQL.
+ */
+const fr = {
+  // ── App-level ─────────────────────────────────────────────────
+  'app.name': 'KobeanSQL',
+  'app.version': 'Version',
+
+  // ── Sidebar ───────────────────────────────────────────────────
+  'sidebar.connections': 'Connexions',
+  'sidebar.noConnections': 'Aucune connexion',
+  'sidebar.noConnectionsSub': 'Cliquez sur + pour ajouter une connexion',
+  'sidebar.addConnection': 'Ajouter une connexion',
+  'sidebar.newConnection': 'Nouvelle connexion',
+  'sidebar.importConnections': 'Importer des connexions',
+  'sidebar.exportConnections': 'Exporter des connexions',
+  'sidebar.templates': 'Modèles SQL',
+  'sidebar.savedQueries': 'Requêtes sauvegardées',
+  'sidebar.noSavedQueries': 'Aucune requête sauvegardée',
+  'sidebar.noSavedQueriesSub': 'Sauvegardez une requête depuis l\'éditeur avec Ctrl/Cmd+S',
+
+  // ── Connection Modal ───────────────────────────────────────────
+  'connection.newTitle': 'Nouvelle connexion',
+  'connection.editTitle': 'Modifier la connexion',
+  'connection.dbType': 'Type de base de données',
+  'connection.name': 'Nom de la connexion',
+  'connection.category': 'Catégorie (optionnel)',
+  'connection.categoryPlaceholder': 'ex. Production, Staging, Local…',
+  'connection.method': 'Méthode de connexion',
+  'connection.manual': 'Manuel',
+  'connection.uri': 'URI de connexion',
+  'connection.host': 'Hôte',
+  'connection.port': 'Port',
+  'connection.user': 'Utilisateur',
+  'connection.password': 'Mot de passe',
+  'connection.database': 'Base de données',
+  'connection.file': 'Fichier de base de données',
+  'connection.ssl': 'Utiliser SSL',
+  'connection.color': 'Couleur',
+  'connection.test': 'Tester la connexion',
+  'connection.testing': 'Test en cours…',
+  'connection.connect': 'Connecter & Sauvegarder',
+  'connection.connecting': 'Connexion en cours…',
+  'connection.success': 'Connexion réussie',
+  'connection.nameRequired': 'Le nom de la connexion est requis',
+  'connection.uriRequired': 'L\'URI de connexion est requise',
+
+  // ── Query Editor ──────────────────────────────────────────────
+  'editor.run': 'Exécuter',
+  'editor.stop': 'Arrêter',
+  'editor.save': 'Sauvegarder la requête',
+  'editor.beautify': 'Embellir le SQL',
+  'editor.buildSql': 'Construire le SQL',
+  'editor.aiGenerate': 'IA : Générer le SQL',
+  'editor.aiExplain': 'IA : Expliquer le SQL',
+  'editor.aiOptimize': 'IA : Optimiser le SQL',
+  'editor.placeholder': 'Écrivez le SQL ici…',
+  'editor.noConnection': 'Sélectionner une connexion',
+  'editor.queryName': 'Nom de la requête',
+  'editor.queryCategory': 'Catégorie (optionnel)',
+  'editor.saveTitle': 'Sauvegarder la requête',
+  'editor.cancel': 'Annuler',
+  'editor.insert': 'Insérer',
+
+  // ── Settings Modal ─────────────────────────────────────────────
+  'settings.title': 'Paramètres',
+  'settings.queryLimit': 'Limite de lignes par défaut',
+  'settings.queryLimitHelp': 'Lignes retournées lors de la navigation dans une table. Par défaut : 100. Max : 10 000.',
+  'settings.updateChecks': 'Activer les vérifications de mises à jour',
+  'settings.updateChecksHelp': 'Vérifie les nouvelles versions sur GitHub. Vous pouvez désactiver cela à tout moment.',
+  'settings.updateInterval': 'Intervalle de vérification (heures)',
+  'settings.aiProvider': 'Fournisseur IA',
+  'settings.aiBaseUrl': 'URL de base IA',
+  'settings.aiModel': 'Modèle IA',
+  'settings.aiModelFetch': 'Récupérer les modèles',
+  'settings.aiModelFetching': 'Récupération…',
+  'settings.aiModelPlaceholder': 'ex. llama3.1',
+  'settings.save': 'Sauvegarder',
+  'settings.saving': 'Sauvegarde…',
+  'settings.cancel': 'Annuler',
+
+  // ── Buttons / common ──────────────────────────────────────────
+  'common.close': 'Fermer',
+  'common.delete': 'Supprimer',
+  'common.rename': 'Renommer',
+  'common.edit': 'Modifier',
+  'common.copy': 'Copier',
+  'common.open': 'Ouvrir',
+  'common.search': 'Rechercher…',
+  'common.confirm': 'Confirmer',
+  'common.yes': 'Oui',
+  'common.no': 'Non',
+
+  // ── Theme ─────────────────────────────────────────────────────
+  'theme.dark': 'Sombre',
+  'theme.light': 'Clair',
+  'theme.system': 'Système',
+
+  // ── Status / feedback ─────────────────────────────────────────
+  'status.rowCount': '{count} ligne{plural} en {ms}ms',
+  'status.querySaved': 'Requête sauvegardée : {name}',
+  'status.templateInserted': 'Modèle SQL inséré',
+  'status.logsOpened': 'Dossier des journaux ouvert',
+  'status.upToDate': 'Vous êtes à jour',
+  'status.updateAvailable': 'Mise à jour disponible : v{version}',
+
+  // ── Privacy / About ───────────────────────────────────────────
+  'about.title': 'À propos de KobeanSQL',
+  'privacy.title': 'Confidentialité et sécurité',
+} as const
+
+export default fr
