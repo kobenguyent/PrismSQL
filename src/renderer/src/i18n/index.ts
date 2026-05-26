@@ -56,12 +56,16 @@ export function getLocale(): string {
 export function setLocale(locale: string): void {
   if (!registry[locale]) {
     console.warn(`[i18n] Locale "${locale}" is not registered, falling back to "en"`)
-    return
+    locale = 'en'
   }
+  const changed = currentLocale !== locale
   currentLocale = locale
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, locale)
   } catch {/* ignore */}
+  if (changed) {
+    ;(globalThis as { __notifyLocaleChange?: () => void }).__notifyLocaleChange?.()
+  }
 }
 
 /**

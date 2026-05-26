@@ -80,7 +80,10 @@ declare global {
         sql?: string
         dbType?: string
       }): Promise<{ success: boolean; output?: string; error?: string }>
-      listAIModels(): Promise<{ success: boolean; models: string[]; error?: string }>
+      listAIModels(request?: {
+        provider?: 'ollama' | 'openai-compatible'
+        baseUrl?: string
+      }): Promise<{ success: boolean; models: string[]; error?: string }>
       getLogPath(): Promise<string>
       openLogs(): Promise<{ success: boolean; path: string }>
       getServerVersion(connectionId: string): Promise<{ version: string }>

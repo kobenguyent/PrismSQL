@@ -330,6 +330,7 @@ function sanitizeUpdateSettings(value: unknown): UpdateSettings {
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434'
 const DEFAULT_OLLAMA_MODEL = 'llama3.1'
 const DEFAULT_OPENAI_COMPATIBLE_URL = 'http://127.0.0.1:1234/v1'
+const DEFAULT_OPENAI_COMPATIBLE_MODEL = 'local-model'
 
 function sanitizeAISettings(value: unknown): AIStoredSettings | undefined {
   if (!value || typeof value !== 'object') return undefined
@@ -340,7 +341,8 @@ function sanitizeAISettings(value: unknown): AIStoredSettings | undefined {
       : 'ollama'
   const baseUrl = sanitizeOptionalString(source.baseUrl) ??
     (provider === 'ollama' ? DEFAULT_OLLAMA_URL : DEFAULT_OPENAI_COMPATIBLE_URL)
-  const model = sanitizeOptionalString(source.model) ?? DEFAULT_OLLAMA_MODEL
+  const model = sanitizeOptionalString(source.model) ??
+    (provider === 'ollama' ? DEFAULT_OLLAMA_MODEL : DEFAULT_OPENAI_COMPATIBLE_MODEL)
   return { provider, baseUrl, model }
 }
 

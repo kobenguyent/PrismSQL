@@ -15,7 +15,7 @@ const manager = new ConnectionManager()
 const updateService = createUpdateService()
 
 function createWindow(): BrowserWindow {
-  const iconPath = path.join(__dirname, '../../build/icon.png')
+  const iconPath = path.join(app.getAppPath(), 'build/icon.png')
   const win = new BrowserWindow({
     width: 1400,
     height: 900,

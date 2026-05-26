@@ -294,4 +294,28 @@ describe('Connection Store (persistence)', () => {
     }
     expect(stored.updates.checkIntervalHours).toBe(6)
   })
+
+  it('loadSettings sanitizes ai settings with provider defaults', async () => {
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        ai: {
+          provider: 'openai-compatible',
+          baseUrl: '   ',
+          model: ''
+        }
+      }),
+      'utf-8'
+    )
+
+    const { loadSettings } = await import('../src/main/store')
+    expect(loadSettings()).toEqual({
+      ...defaultSettings,
+      ai: {
+        provider: 'openai-compatible',
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        model: 'local-model'
+      }
+    })
+  })
 })

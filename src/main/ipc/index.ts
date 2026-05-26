@@ -16,6 +16,7 @@ import { ConnectionConfig } from '../db/types'
 import { appLogger } from '../logger'
 import type { AIRequest } from '../ai/types'
 import { createLocalAIService } from '../ai/service'
+import { validateLocalBaseUrl } from '../ai/url-policy'
 import { isTrustedRendererUrl } from '../security'
 import type { UpdateService } from '../update/service'
 
@@ -235,33 +236,49 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
     return runtimeService.runTask(request)
   })
 
-  handleWithLogging('ai:list-models', async () => {
-    const settings = loadSettings()
-    const provider = settings.ai?.provider ?? 'ollama'
-    const baseUrl = settings.ai?.baseUrl ?? 'http://127.0.0.1:11434'
-    try {
-      if (provider === 'ollama') {
-        const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
-          signal: AbortSignal.timeout(5000)
-        })
-        if (!response.ok) return { success: false, models: [], error: `Ollama responded with ${response.status}` }
-        const data = (await response.json()) as { models?: Array<{ name: string }> }
-        const models = (data.models ?? []).map((m) => m.name).filter(Boolean)
-        return { success: true, models }
-      } else {
-        // OpenAI-compatible list endpoint — normalize base, then always append /v1/models
-        const base = baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
-        const endpoint = `${base}/v1/models`
-        const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) })
-        if (!response.ok) return { success: false, models: [], error: `Provider responded with ${response.status}` }
-        const data = (await response.json()) as { data?: Array<{ id: string }> }
-        const models = (data.data ?? []).map((m) => m.id).filter(Boolean)
-        return { success: true, models }
+  handleWithLogging(
+    'ai:list-models',
+    async (
+      _event: IpcMainInvokeEvent,
+      request?: { provider?: 'ollama' | 'openai-compatible'; baseUrl?: string }
+    ) => {
+      const settings = loadSettings()
+      const provider = request?.provider ?? settings.ai?.provider ?? 'ollama'
+      const fallbackBaseUrl = provider === 'ollama' ? 'http://127.0.0.1:11434' : 'http://127.0.0.1:1234/v1'
+      const requestedBaseUrl = request?.baseUrl?.trim()
+      const baseUrl = requestedBaseUrl || settings.ai?.baseUrl || fallbackBaseUrl
+      const validationError = validateLocalBaseUrl(
+        baseUrl,
+        provider === 'ollama' ? 'KOBEANSQL_OLLAMA_URL' : 'KOBEANSQL_OPENAI_URL',
+        fallbackBaseUrl
+      )
+      if (validationError) {
+        return { success: false, models: [], error: validationError }
       }
-    } catch (err) {
-      return { success: false, models: [], error: (err as Error).message }
+      try {
+        if (provider === 'ollama') {
+          const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, {
+            signal: AbortSignal.timeout(5000)
+          })
+          if (!response.ok) return { success: false, models: [], error: `Ollama responded with ${response.status}` }
+          const data = (await response.json()) as { models?: Array<{ name: string }> }
+          const models = (data.models ?? []).map((m) => m.name).filter(Boolean)
+          return { success: true, models }
+        } else {
+          // OpenAI-compatible list endpoint — normalize base, then always append /v1/models
+          const base = baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+          const endpoint = `${base}/v1/models`
+          const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) })
+          if (!response.ok) return { success: false, models: [], error: `Provider responded with ${response.status}` }
+          const data = (await response.json()) as { data?: Array<{ id: string }> }
+          const models = (data.data ?? []).map((m) => m.id).filter(Boolean)
+          return { success: true, models }
+        }
+      } catch (err) {
+        return { success: false, models: [], error: (err as Error).message }
+      }
     }
-  })
+  )
 
   handleWithLogging('db:export-connections', async (_event: IpcMainInvokeEvent, includePasswords = false) => {
     const result = await dialog.showSaveDialog({

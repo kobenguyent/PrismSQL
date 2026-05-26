@@ -32,25 +32,20 @@ export function SettingsModal({ onClose }: Props): JSX.Element {
   const handleFetchModels = async () => {
     setFetchingModels(true)
     setModelsError(null)
-    // Temporarily save current AI settings so the main process uses the right URL
-    await updateSettings({
-      queryLimit: parseInt(queryLimit, 10) || settings.queryLimit,
-      updates: {
-        ...settings.updates,
-        autoCheckEnabled,
-        checkIntervalHours: parseInt(checkIntervalHours, 10) || settings.updates.checkIntervalHours
-      },
-      ai: { provider: aiProvider, baseUrl: aiBaseUrl, model: aiModel }
-    })
-    const result = await window.db.listAIModels()
-    setFetchingModels(false)
-    if (result.success) {
-      setModels(result.models)
-      if (result.models.length > 0 && !aiModel) {
-        setAiModel(result.models[0])
+    try {
+      const result = await window.db.listAIModels({ provider: aiProvider, baseUrl: aiBaseUrl })
+      if (result.success) {
+        setModels(result.models)
+        if (result.models.length > 0 && !aiModel) {
+          setAiModel(result.models[0])
+        }
+      } else {
+        setModelsError(result.error ?? 'Failed to fetch models')
       }
-    } else {
-      setModelsError(result.error ?? 'Failed to fetch models')
+    } catch (err) {
+      setModelsError((err as Error).message || 'Failed to fetch models')
+    } finally {
+      setFetchingModels(false)
     }
   }
 

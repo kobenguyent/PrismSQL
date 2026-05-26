@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   t,
   getLocale,
@@ -53,8 +53,17 @@ describe('i18n – getLocale() / setLocale()', () => {
   })
 
   it('does not switch to an unregistered locale', () => {
+    setLocale('fr')
     setLocale('zz')
     expect(getLocale()).toBe('en')
+  })
+
+  it('notifies subscribers when locale changes', () => {
+    const notify = vi.fn()
+    ;(globalThis as { __notifyLocaleChange?: () => void }).__notifyLocaleChange = notify
+    setLocale('fr')
+    expect(notify).toHaveBeenCalledOnce()
+    ;(globalThis as { __notifyLocaleChange?: () => void }).__notifyLocaleChange = undefined
   })
 
   it('returns translated strings after locale switch', () => {
