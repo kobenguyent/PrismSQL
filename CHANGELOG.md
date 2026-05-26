@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.0...v1.12.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* show correct connection state when pool closes unexpectedly ([#41](https://github.com/kobenguyent/KobeanSQL/issues/41)) ([10a4a5f](https://github.com/kobenguyent/KobeanSQL/commit/10a4a5fc57d01fa50728ef8bc6ed3dedc5055974))
+
 # [1.12.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.11.0...v1.12.0) (2026-05-26)
 
 
