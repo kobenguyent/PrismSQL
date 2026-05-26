@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.11.0...v1.12.0) (2026-05-26)
+
+
+### Features
+
+* in-app update downloads and language selector in settings ([#39](https://github.com/kobenguyent/KobeanSQL/issues/39)) ([cf4dbd1](https://github.com/kobenguyent/KobeanSQL/commit/cf4dbd1240df38d9459595754e22484174e2534c))
+
 # [1.11.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.10.0...v1.11.0) (2026-05-26)
 
 
