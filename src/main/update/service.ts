@@ -400,6 +400,10 @@ export function createUpdateService(): UpdateService {
     async downloadUpdate(): Promise<UpdateStatus> {
       if (downloadState === 'downloading') return toStatus()
 
+      downloadState = 'downloading'
+      downloadProgress = 0
+      downloadError = undefined
+
       const settings = loadSettings()
       let dlUrl = settings.updates.cache.downloadUrl
       if (!dlUrl) {
@@ -424,10 +428,6 @@ export function createUpdateService(): UpdateService {
         downloadError = 'Invalid download URL.'
         return toStatus()
       }
-
-      downloadState = 'downloading'
-      downloadProgress = 0
-      downloadError = undefined
 
       const filename = dlUrl.split('/').pop() ?? 'kobeansql-update'
       const destDir = path.join(app.getPath('temp'), 'kobeansql-update')

@@ -79,6 +79,7 @@ function makeBody(chunks: number[]): ReadableStream<Uint8Array> {
 
 describe('update service downloads', () => {
   const downloadedFile = path.join(os.tmpdir(), 'kobeansql-update', 'KobeanSQL.AppImage')
+  const downloadedFileVersioned = path.join(os.tmpdir(), 'kobeansql-update', 'KobeanSQL.2.0.0.AppImage')
 
   beforeEach(() => {
     vi.resetModules()
@@ -101,6 +102,7 @@ describe('update service downloads', () => {
     Object.defineProperty(process, 'platform', { value: originalProcessPlatform })
     Object.defineProperty(process, 'arch', { value: originalProcessArch })
     unlinkIfExists(downloadedFile)
+    unlinkIfExists(downloadedFileVersioned)
   })
 
   it('follows only validated redirect hosts for update downloads', async () => {
@@ -179,8 +181,6 @@ describe('update service downloads', () => {
       ]
     })
 
-    const downloadedFileForTest = path.join(os.tmpdir(), 'kobeansql-update', 'KobeanSQL.2.0.0.AppImage')
-
     const fetchMock = vi.fn()
       // First call: forced fresh check (no ETag header) → 200 with assets
       .mockResolvedValueOnce(new Response(releaseBody, { status: 200, headers: { etag: 'new-etag' } }))
@@ -202,7 +202,7 @@ describe('update service downloads', () => {
 
     expect(status.downloadState).toBe('ready')
     expect(status.downloadProgress).toBe(100)
-    try { fs.unlinkSync(downloadedFileForTest) } catch { /* ignore */ }
+    expect(fs.existsSync(downloadedFileVersioned)).toBe(true)
   })
 
   it('prefers arm64 mac assets and falls back to zip when selecting download URL', async () => {
