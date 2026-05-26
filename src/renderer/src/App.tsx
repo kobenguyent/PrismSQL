@@ -55,6 +55,8 @@ export default function App(): JSX.Element {
     dismissUpdateVersion,
     ignoreUpdateVersion,
     openUpdateRelease,
+    downloadUpdate,
+    installUpdate,
     setStatus
   } = useAppStore()
 
@@ -399,14 +401,72 @@ export default function App(): JSX.Element {
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
             A newer version of KobeanSQL is available on GitHub Releases.
           </div>
+
+          {updateStatus.downloadState === 'downloading' && (
+            <div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+                Downloading… {updateStatus.downloadProgress != null && updateStatus.downloadProgress >= 0
+                  ? `${updateStatus.downloadProgress}%`
+                  : ''}
+              </div>
+              <div style={{
+                height: 4,
+                background: 'var(--border-subtle)',
+                borderRadius: 2,
+                overflow: 'hidden'
+              }}>
+                {updateStatus.downloadProgress != null && updateStatus.downloadProgress >= 0 && (
+                  <div style={{
+                    height: '100%',
+                    width: `${updateStatus.downloadProgress}%`,
+                    background: 'var(--accent)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {updateStatus.downloadState === 'error' && updateStatus.downloadError && (
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-error)' }}>
+              {updateStatus.downloadError}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
-              style={{ minHeight: 30 }}
-            >
-              View release
-            </button>
+            {updateStatus.downloadState === 'ready' ? (
+              <button
+                className="btn btn-primary"
+                onClick={() => installUpdate()}
+                style={{ minHeight: 30 }}
+              >
+                Install &amp; Restart
+              </button>
+            ) : updateStatus.downloadState === 'downloading' ? (
+              <button className="btn btn-primary" disabled style={{ minHeight: 30 }}>
+                Downloading…
+              </button>
+            ) : (
+              <>
+                {updateStatus.downloadState !== 'idle' || updateStatus.downloadState === 'idle' ? (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => downloadUpdate()}
+                    disabled={updateStatus.downloadState === 'downloading'}
+                    style={{ minHeight: 30 }}
+                  >
+                    Download Update
+                  </button>
+                ) : null}
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => openUpdateRelease(updateStatus.releaseUrl)}
+                  style={{ minHeight: 30 }}
+                >
+                  View release
+                </button>
+              </>
+            )}
             <button
               className="btn btn-secondary"
               onClick={() => dismissUpdateVersion(updateStatus.latestVersion)}

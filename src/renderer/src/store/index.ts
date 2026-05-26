@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import type { DatabaseSchema } from '@renderer/types/schema'
 import { buildProcedureCallSql, buildSelectTableSql, quoteIdentifier } from '../sql/dsl'
+import { setLocale } from '../i18n'
 
 const THEME_STORAGE_KEY = 'kobeansql-theme'
 
@@ -94,6 +95,8 @@ declare global {
       ignoreUpdateVersion(version?: string): Promise<UpdateStatus | null>
       dismissUpdateVersion(version?: string): Promise<UpdateStatus | null>
       openUpdateRelease(url?: string): Promise<{ success: boolean; url: string }>
+      downloadUpdate(): Promise<UpdateStatus | null>
+      installUpdate(): Promise<{ success: boolean; error?: string }>
     }
   }
 }
@@ -205,6 +208,8 @@ interface AppState {
   ignoreUpdateVersion(version?: string): Promise<void>
   dismissUpdateVersion(version?: string): Promise<void>
   openUpdateRelease(url?: string): Promise<void>
+  downloadUpdate(): Promise<void>
+  installUpdate(): Promise<void>
 
   // UI actions
   setSidebarWidth(w: number): void
@@ -788,6 +793,9 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           state.settings = s
         })
+        if (s.language) {
+          setLocale(s.language)
+        }
         await get().loadUpdateStatus()
       } catch {/* ignore */}
     },
@@ -891,6 +899,33 @@ export const useAppStore = create<AppState>()(
           get().setStatus('Opened release page', 'info')
         } else {
           get().setStatus('Failed to open release page', 'warning')
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    downloadUpdate: async () => {
+      try {
+        const status = await window.db.downloadUpdate()
+        if (status) {
+          set((s) => {
+            s.updateStatus = status
+          })
+          if (status.downloadState === 'error') {
+            get().setStatus(status.downloadError ?? 'Download failed', 'error')
+          }
+        }
+      } catch (error) {
+        get().setStatus(getErrorMessage(error), 'error')
+      }
+    },
+
+    installUpdate: async () => {
+      try {
+        const result = await window.db.installUpdate()
+        if (!result?.success) {
+          get().setStatus(result?.error ?? 'Install failed', 'error')
         }
       } catch (error) {
         get().setStatus(getErrorMessage(error), 'error')

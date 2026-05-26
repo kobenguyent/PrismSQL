@@ -111,6 +111,7 @@ export interface AppSettings {
     baseUrl: string
     model: string
   }
+  language?: string
 }
 
 export interface UpdateStatus {
@@ -128,6 +129,9 @@ export interface UpdateStatus {
   updateAvailable: boolean
   shouldNotify: boolean
   error?: string
+  downloadState?: 'idle' | 'downloading' | 'ready' | 'error'
+  downloadProgress?: number
+  downloadError?: string
 }
 
 export const DB_COLORS: Record<DatabaseType, string> = {

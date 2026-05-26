@@ -1,4 +1,6 @@
 import { app, net, shell } from 'electron'
+import path from 'path'
+import fs from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { appLogger } from '../logger'
 import { loadSettings, saveSettings } from '../store'
@@ -12,10 +14,24 @@ const MIN_RESCHEDULE_DELAY_MS = 10_000
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000
 const FALLBACK_INTERVAL_HOURS = 24
 
+/** Pattern matching GitHub asset names for each platform. */
+const PLATFORM_ASSET_PATTERNS: Record<string, RegExp> = {
+  win32: /\.exe$/i,
+  darwin: /\.dmg$/i,
+  linux: /\.AppImage$/i
+}
+
+interface GithubReleaseAsset {
+  name: string
+  browser_download_url: string
+  size: number
+}
+
 interface GithubLatestReleaseResponse {
   tag_name?: string
   html_url?: string
   name?: string
+  assets?: GithubReleaseAsset[]
 }
 
 export interface UpdateStatus {
@@ -33,6 +49,9 @@ export interface UpdateStatus {
   updateAvailable: boolean
   shouldNotify: boolean
   error?: string
+  downloadState?: 'idle' | 'downloading' | 'ready' | 'error'
+  downloadProgress?: number
+  downloadError?: string
 }
 
 export interface UpdateService {
@@ -43,6 +62,8 @@ export interface UpdateService {
   ignoreVersion(version?: string): Promise<UpdateStatus>
   dismissVersion(version?: string): Promise<UpdateStatus>
   openReleasePage(url?: string): Promise<{ success: boolean; url: string }>
+  downloadUpdate(): Promise<UpdateStatus>
+  installUpdate(): Promise<{ success: boolean; error?: string }>
 }
 
 export function createUpdateService(): UpdateService {
@@ -51,6 +72,12 @@ export function createUpdateService(): UpdateService {
   let timer: NodeJS.Timeout | null = null
   let interval: NodeJS.Timeout | null = null
   let lastError: string | undefined
+
+  // Download state
+  let downloadState: 'idle' | 'downloading' | 'ready' | 'error' = 'idle'
+  let downloadProgress = 0
+  let downloadError: string | undefined
+  let downloadedFilePath: string | undefined
 
   const clearSchedule = (): void => {
     if (timer) clearTimeout(timer)
@@ -102,7 +129,10 @@ export function createUpdateService(): UpdateService {
       dismissedAt: settings.updates.dismissedAt,
       updateAvailable,
       shouldNotify: updateAvailable ? shouldNotify() : false,
-      error: lastError
+      error: lastError,
+      downloadState,
+      downloadProgress,
+      downloadError
     }
   }
 
@@ -112,6 +142,7 @@ export function createUpdateService(): UpdateService {
     releaseName?: string
     checkedAt: number
     etag?: string
+    downloadUrl?: string
   }): void => {
     const settings = loadSettings()
     saveSettings({
@@ -124,6 +155,15 @@ export function createUpdateService(): UpdateService {
         }
       }
     })
+  }
+
+  /** Pick the platform-appropriate asset URL from a GitHub release, if available. */
+  const pickDownloadUrl = (assets: GithubReleaseAsset[] | undefined): string | undefined => {
+    if (!assets || assets.length === 0) return undefined
+    const pattern = PLATFORM_ASSET_PATTERNS[process.platform]
+    if (!pattern) return undefined
+    const asset = assets.find((a) => pattern.test(a.name))
+    return asset?.browser_download_url
   }
 
   const fetchLatestRelease = async (): Promise<void> => {
@@ -160,7 +200,8 @@ export function createUpdateService(): UpdateService {
       releaseUrl: body.html_url || RELEASES_PAGE_URL,
       releaseName: body.name || undefined,
       checkedAt,
-      etag: response.headers.get('etag') ?? undefined
+      etag: response.headers.get('etag') ?? undefined,
+      downloadUrl: pickDownloadUrl(body.assets)
     })
   }
 
@@ -279,6 +320,114 @@ export function createUpdateService(): UpdateService {
       const target = isAllowedUrl(url) ? url! : (isAllowedUrl(cachedUrl) ? cachedUrl! : RELEASES_PAGE_URL)
       await shell.openExternal(target)
       return { success: true, url: target }
+    },
+
+    async downloadUpdate(): Promise<UpdateStatus> {
+      if (downloadState === 'downloading') return toStatus()
+
+      const settings = loadSettings()
+      const dlUrl = settings.updates.cache.downloadUrl
+      if (!dlUrl) {
+        downloadState = 'error'
+        downloadError = 'No download URL available for this platform. Please visit the releases page.'
+        return toStatus()
+      }
+
+      // Validate URL is a GitHub asset URL
+      try {
+        const parsed = new URL(dlUrl)
+        if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
+          downloadState = 'error'
+          downloadError = 'Invalid download URL.'
+          return toStatus()
+        }
+      } catch {
+        downloadState = 'error'
+        downloadError = 'Invalid download URL.'
+        return toStatus()
+      }
+
+      downloadState = 'downloading'
+      downloadProgress = 0
+      downloadError = undefined
+
+      const filename = dlUrl.split('/').pop() ?? 'kobeansql-update'
+      const destDir = path.join(app.getPath('temp'), 'kobeansql-update')
+      const destPath = path.join(destDir, filename)
+
+      try {
+        await fs.promises.mkdir(destDir, { recursive: true })
+        const response = await fetch(dlUrl, {
+          headers: { 'User-Agent': 'KobeanSQL-Update-Checker' }
+        })
+        if (!response.ok) {
+          throw new Error(`Download failed (${response.status})`)
+        }
+        const total = parseInt(response.headers.get('content-length') ?? '0', 10)
+        const dest = fs.createWriteStream(destPath)
+
+        await new Promise<void>((resolve, reject) => {
+          if (!response.body) {
+            reject(new Error('No response body'))
+            return
+          }
+          const reader = response.body.getReader()
+          let downloaded = 0
+
+          const pump = async (): Promise<void> => {
+            try {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                downloaded += value.length
+                downloadProgress = total > 0 ? Math.round((downloaded / total) * 100) : -1
+                await new Promise<void>((res, rej) => {
+                  dest.write(value, (err) => (err ? rej(err) : res()))
+                })
+              }
+              dest.end()
+              dest.once('finish', resolve)
+              dest.once('error', reject)
+            } catch (err) {
+              dest.destroy()
+              reject(err)
+            }
+          }
+
+          void pump()
+        })
+
+        downloadedFilePath = destPath
+        downloadState = 'ready'
+        downloadProgress = 100
+        appLogger.info('Update downloaded', { path: destPath })
+      } catch (error) {
+        downloadState = 'error'
+        downloadError = (error as Error).message || 'Download failed'
+        appLogger.warn('Update download failed', { error: downloadError })
+        try { await fs.promises.unlink(destPath) } catch { /* ignore */ }
+      }
+
+      return toStatus()
+    },
+
+    async installUpdate(): Promise<{ success: boolean; error?: string }> {
+      if (downloadState !== 'ready' || !downloadedFilePath) {
+        return { success: false, error: 'No update ready to install.' }
+      }
+      try {
+        const openError = await shell.openPath(downloadedFilePath)
+        if (openError) {
+          return { success: false, error: openError }
+        }
+        // Reset download state after handing off to OS installer
+        downloadState = 'idle'
+        downloadProgress = 0
+        downloadedFilePath = undefined
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
     }
   }
 }

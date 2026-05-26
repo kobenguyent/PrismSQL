@@ -107,6 +107,28 @@ const vi = {
   // ── Privacy / About ───────────────────────────────────────────
   'about.title': 'Giới thiệu KobeanSQL',
   'privacy.title': 'Quyền riêng tư & Bảo mật',
+
+  // ── Language names ────────────────────────────────────────────
+  'lang.en': 'English',
+  'lang.de': 'Deutsch',
+  'lang.es': 'Español',
+  'lang.fr': 'Français',
+  'lang.ja': '日本語',
+  'lang.vi': 'Tiếng Việt',
+
+  // ── Update download ───────────────────────────────────────────
+  'updates.downloadUpdate': 'Tải xuống bản cập nhật',
+  'updates.downloading': 'Đang tải xuống… {progress}%',
+  'updates.installAndRestart': 'Cài đặt & Khởi động lại',
+  'updates.remindLater': 'Nhắc tôi sau',
+  'updates.ignoreVersion': 'Bỏ qua phiên bản này',
+  'updates.available': 'Có bản cập nhật: v{version}',
+  'updates.availableSub': 'Phiên bản mới hơn của KobeanSQL hiện có trên GitHub Releases.',
+  'updates.downloadError': 'Tải xuống thất bại: {error}',
+
+  // ── Settings – new keys ───────────────────────────────────────
+  'settings.language': 'Ngôn ngữ giao diện',
+  'settings.languageHelp': 'Chọn ngôn ngữ ưa thích của bạn cho giao diện ứng dụng.',
 } as const
 
 export default vi

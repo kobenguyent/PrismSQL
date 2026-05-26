@@ -23,6 +23,7 @@ export interface AppSettings {
   queryLimit: number
   updates: UpdateSettings
   ai?: AIStoredSettings
+  language?: string
 }
 
 export interface UpdateSettings {
@@ -40,6 +41,7 @@ export interface UpdateCheckCache {
   releaseUrl?: string
   releaseName?: string
   checkedAt?: number
+  downloadUrl?: string
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -307,7 +309,8 @@ function sanitizeUpdateCache(value: unknown): UpdateCheckCache {
     latestVersion: sanitizeOptionalString(source.latestVersion),
     releaseUrl: sanitizeOptionalString(source.releaseUrl),
     releaseName: sanitizeOptionalString(source.releaseName),
-    checkedAt: sanitizeTimestamp(source.checkedAt)
+    checkedAt: sanitizeTimestamp(source.checkedAt),
+    downloadUrl: sanitizeOptionalString(source.downloadUrl)
   }
 }
 
@@ -355,6 +358,8 @@ export function sanitizeSettings(settings: unknown): AppSettings {
   }
   const ai = sanitizeAISettings(source.ai)
   if (ai) result.ai = ai
+  const language = sanitizeOptionalString(source.language)
+  if (language) result.language = language
   return result
 }
 

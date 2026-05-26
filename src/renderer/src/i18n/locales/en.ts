@@ -73,6 +73,8 @@ const en = {
   'settings.updateChecks': 'Enable update checks',
   'settings.updateChecksHelp': 'Checks GitHub releases for newer versions. You can disable this anytime.',
   'settings.updateInterval': 'Update Check Interval (hours)',
+  'settings.language': 'Interface Language',
+  'settings.languageHelp': 'Choose your preferred language for the application interface.',
   'settings.aiProvider': 'AI Provider',
   'settings.aiBaseUrl': 'AI Base URL',
   'settings.aiModel': 'AI Model',
@@ -111,6 +113,24 @@ const en = {
   // ── Privacy / About ───────────────────────────────────────────
   'about.title': 'About KobeanSQL',
   'privacy.title': 'Privacy & Security',
+
+  // ── Language names (always shown in their own language) ───────
+  'lang.en': 'English',
+  'lang.de': 'Deutsch',
+  'lang.es': 'Español',
+  'lang.fr': 'Français',
+  'lang.ja': '日本語',
+  'lang.vi': 'Tiếng Việt',
+
+  // ── Update download ───────────────────────────────────────────
+  'updates.downloadUpdate': 'Download Update',
+  'updates.downloading': 'Downloading… {progress}%',
+  'updates.installAndRestart': 'Install & Restart',
+  'updates.remindLater': 'Remind me later',
+  'updates.ignoreVersion': 'Ignore this version',
+  'updates.available': 'Update available: v{version}',
+  'updates.availableSub': 'A newer version of KobeanSQL is available on GitHub Releases.',
+  'updates.downloadError': 'Download failed: {error}',
 } as const
 
 export type TranslationKey = keyof typeof en
