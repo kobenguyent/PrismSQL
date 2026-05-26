@@ -241,13 +241,13 @@ export function createUpdateService(): UpdateService {
     throw new Error('Too many download redirects.')
   }
 
-  const fetchLatestRelease = async (): Promise<void> => {
+  const fetchLatestRelease = async (force = false): Promise<void> => {
     const settings = loadSettings()
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'KobeanSQL-Update-Checker'
     }
-    if (settings.updates.cache.etag) {
+    if (!force && settings.updates.cache.etag) {
       headers['If-None-Match'] = settings.updates.cache.etag
     }
 
@@ -401,7 +401,18 @@ export function createUpdateService(): UpdateService {
       if (downloadState === 'downloading') return toStatus()
 
       const settings = loadSettings()
-      const dlUrl = settings.updates.cache.downloadUrl
+      let dlUrl = settings.updates.cache.downloadUrl
+      if (!dlUrl) {
+        // downloadUrl may be missing if this is a legacy cache entry that predates
+        // the field, or if the prior check returned 304 without assets. Force a
+        // fresh fetch (bypassing ETag) so we always have the latest asset list.
+        try {
+          await fetchLatestRelease(true)
+          dlUrl = loadSettings().updates.cache.downloadUrl
+        } catch {
+          // ignore — fall through to the error path below
+        }
+      }
       if (!dlUrl) {
         downloadState = 'error'
         downloadError = 'No download URL available for this platform. Please visit the releases page.'
