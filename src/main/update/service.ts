@@ -185,7 +185,7 @@ export function createUpdateService(): UpdateService {
   const fetchDownloadResponse = async (url: string): Promise<Response> => {
     let currentUrl = url
 
-    for (let redirects = 0; redirects <= MAX_DOWNLOAD_REDIRECTS; redirects += 1) {
+    for (let redirects = 0; redirects < MAX_DOWNLOAD_REDIRECTS; redirects += 1) {
       if (!isAllowedDownloadUrl(currentUrl)) {
         throw new Error('Invalid download URL.')
       }
