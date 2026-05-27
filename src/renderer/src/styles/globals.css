@@ -1057,11 +1057,9 @@ html, body, #root {
 
 /* Data table */
 .data-table {
-  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
   font-family: var(--font-mono);
-  table-layout: fixed;
 }
 .data-table th {
   position: sticky;
@@ -1096,8 +1094,6 @@ html, body, #root {
   border-bottom: 1px solid rgba(255,255,255,0.04);
   color: var(--text-primary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .data-table td.null-value { color: var(--text-tertiary); font-style: italic; }
 .data-table td.number-value { color: #80c8ff; }
