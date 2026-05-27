@@ -40,6 +40,7 @@ const ja = {
   'connection.test': '接続をテスト',
   'connection.testing': 'テスト中…',
   'connection.connect': '接続して保存',
+  'connection.update': '更新',
   'connection.connecting': '接続中…',
   'connection.success': '接続に成功しました',
   'connection.nameRequired': '接続名は必須です',
@@ -48,7 +49,9 @@ const ja = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': '実行',
   'editor.stop': '停止',
+  'editor.running': '実行中…',
   'editor.save': 'クエリを保存',
+  'editor.saveQueryTooltip': 'クエリを保存',
   'editor.beautify': 'SQLを整形',
   'editor.buildSql': 'SQLを構築',
   'editor.aiGenerate': 'AI: SQLを生成',
@@ -56,11 +59,15 @@ const ja = {
   'editor.aiOptimize': 'AI: SQLを最適化',
   'editor.placeholder': 'ここにSQLを記述…',
   'editor.noConnection': '接続を選択',
+  'editor.selectConnection': '接続を選択…',
   'editor.queryName': 'クエリ名',
   'editor.queryCategory': 'カテゴリ（任意）',
   'editor.saveTitle': 'クエリを保存',
   'editor.cancel': 'キャンセル',
   'editor.insert': '挿入',
+  'editor.generate': '生成',
+  'editor.aiPromptLabel': '欲しいクエリを説明してください',
+  'editor.aiLocalOnly': 'ローカル専用AI：プロンプトはローカルプロバイダーにのみ送信されます',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': '設定',
@@ -90,11 +97,24 @@ const ja = {
   'common.confirm': '確認',
   'common.yes': 'はい',
   'common.no': 'いいえ',
+  'common.loading': '読み込み中…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'クエリ履歴',
+  'app.schemaVisualizer': 'スキーマビジュアライザー',
+  'app.settings': '設定',
+  'app.checkForUpdates': 'アップデートを確認',
+  'app.openLogs': 'ログフォルダを開く',
+  'app.documentation': 'ドキュメント',
+  'app.hideSidebar': 'サイドバーを隠す',
+  'app.showSidebar': 'サイドバーを表示',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'ダーク',
   'theme.light': 'ライト',
   'theme.system': 'システム',
+  'theme.matrix': 'マトリックス',
+  'theme.cyberpunk': 'サイバーパンク',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{ms}ms で {count} 行{plural}',

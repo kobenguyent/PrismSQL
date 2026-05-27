@@ -4,6 +4,7 @@ import { useAppStore, genId } from '../../store'
 import type { ConnectionConfig, DatabaseType } from '../../types'
 import { DB_DEFAULT_PORTS } from '../../types'
 import { parseConnectionUriPreview } from '../../utils/connection-uri'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   onClose: () => void
@@ -89,6 +90,7 @@ const defaultConfig = (): Omit<ConnectionConfig, 'id'> => ({
 
 export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Element {
   const { saveConnection, connect, connections } = useAppStore()
+  const { t } = useTranslation()
 
   const [config, setConfig] = useState<Omit<ConnectionConfig, 'id'>>(() =>
     editConfig ? { ...editConfig } : defaultConfig()
@@ -198,7 +200,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
               <Database size={16} color="white" />
             </div>
             <span className="modal-title">
-              {editConfig ? 'Edit Connection' : 'New Connection'}
+              {editConfig ? t('connection.editTitle') : t('connection.newTitle')}
             </span>
           </div>
           <button className="icon-btn" onClick={onClose}>
@@ -208,7 +210,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
 
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">Database Type</label>
+            <label className="form-label">{t('connection.dbType')}</label>
             <div className="db-type-grid">
               {DB_TYPES.map((db) => (
                 <div
@@ -226,7 +228,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
           </div>
 
           <div className="form-group">
-            <label className="form-label">Connection Name</label>
+            <label className="form-label">{t('connection.name')}</label>
             <input
               className="form-input"
               type="text"
@@ -238,7 +240,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
           </div>
 
           <div className="form-group">
-            <label className="form-label">Category (optional)</label>
+            <label className="form-label">{t('connection.category')}</label>
             <input
               className="form-input"
               type="text"
@@ -258,21 +260,21 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
 
           {!isSQLite && (
             <div className="form-group">
-              <label className="form-label">Connection Method</label>
+              <label className="form-label">{t('connection.method')}</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
                   className={`btn ${connectionMode === 'manual' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setConnectionMode('manual')}
                 >
-                  Manual
+                  {t('connection.manual')}
                 </button>
                 <button
                   type="button"
                   className={`btn ${connectionMode === 'uri' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => setConnectionMode('uri')}
                 >
-                  URI / URL
+                  {t('connection.uri')}
                 </button>
               </div>
             </div>
@@ -280,7 +282,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
 
           {isSQLite ? (
             <div className="form-group">
-              <label className="form-label">Database File Path</label>
+              <label className="form-label">{t('connection.file')}</label>
               <input
                 className="form-input"
                 type="text"
@@ -292,7 +294,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
           ) : connectionMode === 'uri' ? (
             <>
               <div className="form-group">
-                <label className="form-label">Connection URI / URL</label>
+                <label className="form-label">{t('connection.uri')}</label>
                 <input
                   className="form-input"
                   type="text"
@@ -329,7 +331,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
             <>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Host</label>
+                  <label className="form-label">{t('connection.host')}</label>
                   <input
                     className="form-input"
                     type="text"
@@ -339,7 +341,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Port</label>
+                  <label className="form-label">{t('connection.port')}</label>
                   <input
                     className="form-input"
                     type="number"
@@ -352,7 +354,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Username</label>
+                  <label className="form-label">{t('connection.user')}</label>
                   <input
                     className="form-input"
                     type="text"
@@ -363,7 +365,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
+                  <label className="form-label">{t('connection.password')}</label>
                   <input
                     className="form-input"
                     type="password"
@@ -376,7 +378,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
               </div>
 
               <div className="form-group">
-                <label className="form-label">Database (optional)</label>
+                <label className="form-label">{t('connection.database')}</label>
                 <input
                   className="form-input"
                   type="text"
@@ -392,7 +394,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
                   checked={config.ssl ?? false}
                   onChange={(e) => update('ssl', e.target.checked)}
                 />
-                <span className="form-checkbox-label">Use SSL / TLS</span>
+                <span className="form-checkbox-label">{t('connection.ssl')}</span>
               </label>
             </>
           )}
@@ -425,13 +427,13 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={handleTest} disabled={testing}>
-            {testing ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Testing...</> : 'Test Connection'}
+            {testing ? <><span className="spinner" style={{ width: 12, height: 12 }} /> {t('connection.testing')}</> : t('connection.test')}
           </button>
           <div style={{ flex: 1 }} />
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onClose}>{t('settings.cancel')}</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving || disableConnectActions}>
             {saving ? <span className="spinner" style={{ width: 12, height: 12 }} /> : null}
-            {editConfig ? 'Update' : 'Connect'}
+            {editConfig ? t('connection.update') : t('connection.connect')}
           </button>
         </div>
       </div>

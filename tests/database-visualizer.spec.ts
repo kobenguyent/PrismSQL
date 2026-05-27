@@ -102,7 +102,7 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await connectionModal.screenshot({ path: DOCS_SCREENSHOTS.addConnectionFlow })
     await connectionModal.screenshot({ path: DOCS_SCREENSHOTS.connectionModal })
 
-    await page.getByRole('button', { name: /^connect$/i }).click()
+    await page.getByRole('button', { name: /^connect & save$/i }).click()
     await expect(connectionModalTitle).toBeHidden()
     await expect(page.locator('.sidebar .connection-name', { hasText: 'Schema Visualizer E2E' })).toBeVisible()
 

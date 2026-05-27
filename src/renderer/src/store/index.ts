@@ -21,10 +21,10 @@ import { setLocale } from '../i18n'
 const THEME_STORAGE_KEY = 'kobeansql-theme'
 const UPDATE_DOWNLOAD_POLL_MS = 250
 
-function loadPersistedTheme(): 'dark' | 'light' | 'system' {
+function loadPersistedTheme(): 'dark' | 'light' | 'system' | 'matrix' | 'cyberpunk' {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY)
-    if (stored === 'dark' || stored === 'light' || stored === 'system') return stored
+    if (stored === 'dark' || stored === 'light' || stored === 'system' || stored === 'matrix' || stored === 'cyberpunk') return stored
   } catch {/* ignore */}
   return 'dark'
 }
@@ -157,7 +157,7 @@ interface AppState {
   // UI state
   sidebarWidth: number
   isSidebarCollapsed: boolean
-  theme: 'dark' | 'light' | 'system'
+  theme: 'dark' | 'light' | 'system' | 'matrix' | 'cyberpunk'
   statusMessage: string | null
   statusType: 'info' | 'success' | 'error' | 'warning'
 
@@ -217,7 +217,7 @@ interface AppState {
   // UI actions
   setSidebarWidth(w: number): void
   setSidebarCollapsed(v: boolean): void
-  setTheme(t: 'dark' | 'light' | 'system'): void
+  setTheme(t: 'dark' | 'light' | 'system' | 'matrix' | 'cyberpunk'): void
   setStatus(msg: string | null, type?: AppState['statusType']): void
 }
 
