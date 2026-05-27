@@ -421,6 +421,15 @@ export function ResultsTable({
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Transient inline error (auto-clears) for non-modal operation failures
+  const [tableError, setTableError] = useState<string | null>(null)
+  const tableErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function showTableError(msg: string) {
+    setTableError(msg)
+    if (tableErrorTimer.current) clearTimeout(tableErrorTimer.current)
+    tableErrorTimer.current = setTimeout(() => setTableError(null), 4000)
+  }
+
   const conn = connectionId ? connections.find((c) => c.id === connectionId) : null
   const canEdit = !!(connectionId && tableName && conn)
 
@@ -495,9 +504,18 @@ export function ResultsTable({
     return editStr
   }
 
+  /**
+   * Returns true when the edit string differs from the original cell value's
+   * string representation — used for both the dirty indicator and no-op commit check.
+   */
+  function isValueDirty(editStr: string, original: unknown): boolean {
+    const originalStr = original === null || original === undefined ? '' : String(original)
+    return editStr !== originalStr
+  }
+
   function handleCellDoubleClick(rowIdx: number, col: string, value: unknown) {
     if (!canEdit) return
-    // Cancel any in-progress edit without saving when switching cells
+    // Previous edit is implicitly replaced without saving
     setEditingCell({ rowIdx, col, original: value })
     setEditValue(value === null || value === undefined ? '' : String(value))
   }
@@ -514,8 +532,8 @@ export function ResultsTable({
   function commitEdit(row: Record<string, unknown>) {
     if (!editingCell) return
     const typedVal = coerceEditValue(editValue, editingCell.original)
-    // No-op if value is unchanged
-    if (typedVal === editingCell.original || String(typedVal) === String(editingCell.original)) {
+    // No-op if value string representation is unchanged
+    if (!isValueDirty(editValue, editingCell.original)) {
       setEditingCell(null)
       return
     }
@@ -596,7 +614,7 @@ export function ResultsTable({
       .map((r) => buildDeleteSqlForRow(r.original))
       .filter((s): s is string => s !== null)
     if (sqls.length === 0) {
-      setDeleteError('Cannot delete: table has no primary key columns, which are required to safely identify rows for deletion.')
+      showTableError('Cannot delete: table has no primary key columns, which are required to safely identify rows for deletion.')
       return
     }
     setPendingDelete({ sqls, count: sqls.length })
@@ -631,7 +649,9 @@ export function ResultsTable({
     const headers = result.columns.map((c) => c.name)
     const lines = selected.map((row) => headers.map((h) => formatCell(row[h])).join('\t'))
     const text = [headers.join('\t'), ...lines].join('\n')
-    navigator.clipboard.writeText(text).catch(() => { /* ignore */ })
+    navigator.clipboard.writeText(text).catch((err: Error) => {
+      showTableError(`Copy failed: ${err.message || 'clipboard unavailable'}`)
+    })
   }
 
   const columns = useMemo(
@@ -648,7 +668,7 @@ export function ResultsTable({
           const v = info.getValue()
           const rowIdx = info.row.index
           const isEditing = editingCell?.rowIdx === rowIdx && editingCell?.col === col.name
-          const isDirty = isEditing && editValue !== (editingCell?.original === null || editingCell?.original === undefined ? '' : String(editingCell.original))
+          const isDirty = isEditing && isValueDirty(editValue, editingCell?.original)
           if (isEditing) {
             return (
               <div className={`cell-edit-wrap${isDirty ? ' cell-dirty' : ''}`}>
@@ -770,6 +790,28 @@ export function ResultsTable({
             </span>
           )}
         </span>
+
+        {/* Inline operation error (auto-clears) */}
+        {tableError && (
+          <span
+            style={{
+              fontSize: 'var(--font-size-xs)',
+              color: 'var(--color-error)',
+              background: 'rgba(248,113,113,0.1)',
+              border: '1px solid rgba(248,113,113,0.25)',
+              borderRadius: 20,
+              padding: '2px 10px',
+              whiteSpace: 'nowrap',
+              flexShrink: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 280
+            }}
+            title={tableError}
+          >
+            ⚠ {tableError}
+          </span>
+        )}
 
         {/* Selection count + bulk actions */}
         {selCount > 0 && (
