@@ -519,10 +519,17 @@ export function createUpdateService(): UpdateService {
         if (openError) {
           return { success: false, error: openError }
         }
-        // Reset download state after handing off to OS installer
+        // Reset download state after handing off to OS installer, then quit
+        // so the installer runs without a stale instance remaining open.
         downloadState = 'idle'
         downloadProgress = 0
         downloadedFilePath = undefined
+        // Give the renderer ~300 ms to receive the IPC reply and render any
+        // transitional UI before the process exits.  This is a best-effort
+        // courtesy flush; Electron's IPC layer does not expose a "reply
+        // acknowledged" callback, so a short fixed delay is the standard
+        // pattern for this use-case.
+        setTimeout(() => app.quit(), 300)
         return { success: true }
       } catch (error) {
         return { success: false, error: (error as Error).message }
