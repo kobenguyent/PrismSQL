@@ -1,16 +1,58 @@
-import Database from 'better-sqlite3'
 import { DatabaseAdapter } from '../adapter'
 import { ConnectionConfig, QueryResult, TableInfo, ColumnInfo, ProcedureInfo, ForeignKeyInfo } from '../types'
 
+type SQLiteRow = Record<string, unknown>
+
+type SQLiteStatement = {
+  all: (...params: unknown[]) => SQLiteRow[]
+  run: (...params: unknown[]) => { changes: number }
+  columns?: () => Array<{ name: string; type?: string }>
+}
+
+type SQLiteDatabase = {
+  close: () => void
+  prepare: (sql: string) => SQLiteStatement
+  exec?: (sql: string) => void
+  pragma?: (sql: string) => Array<{ name: string }>
+  open?: boolean
+}
+
 export class SQLiteAdapter implements DatabaseAdapter {
-  private db: Database.Database | null = null
+  private db: SQLiteDatabase | null = null
+
+  private applyPragma(sql: string): void {
+    if (!this.db) return
+    if (this.db.pragma) {
+      this.db.pragma(sql)
+      return
+    }
+    this.db.exec?.(`PRAGMA ${sql};`)
+  }
+
+  private async openDatabase(filename: string): Promise<SQLiteDatabase> {
+    try {
+      const module = await import('better-sqlite3')
+      const BetterSqlite3 = module.default
+      return new BetterSqlite3(filename, { readonly: false }) as SQLiteDatabase
+    } catch {
+      const builtinSqlite = process.getBuiltinModule?.('node:sqlite') as
+        | {
+            DatabaseSync?: new (path: string) => SQLiteDatabase
+          }
+        | undefined
+      if (!builtinSqlite?.DatabaseSync) {
+        throw new Error('SQLite driver unavailable: failed to load better-sqlite3 and node:sqlite')
+      }
+      return new builtinSqlite.DatabaseSync(filename)
+    }
+  }
 
   async connect(config: ConnectionConfig): Promise<void> {
     const filename = config.filename || ':memory:'
-    this.db = new Database(filename, { readonly: false })
+    this.db = await this.openDatabase(filename)
     // Enable WAL mode for better performance
-    this.db.pragma('journal_mode = WAL')
-    this.db.pragma('foreign_keys = ON')
+    this.applyPragma('journal_mode = WAL')
+    this.applyPragma('foreign_keys = ON')
   }
 
   async disconnect(): Promise<void> {
@@ -21,7 +63,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
   }
 
   isConnected(): boolean {
-    return this.db !== null && this.db.open
+    return this.db !== null && this.db.open !== false
   }
 
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
@@ -33,8 +75,8 @@ export class SQLiteAdapter implements DatabaseAdapter {
         trimmed.startsWith('select') || trimmed.startsWith('with') || trimmed.startsWith('pragma')
       if (isSelect) {
         const stmt = this.db.prepare(sql)
-        const rows = stmt.all(...params) as Record<string, unknown>[]
-        const metadataColumns = stmt.columns().map((col) => ({
+        const rows = stmt.all(...params) as SQLiteRow[]
+        const metadataColumns = (stmt.columns?.() ?? []).map((col) => ({
           name: col.name,
           type: col.type || 'TEXT',
           nullable: true,
@@ -71,8 +113,12 @@ export class SQLiteAdapter implements DatabaseAdapter {
   async getDatabases(): Promise<string[]> {
     if (!this.db) return []
     // SQLite only has one database per connection
-    const result = this.db.pragma('database_list') as { name: string }[]
-    return result.map((r) => r.name)
+    if (this.db.pragma) {
+      const result = this.db.pragma('database_list') as { name: string }[]
+      return result.map((r) => r.name)
+    }
+    const result = await this.query('PRAGMA database_list')
+    return result.rows.map((r) => String(r['name']))
   }
 
   async getTables(database?: string): Promise<TableInfo[]> {
