@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.3...v1.13.0) (2026-05-27)
+
+
+### Features
+
+* inline cell edit actions, bulk row operations, and long-cell previews ([#44](https://github.com/kobenguyent/KobeanSQL/issues/44)) ([5263040](https://github.com/kobenguyent/KobeanSQL/commit/5263040d0aeb409e143944722d48916b5b564ab3))
+
 ## [1.12.3](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.2...v1.12.3) (2026-05-26)
 
 
