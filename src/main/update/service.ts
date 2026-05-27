@@ -1,6 +1,7 @@
 import { app, net, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { spawn } from 'child_process'
 import { is } from '@electron-toolkit/utils'
 import { appLogger } from '../logger'
 import { loadSettings, saveSettings } from '../store'
@@ -515,6 +516,99 @@ export function createUpdateService(): UpdateService {
         return { success: false, error: 'No update ready to install.' }
       }
       try {
+        const ext = path.extname(downloadedFilePath).toLowerCase()
+        const updateDir = path.dirname(downloadedFilePath)
+        // How long to wait (in seconds) for the Electron process to exit before
+        // the update script proceeds.  Must be long enough for app.quit() + the
+        // IPC reply round-trip to complete.
+        const APP_QUIT_GRACE_SECS = 3
+        // Delay before calling app.quit() so the renderer can receive the IPC
+        // reply and show any transitional UI.
+        const QUIT_DELAY_MS = 300
+
+        /** Escape a value for safe embedding inside a double-quoted shell string. */
+        const shEscape = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$').replace(/`/g, '\\`')
+
+        if (process.platform === 'darwin' && ext === '.zip') {
+          // Derive the current app bundle path: .../AppName.app/Contents/MacOS/exe → .../AppName.app
+          const currentAppBundle = path.resolve(app.getPath('exe'), '..', '..', '..')
+          // Guard: only proceed if the derived path ends with .app to avoid
+          // accidentally deleting unrelated directories.
+          if (!currentAppBundle.endsWith('.app')) {
+            return { success: false, error: 'Could not determine app bundle path for installation.' }
+          }
+          const installDir = path.dirname(currentAppBundle)
+          const appBundleName = path.basename(currentAppBundle) // e.g. "KobeanSQL.app"
+          const zipPath = downloadedFilePath
+
+          // Write a shell script that waits for the app to quit, extracts the
+          // zip, replaces the current app bundle, and reopens the new version.
+          const scriptPath = path.join(updateDir, 'kobeansql-update.sh')
+          const script = [
+            '#!/bin/bash',
+            `sleep ${APP_QUIT_GRACE_SECS}`,
+            `unzip -o "${shEscape(zipPath)}" -d "${shEscape(updateDir)}/" 2>/dev/null`,
+            // Prefer an exact name match; fall back to any .app in the directory.
+            `NEW_APP=$(find "${shEscape(updateDir)}" -maxdepth 2 -name "${shEscape(appBundleName)}" 2>/dev/null | head -1)`,
+            `[ -z "$NEW_APP" ] && NEW_APP=$(find "${shEscape(updateDir)}" -maxdepth 2 -name "*.app" 2>/dev/null | head -1)`,
+            'if [ -n "$NEW_APP" ]; then',
+            `  rm -rf "${shEscape(currentAppBundle)}"`,
+            `  cp -R "$NEW_APP" "${shEscape(installDir)}/"`,
+            `  open "${shEscape(installDir)}/${shEscape(appBundleName)}"`,
+            'fi',
+          ].join('\n')
+          await fs.promises.writeFile(scriptPath, script, { mode: 0o755 })
+
+          const child = spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' })
+          child.unref()
+
+          downloadState = 'idle'
+          downloadProgress = 0
+          downloadedFilePath = undefined
+          setTimeout(() => app.quit(), QUIT_DELAY_MS)
+          return { success: true }
+        }
+
+        if (process.platform === 'win32' && ext === '.exe') {
+          // Spawn the installer as a detached process; it will handle replacing
+          // the old installation and optionally relaunching the app.
+          const child = spawn(downloadedFilePath, [], { detached: true, stdio: 'ignore' })
+          child.unref()
+
+          downloadState = 'idle'
+          downloadProgress = 0
+          downloadedFilePath = undefined
+          setTimeout(() => app.quit(), QUIT_DELAY_MS)
+          return { success: true }
+        }
+
+        if (process.platform === 'linux' && ext === '.appimage') {
+          // Replace the currently running AppImage in-place and relaunch it.
+          const currentExe = app.getPath('exe')
+          await fs.promises.chmod(downloadedFilePath, 0o755)
+
+          const scriptPath = path.join(updateDir, 'kobeansql-update.sh')
+          const newFilePath = downloadedFilePath
+          const script = [
+            '#!/bin/bash',
+            `sleep ${APP_QUIT_GRACE_SECS}`,
+            `cp -f "${shEscape(newFilePath)}" "${shEscape(currentExe)}"`,
+            `chmod +x "${shEscape(currentExe)}"`,
+            `"${shEscape(currentExe)}" &`,
+          ].join('\n')
+          await fs.promises.writeFile(scriptPath, script, { mode: 0o755 })
+
+          const child = spawn('bash', [scriptPath], { detached: true, stdio: 'ignore' })
+          child.unref()
+
+          downloadState = 'idle'
+          downloadProgress = 0
+          downloadedFilePath = undefined
+          setTimeout(() => app.quit(), QUIT_DELAY_MS)
+          return { success: true }
+        }
+
+        // Fallback for other file types (e.g. macOS .dmg): open with OS handler.
         const openError = await shell.openPath(downloadedFilePath)
         if (openError) {
           return { success: false, error: openError }
@@ -529,7 +623,7 @@ export function createUpdateService(): UpdateService {
         // courtesy flush; Electron's IPC layer does not expose a "reply
         // acknowledged" callback, so a short fixed delay is the standard
         // pattern for this use-case.
-        setTimeout(() => app.quit(), 300)
+        setTimeout(() => app.quit(), QUIT_DELAY_MS)
         return { success: true }
       } catch (error) {
         return { success: false, error: (error as Error).message }

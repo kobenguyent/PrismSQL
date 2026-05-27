@@ -947,7 +947,7 @@ export function ResultsTable({
             </tbody>
           </table>
         ) : (
-          <table className="data-table" style={{ width: table.getTotalSize() }}>
+          <table className="data-table" style={{ width: table.getTotalSize() + 50 }}>
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
