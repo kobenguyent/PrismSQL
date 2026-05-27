@@ -1,3 +1,10 @@
+## [1.13.3](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.2...v1.13.3) (2026-05-27)
+
+
+### Bug Fixes
+
+* renderer crash on SQL queries containing unquoted LIKE patterns ([#48](https://github.com/kobenguyent/KobeanSQL/issues/48)) ([3dbd8e6](https://github.com/kobenguyent/KobeanSQL/commit/3dbd8e6434e9e4d4e704c377f010b2e47a7a5e7f))
+
 ## [1.13.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.1...v1.13.2) (2026-05-27)
 
 
