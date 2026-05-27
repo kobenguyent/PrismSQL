@@ -13,7 +13,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "npm run build && electron-builder",
+    "package": "npm run build && electron-builder --config.npmRebuild=false --publish never",
     "logos:crop": "node scripts/crop-logo-mark.mjs",
     "rebuild:sqlite": "electron-rebuild -f -w better-sqlite3 || echo \"better-sqlite3 rebuild skipped (using node:sqlite fallback)\"",
     "install:dev": "npm install --ignore-scripts && npm run rebuild:sqlite",
