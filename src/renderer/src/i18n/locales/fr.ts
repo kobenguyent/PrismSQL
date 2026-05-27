@@ -40,6 +40,7 @@ const fr = {
   'connection.test': 'Tester la connexion',
   'connection.testing': 'Test en cours…',
   'connection.connect': 'Connecter & Sauvegarder',
+  'connection.update': 'Mettre à jour',
   'connection.connecting': 'Connexion en cours…',
   'connection.success': 'Connexion réussie',
   'connection.nameRequired': 'Le nom de la connexion est requis',
@@ -48,7 +49,9 @@ const fr = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': 'Exécuter',
   'editor.stop': 'Arrêter',
+  'editor.running': 'En cours…',
   'editor.save': 'Sauvegarder la requête',
+  'editor.saveQueryTooltip': 'Sauvegarder la requête',
   'editor.beautify': 'Embellir le SQL',
   'editor.buildSql': 'Construire le SQL',
   'editor.aiGenerate': 'IA : Générer le SQL',
@@ -56,11 +59,15 @@ const fr = {
   'editor.aiOptimize': 'IA : Optimiser le SQL',
   'editor.placeholder': 'Écrivez le SQL ici…',
   'editor.noConnection': 'Sélectionner une connexion',
+  'editor.selectConnection': 'Sélectionner une connexion…',
   'editor.queryName': 'Nom de la requête',
   'editor.queryCategory': 'Catégorie (optionnel)',
   'editor.saveTitle': 'Sauvegarder la requête',
   'editor.cancel': 'Annuler',
   'editor.insert': 'Insérer',
+  'editor.generate': 'Générer',
+  'editor.aiPromptLabel': 'Décrivez la requête souhaitée',
+  'editor.aiLocalOnly': 'IA locale uniquement : les requêtes sont envoyées uniquement à votre fournisseur local',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': 'Paramètres',
@@ -90,11 +97,24 @@ const fr = {
   'common.confirm': 'Confirmer',
   'common.yes': 'Oui',
   'common.no': 'Non',
+  'common.loading': 'Chargement…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'Historique des requêtes',
+  'app.schemaVisualizer': 'Visualiseur de schéma',
+  'app.settings': 'Paramètres',
+  'app.checkForUpdates': 'Vérifier les mises à jour',
+  'app.openLogs': 'Ouvrir le dossier de logs',
+  'app.documentation': 'Documentation',
+  'app.hideSidebar': 'Masquer la barre latérale',
+  'app.showSidebar': 'Afficher la barre latérale',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'Sombre',
   'theme.light': 'Clair',
   'theme.system': 'Système',
+  'theme.matrix': 'Matrix',
+  'theme.cyberpunk': 'Cyberpunk',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{count} ligne{plural} en {ms}ms',

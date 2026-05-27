@@ -40,6 +40,7 @@ const vi = {
   'connection.test': 'Kiểm tra kết nối',
   'connection.testing': 'Đang kiểm tra…',
   'connection.connect': 'Kết nối & Lưu',
+  'connection.update': 'Cập nhật',
   'connection.connecting': 'Đang kết nối…',
   'connection.success': 'Kết nối thành công',
   'connection.nameRequired': 'Tên kết nối là bắt buộc',
@@ -48,7 +49,9 @@ const vi = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': 'Chạy',
   'editor.stop': 'Dừng',
+  'editor.running': 'Đang chạy…',
   'editor.save': 'Lưu truy vấn',
+  'editor.saveQueryTooltip': 'Lưu truy vấn',
   'editor.beautify': 'Định dạng SQL',
   'editor.buildSql': 'Xây dựng SQL',
   'editor.aiGenerate': 'AI: Tạo SQL',
@@ -56,11 +59,15 @@ const vi = {
   'editor.aiOptimize': 'AI: Tối ưu SQL',
   'editor.placeholder': 'Viết SQL tại đây…',
   'editor.noConnection': 'Chọn một kết nối',
+  'editor.selectConnection': 'Chọn kết nối…',
   'editor.queryName': 'Tên truy vấn',
   'editor.queryCategory': 'Danh mục (tùy chọn)',
   'editor.saveTitle': 'Lưu truy vấn',
   'editor.cancel': 'Hủy',
   'editor.insert': 'Chèn',
+  'editor.generate': 'Tạo',
+  'editor.aiPromptLabel': 'Mô tả truy vấn bạn muốn',
+  'editor.aiLocalOnly': 'AI chỉ nội bộ: câu lệnh chỉ được gửi đến nhà cung cấp nội bộ của bạn',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': 'Cài đặt',
@@ -90,11 +97,24 @@ const vi = {
   'common.confirm': 'Xác nhận',
   'common.yes': 'Có',
   'common.no': 'Không',
+  'common.loading': 'Đang tải…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'Lịch sử truy vấn',
+  'app.schemaVisualizer': 'Trình xem lược đồ',
+  'app.settings': 'Cài đặt',
+  'app.checkForUpdates': 'Kiểm tra cập nhật',
+  'app.openLogs': 'Mở thư mục nhật ký',
+  'app.documentation': 'Tài liệu',
+  'app.hideSidebar': 'Ẩn thanh bên',
+  'app.showSidebar': 'Hiện thanh bên',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'Tối',
   'theme.light': 'Sáng',
   'theme.system': 'Hệ thống',
+  'theme.matrix': 'Ma trận',
+  'theme.cyberpunk': 'Cyberpunk',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{count} hàng{plural} trong {ms}ms',

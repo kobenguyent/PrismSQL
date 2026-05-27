@@ -44,6 +44,7 @@ const en = {
   'connection.test': 'Test Connection',
   'connection.testing': 'Testing…',
   'connection.connect': 'Connect & Save',
+  'connection.update': 'Update',
   'connection.connecting': 'Connecting…',
   'connection.success': 'Connected successfully',
   'connection.nameRequired': 'Connection name is required',
@@ -52,7 +53,9 @@ const en = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': 'Run',
   'editor.stop': 'Stop',
+  'editor.running': 'Running…',
   'editor.save': 'Save Query',
+  'editor.saveQueryTooltip': 'Save query',
   'editor.beautify': 'Beautify SQL',
   'editor.buildSql': 'Build SQL',
   'editor.aiGenerate': 'AI: Generate SQL',
@@ -60,11 +63,15 @@ const en = {
   'editor.aiOptimize': 'AI: Optimize SQL',
   'editor.placeholder': 'Write SQL here…',
   'editor.noConnection': 'Select a connection',
+  'editor.selectConnection': 'Select connection…',
   'editor.queryName': 'Query name',
   'editor.queryCategory': 'Category (optional)',
   'editor.saveTitle': 'Save Query',
   'editor.cancel': 'Cancel',
   'editor.insert': 'Insert',
+  'editor.generate': 'Generate',
+  'editor.aiPromptLabel': 'Describe what query you want',
+  'editor.aiLocalOnly': 'Local-only AI: prompts are sent only to your local provider',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': 'Settings',
@@ -96,11 +103,24 @@ const en = {
   'common.confirm': 'Confirm',
   'common.yes': 'Yes',
   'common.no': 'No',
+  'common.loading': 'Loading…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'Query History',
+  'app.schemaVisualizer': 'Schema Visualizer',
+  'app.settings': 'Settings',
+  'app.checkForUpdates': 'Check for Updates',
+  'app.openLogs': 'Open Logs Folder',
+  'app.documentation': 'Documentation',
+  'app.hideSidebar': 'Hide Sidebar',
+  'app.showSidebar': 'Show Sidebar',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'Dark',
   'theme.light': 'Light',
   'theme.system': 'System',
+  'theme.matrix': 'Matrix',
+  'theme.cyberpunk': 'Cyberpunk',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{count} row{plural} in {ms}ms',

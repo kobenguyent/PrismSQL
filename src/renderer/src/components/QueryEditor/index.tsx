@@ -5,6 +5,7 @@ import { oneDark } from '@codemirror/theme-one-dark'
 import { Play, StopCircle, Save, Wand2, Sparkles, Bot, X, MessageSquarePlus, Code2 } from 'lucide-react'
 import { useAppStore } from '../../store'
 import { useIsLightTheme } from '../../hooks/useIsLightTheme'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { DatabaseType, QueryTab } from '../../types'
 import { format } from 'sql-formatter'
 import { buildProcedureCallSql, buildSelectTableSql } from '../../sql/dsl'
@@ -30,6 +31,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
   } =
     useAppStore()
   const isLightTheme = useIsLightTheme()
+  const { t } = useTranslation()
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [saveCategory, setSaveCategory] = useState('')
@@ -277,7 +279,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           value={tab.connectionId ?? ''}
           onChange={(e) => updateTabConnection(tab.id, e.target.value)}
         >
-          <option value="" disabled>Select connection...</option>
+          <option value="" disabled>{t('editor.selectConnection')}</option>
           {connections.map((conn) => (
             <option key={conn.id} value={conn.id} disabled={!connectedIds.has(conn.id)}>
               {connectedIds.has(conn.id) ? '● ' : '○ '}{conn.name}
@@ -292,9 +294,9 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           disabled={!tab.connectionId || !connectedIds.has(tab.connectionId ?? '')}
         >
           {tab.isRunning ? (
-            <><StopCircle size={13} /> Running...</>
+            <><StopCircle size={13} /> {t('editor.running')}</>
           ) : (
-            <><Play size={13} fill="currentColor" /> Run</>
+            <><Play size={13} fill="currentColor" /> {t('editor.run')}</>
           )}
         </button>
 
@@ -303,19 +305,19 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           className="icon-btn"
           onClick={openSaveModal}
           disabled={!tab.sql.trim()}
-          data-tooltip="Save query"
+          data-tooltip={t('editor.saveQueryTooltip')}
           style={{ flexShrink: 0 }}
         >
           <Save size={13} />
         </button>
-        <button className="icon-btn" onClick={handleBeautifySql} disabled={!tab.sql.trim()} data-tooltip="Beautify SQL">
+        <button className="icon-btn" onClick={handleBeautifySql} disabled={!tab.sql.trim()} data-tooltip={t('editor.beautify')}>
           <Wand2 size={13} />
         </button>
         <button
           className="icon-btn"
           onClick={openDslModal}
           disabled={!tab.connectionId}
-          data-tooltip={`KobeanSQL DSL (${activeDialectName})`}
+          data-tooltip={`${t('editor.buildSql')} (${activeDialectName})`}
         >
           <Code2 size={13} />
         </button>
@@ -323,7 +325,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           className="icon-btn"
           onClick={() => setShowAIGenerateModal(true)}
           disabled={aiBusyTask !== null}
-          data-tooltip={`AI Generate SQL (${aiProviderName})`}
+          data-tooltip={`${t('editor.aiGenerate')} (${aiProviderName})`}
         >
           <MessageSquarePlus size={13} />
         </button>
@@ -331,7 +333,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           className="icon-btn"
           onClick={() => runAiTask('explain')}
           disabled={aiBusyTask !== null || !tab.sql.trim()}
-          data-tooltip={`AI Explain SQL (${aiProviderName})`}
+          data-tooltip={`${t('editor.aiExplain')} (${aiProviderName})`}
         >
           <Bot size={13} />
         </button>
@@ -339,7 +341,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
           className="icon-btn"
           onClick={() => runAiTask('optimize')}
           disabled={aiBusyTask !== null || !tab.sql.trim()}
-          data-tooltip={`AI Optimize SQL (${aiProviderName})`}
+          data-tooltip={`${t('editor.aiOptimize')} (${aiProviderName})`}
         >
           <Sparkles size={13} />
         </button>
@@ -463,10 +465,10 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary btn-sm" onClick={() => setShowDslModal(false)}>
-                Cancel
+                {t('editor.cancel')}
               </button>
               <button className="btn btn-primary btn-sm" onClick={handleInsertDslSql} disabled={!dslPreviewSql}>
-                Insert SQL
+                {t('editor.insert')}
               </button>
             </div>
           </div>
@@ -478,14 +480,14 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
         <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
           <div className="modal-panel" style={{ width: 360 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Save Query</span>
+              <span className="modal-title">{t('editor.saveTitle')}</span>
               <button className="icon-btn" onClick={() => setShowSaveModal(false)}>
                 <X size={15} />
               </button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Query Name</label>
+                <label className="form-label">{t('editor.queryName')}</label>
                 <input
                   className="form-input"
                   type="text"
@@ -497,7 +499,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Category (optional)</label>
+                <label className="form-label">{t('editor.queryCategory')}</label>
                 <input
                   className="form-input"
                   type="text"
@@ -508,9 +510,9 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(false)}>Cancel</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowSaveModal(false)}>{t('editor.cancel')}</button>
               <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={!saveName.trim()}>
-                Save
+                {t('editor.save')}
               </button>
             </div>
           </div>
@@ -542,14 +544,14 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
         <div className="modal-overlay" onClick={() => setShowAIGenerateModal(false)}>
           <div className="modal-panel" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Generate SQL ({aiProviderName})</span>
+              <span className="modal-title">{t('editor.aiGenerate')} ({aiProviderName})</span>
               <button className="icon-btn" onClick={() => setShowAIGenerateModal(false)}>
                 <X size={15} />
               </button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Describe what query you want</label>
+                <label className="form-label">{t('editor.aiPromptLabel')}</label>
                 <textarea
                   className="form-input"
                   value={aiGeneratePrompt}
@@ -559,12 +561,12 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
                 />
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                Local-only AI: prompts are sent only to your local provider ({aiProviderName}).
+                {t('editor.aiLocalOnly')} ({aiProviderName}).
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary btn-sm" onClick={() => setShowAIGenerateModal(false)}>
-                Cancel
+                {t('editor.cancel')}
               </button>
               <button
                 className="btn btn-primary btn-sm"
@@ -575,7 +577,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
                 }}
                 disabled={!aiGeneratePrompt.trim() || aiBusyTask !== null}
               >
-                Generate
+                {t('editor.generate')}
               </button>
             </div>
           </div>

@@ -107,7 +107,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
-          <span className="modal-title">Settings</span>
+          <span className="modal-title">{t('settings.title')}</span>
           <button className="icon-btn" onClick={handleClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -130,7 +130,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
           <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '12px 0' }} />
 
           <div className="form-group">
-            <label className="form-label">Default Query Row Limit</label>
+            <label className="form-label">{t('settings.queryLimit')}</label>
             <input
               className="form-input"
               type="number"
@@ -141,7 +141,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
               placeholder="100"
             />
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-              Rows returned when browsing a table (e.g. SELECT * FROM …). Default: 100. Max: 10,000.
+              {t('settings.queryLimitHelp')}
             </span>
           </div>
           <div className="form-group">
@@ -151,14 +151,14 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
                 checked={autoCheckEnabled}
                 onChange={(e) => setAutoCheckEnabled(e.target.checked)}
               />
-              Enable update checks
+              {t('settings.updateChecks')}
             </label>
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-              Checks GitHub releases for newer versions. You can disable this anytime.
+              {t('settings.updateChecksHelp')}
             </span>
           </div>
           <div className="form-group">
-            <label className="form-label">Update Check Interval (hours)</label>
+            <label className="form-label">{t('settings.updateInterval')}</label>
             <select
               className="form-input"
               value={checkIntervalHours}
@@ -175,7 +175,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '12px 0' }} />
           <div className="form-group">
-            <label className="form-label">Local AI Provider</label>
+            <label className="form-label">{t('settings.aiProvider')}</label>
             <select
               className="form-input"
               value={aiProvider}
@@ -186,7 +186,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Base URL</label>
+            <label className="form-label">{t('settings.aiBaseUrl')}</label>
             <input
               className="form-input"
               type="text"
@@ -196,7 +196,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Model</label>
+            <label className="form-label">{t('settings.aiModel')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {models.length > 0 ? (
                 <select
@@ -225,7 +225,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
                 disabled={fetchingModels || !aiBaseUrl}
                 style={{ whiteSpace: 'nowrap' }}
               >
-                {fetchingModels ? 'Fetching…' : 'Fetch Models'}
+                {fetchingModels ? t('settings.aiModelFetching') : t('settings.aiModelFetch')}
               </button>
             </div>
             {modelsError && (
@@ -234,7 +234,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
               </span>
             )}
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-              Click "Fetch Models" to load available models from your local AI provider.
+              {t('settings.aiModelPlaceholder')}
             </span>
           </div>
 
@@ -243,9 +243,9 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
           )}
         </div>
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t('settings.cancel')}</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
       </div>

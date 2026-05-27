@@ -21,6 +21,7 @@ import {
   Download
 } from 'lucide-react'
 import { useAppStore } from '../../store'
+import { useTranslation } from '../../hooks/useTranslation'
 import type { ConnectionConfig, SavedQuery } from '../../types'
 import { DB_COLORS } from '../../types'
 
@@ -71,6 +72,7 @@ const SQL_TEMPLATES = [
 ]
 
 export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX.Element {
+  const { t } = useTranslation()
   const {
     connections,
     connectedIds,
@@ -296,25 +298,25 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <span className="sidebar-title">Connections</span>
+        <span className="sidebar-title">{t('sidebar.connections')}</span>
         <button
           className="icon-btn"
           onClick={onNewConnection}
-          data-tooltip="New Connection"
+          data-tooltip={t('sidebar.newConnection')}
         >
           <Plus size={14} />
         </button>
         <button
           className="icon-btn"
           onClick={() => importConnections()}
-          data-tooltip="Import Connections"
+          data-tooltip={t('sidebar.importConnections')}
         >
           <Upload size={14} />
         </button>
         <button
           className="icon-btn"
           onClick={() => exportConnections(false)}
-          data-tooltip={connections.length === 0 ? undefined : 'Export Connections'}
+          data-tooltip={connections.length === 0 ? undefined : t('sidebar.exportConnections')}
           disabled={connections.length === 0}
         >
           <Download size={14} />
@@ -325,10 +327,10 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
         {connections.length === 0 && (
           <div className="empty-state" style={{ padding: '24px 16px' }}>
             <Database size={32} className="empty-state-icon" />
-            <span className="empty-state-title">No connections</span>
-            <span className="empty-state-sub">Click + to add a database connection</span>
+            <span className="empty-state-title">{t('sidebar.noConnections')}</span>
+            <span className="empty-state-sub">{t('sidebar.noConnectionsSub')}</span>
             <button className="btn btn-primary btn-sm" onClick={onNewConnection} style={{ marginTop: 8 }}>
-              <Plus size={12} /> Add Connection
+              <Plus size={12} /> {t('sidebar.addConnection')}
             </button>
           </div>
         )}
@@ -470,7 +472,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
                           {connSchema.loadingDatabases ? (
                             <div className="tree-item">
                               <span className="spinner" />
-                              <span>Loading...</span>
+                              {t('common.loading')}
                             </div>
                           ) : (
                             connSchema.databases.map((dbName) => {
@@ -557,7 +559,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
                               {loadingTables || loadingProcedures ? (
                                 <div className="tree-item tree-item-indent-1">
                                   <span className="spinner" />
-                                  <span>Loading...</span>
+                                  {t('common.loading')}
                                 </div>
                               ) : (
                                 <>
@@ -779,7 +781,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
           >
             {templatesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             <Code2 size={13} style={{ color: 'var(--accent)' }} />
-            <span className="connection-name" style={{ fontWeight: 600 }}>SQL Templates</span>
+            <span className="connection-name" style={{ fontWeight: 600 }}>{t('sidebar.templates')}</span>
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
               {SQL_TEMPLATES.length}
             </span>
@@ -811,7 +813,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
           >
             {savedQueriesExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             <BookOpen size={13} style={{ color: 'var(--accent)' }} />
-            <span className="connection-name" style={{ fontWeight: 600 }}>Saved Queries</span>
+            <span className="connection-name" style={{ fontWeight: 600 }}>{t('sidebar.savedQueries')}</span>
             <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
               {savedQueries.length}
             </span>
@@ -820,7 +822,7 @@ export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX
             <div>
               {savedQueries.length === 0 ? (
                 <div style={{ padding: '6px 28px', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                  No saved queries
+                  {t('sidebar.noSavedQueries')}
                 </div>
               ) : (
                 (() => {

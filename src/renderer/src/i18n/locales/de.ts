@@ -40,6 +40,7 @@ const de = {
   'connection.test': 'Verbindung testen',
   'connection.testing': 'Wird getestet…',
   'connection.connect': 'Verbinden & Speichern',
+  'connection.update': 'Aktualisieren',
   'connection.connecting': 'Verbindung wird hergestellt…',
   'connection.success': 'Erfolgreich verbunden',
   'connection.nameRequired': 'Verbindungsname ist erforderlich',
@@ -48,7 +49,9 @@ const de = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': 'Ausführen',
   'editor.stop': 'Stoppen',
+  'editor.running': 'Läuft…',
   'editor.save': 'Abfrage speichern',
+  'editor.saveQueryTooltip': 'Abfrage speichern',
   'editor.beautify': 'SQL formatieren',
   'editor.buildSql': 'SQL erstellen',
   'editor.aiGenerate': 'KI: SQL generieren',
@@ -56,11 +59,15 @@ const de = {
   'editor.aiOptimize': 'KI: SQL optimieren',
   'editor.placeholder': 'SQL hier schreiben…',
   'editor.noConnection': 'Verbindung auswählen',
+  'editor.selectConnection': 'Verbindung auswählen…',
   'editor.queryName': 'Abfragename',
   'editor.queryCategory': 'Kategorie (optional)',
   'editor.saveTitle': 'Abfrage speichern',
   'editor.cancel': 'Abbrechen',
   'editor.insert': 'Einfügen',
+  'editor.generate': 'Generieren',
+  'editor.aiPromptLabel': 'Beschreibe die gewünschte Abfrage',
+  'editor.aiLocalOnly': 'Nur lokale KI: Anfragen werden nur an deinen lokalen Anbieter gesendet',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': 'Einstellungen',
@@ -90,11 +97,24 @@ const de = {
   'common.confirm': 'Bestätigen',
   'common.yes': 'Ja',
   'common.no': 'Nein',
+  'common.loading': 'Laden…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'Abfrageverlauf',
+  'app.schemaVisualizer': 'Schema-Visualisierer',
+  'app.settings': 'Einstellungen',
+  'app.checkForUpdates': 'Nach Updates suchen',
+  'app.openLogs': 'Protokollordner öffnen',
+  'app.documentation': 'Dokumentation',
+  'app.hideSidebar': 'Seitenleiste ausblenden',
+  'app.showSidebar': 'Seitenleiste einblenden',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'Dunkel',
   'theme.light': 'Hell',
   'theme.system': 'System',
+  'theme.matrix': 'Matrix',
+  'theme.cyberpunk': 'Cyberpunk',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{count} Zeile{plural} in {ms}ms',

@@ -40,6 +40,7 @@ const es = {
   'connection.test': 'Probar conexión',
   'connection.testing': 'Probando…',
   'connection.connect': 'Conectar y guardar',
+  'connection.update': 'Actualizar',
   'connection.connecting': 'Conectando…',
   'connection.success': 'Conectado correctamente',
   'connection.nameRequired': 'El nombre de la conexión es obligatorio',
@@ -48,7 +49,9 @@ const es = {
   // ── Query Editor ──────────────────────────────────────────────
   'editor.run': 'Ejecutar',
   'editor.stop': 'Detener',
+  'editor.running': 'Ejecutando…',
   'editor.save': 'Guardar consulta',
+  'editor.saveQueryTooltip': 'Guardar consulta',
   'editor.beautify': 'Embellecer SQL',
   'editor.buildSql': 'Construir SQL',
   'editor.aiGenerate': 'IA: Generar SQL',
@@ -56,11 +59,15 @@ const es = {
   'editor.aiOptimize': 'IA: Optimizar SQL',
   'editor.placeholder': 'Escriba SQL aquí…',
   'editor.noConnection': 'Seleccione una conexión',
+  'editor.selectConnection': 'Seleccionar conexión…',
   'editor.queryName': 'Nombre de la consulta',
   'editor.queryCategory': 'Categoría (opcional)',
   'editor.saveTitle': 'Guardar consulta',
   'editor.cancel': 'Cancelar',
   'editor.insert': 'Insertar',
+  'editor.generate': 'Generar',
+  'editor.aiPromptLabel': 'Describe la consulta que deseas',
+  'editor.aiLocalOnly': 'IA solo local: los mensajes se envían únicamente a tu proveedor local',
 
   // ── Settings Modal ─────────────────────────────────────────────
   'settings.title': 'Configuración',
@@ -90,11 +97,24 @@ const es = {
   'common.confirm': 'Confirmar',
   'common.yes': 'Sí',
   'common.no': 'No',
+  'common.loading': 'Cargando…',
+
+  // ── App titlebar ──────────────────────────────────────────────
+  'app.queryHistory': 'Historial de consultas',
+  'app.schemaVisualizer': 'Visualizador de esquema',
+  'app.settings': 'Configuración',
+  'app.checkForUpdates': 'Buscar actualizaciones',
+  'app.openLogs': 'Abrir carpeta de registros',
+  'app.documentation': 'Documentación',
+  'app.hideSidebar': 'Ocultar barra lateral',
+  'app.showSidebar': 'Mostrar barra lateral',
 
   // ── Theme ─────────────────────────────────────────────────────
   'theme.dark': 'Oscuro',
   'theme.light': 'Claro',
   'theme.system': 'Sistema',
+  'theme.matrix': 'Matrix',
+  'theme.cyberpunk': 'Cyberpunk',
 
   // ── Status / feedback ─────────────────────────────────────────
   'status.rowCount': '{count} fila{plural} en {ms}ms',

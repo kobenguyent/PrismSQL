@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug, GitBranch, Download } from 'lucide-react'
+import { Database, LayoutPanelLeft, Moon, Sun, Monitor, Info, Shield, Settings, Clock, Bug, GitBranch, Download, Terminal, Zap } from 'lucide-react'
 import { useAppStore } from './store'
 import { useIsLightTheme } from './hooks/useIsLightTheme'
 import { Sidebar } from './components/Sidebar'
@@ -176,7 +176,7 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <div className={`app-root${isLightTheme ? ' theme-light' : ''}`}>
+    <div className={`app-root${isLightTheme ? ' theme-light' : theme === 'matrix' ? ' theme-matrix' : theme === 'cyberpunk' ? ' theme-cyberpunk' : ''}`}>
       {/* Title bar */}
       <div className="titlebar">
         <div className="titlebar-brand">
@@ -187,38 +187,38 @@ export default function App(): React.JSX.Element {
           <button
             className="icon-btn"
             onClick={() => setShowHistory(true)}
-            data-tooltip="Query History"
+            data-tooltip={t('app.queryHistory')}
           >
             <Clock size={15} />
           </button>
           <button
             className="icon-btn"
             onClick={() => setShowSchemaVisualizer(true)}
-            data-tooltip="Schema Visualizer"
+            data-tooltip={t('app.schemaVisualizer')}
           >
             <GitBranch size={15} />
           </button>
           <button
             className="icon-btn"
             onClick={() => setShowSettings(true)}
-            data-tooltip="Settings"
+            data-tooltip={t('app.settings')}
           >
             <Settings size={15} />
           </button>
           <button
             className="icon-btn"
             onClick={() => {
-              const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
+              const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : theme === 'system' ? 'matrix' : theme === 'matrix' ? 'cyberpunk' : 'dark'
               setTheme(next)
             }}
             data-tooltip={`Theme: ${theme}`}
           >
-            {theme === 'dark' ? <Moon size={15} /> : theme === 'light' ? <Sun size={15} /> : <Monitor size={15} />}
+            {theme === 'dark' ? <Moon size={15} /> : theme === 'light' ? <Sun size={15} /> : theme === 'matrix' ? <Terminal size={15} /> : theme === 'cyberpunk' ? <Zap size={15} /> : <Monitor size={15} />}
           </button>
           <button
             className={`icon-btn ${isSidebarCollapsed ? '' : 'active'}`}
             onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-            data-tooltip={isSidebarCollapsed ? 'Show Sidebar' : 'Hide Sidebar'}
+            data-tooltip={isSidebarCollapsed ? t('app.showSidebar') : t('app.hideSidebar')}
           >
             <LayoutPanelLeft size={15} />
           </button>
@@ -361,7 +361,7 @@ export default function App(): React.JSX.Element {
         <button
           className="icon-btn"
           onClick={() => checkForUpdatesNow()}
-          data-tooltip="Check for Updates"
+          data-tooltip={t('app.checkForUpdates')}
           style={{ width: 20, height: 20 }}
         >
           <Download size={12} />
@@ -369,7 +369,7 @@ export default function App(): React.JSX.Element {
         <button
           className="icon-btn"
           onClick={() => setShowPrivacy(true)}
-          data-tooltip="Privacy & Data Collection"
+          data-tooltip={t('privacy.title')}
           style={{ width: 20, height: 20 }}
         >
           <Shield size={12} />
@@ -377,7 +377,7 @@ export default function App(): React.JSX.Element {
         <button
           className="icon-btn"
           onClick={() => openLogs()}
-          data-tooltip="Open Logs Folder"
+          data-tooltip={t('app.openLogs')}
           style={{ width: 20, height: 20 }}
         >
           <Bug size={12} />
@@ -385,7 +385,7 @@ export default function App(): React.JSX.Element {
         <button
           className="icon-btn"
           onClick={() => window.open('https://kobenguyent.github.io/KobeanSQL/', '_blank')}
-          data-tooltip="Documentation"
+          data-tooltip={t('app.documentation')}
           style={{ width: 20, height: 20 }}
         >
           <Info size={12} />
