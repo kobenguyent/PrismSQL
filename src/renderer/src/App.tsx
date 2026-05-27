@@ -170,13 +170,23 @@ export default function App(): React.JSX.Element {
 
   const isLightTheme = useIsLightTheme()
 
+  const THEME_ORDER: Array<'dark' | 'light' | 'system' | 'matrix' | 'cyberpunk'> = ['dark', 'light', 'system', 'matrix', 'cyberpunk']
+  const THEME_CLASS: Record<string, string> = { matrix: 'theme-matrix', cyberpunk: 'theme-cyberpunk' }
+  const THEME_ICON: Record<string, React.ReactNode> = {
+    dark: <Moon size={15} />,
+    light: <Sun size={15} />,
+    system: <Monitor size={15} />,
+    matrix: <Terminal size={15} />,
+    cyberpunk: <Zap size={15} />,
+  }
+
   const handleOpenModal = (config?: ConnectionConfig) => {
     setEditingConnection(config ?? null)
     setShowConnectionModal(true)
   }
 
   return (
-    <div className={`app-root${isLightTheme ? ' theme-light' : theme === 'matrix' ? ' theme-matrix' : theme === 'cyberpunk' ? ' theme-cyberpunk' : ''}`}>
+    <div className={`app-root${isLightTheme ? ' theme-light' : THEME_CLASS[theme] ? ` ${THEME_CLASS[theme]}` : ''}`}>
       {/* Title bar */}
       <div className="titlebar">
         <div className="titlebar-brand">
@@ -208,12 +218,12 @@ export default function App(): React.JSX.Element {
           <button
             className="icon-btn"
             onClick={() => {
-              const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : theme === 'system' ? 'matrix' : theme === 'matrix' ? 'cyberpunk' : 'dark'
-              setTheme(next)
+              const idx = THEME_ORDER.indexOf(theme)
+              setTheme(THEME_ORDER[(idx + 1) % THEME_ORDER.length])
             }}
             data-tooltip={`Theme: ${theme}`}
           >
-            {theme === 'dark' ? <Moon size={15} /> : theme === 'light' ? <Sun size={15} /> : theme === 'matrix' ? <Terminal size={15} /> : theme === 'cyberpunk' ? <Zap size={15} /> : <Monitor size={15} />}
+            {THEME_ICON[theme]}
           </button>
           <button
             className={`icon-btn ${isSidebarCollapsed ? '' : 'active'}`}
