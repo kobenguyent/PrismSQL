@@ -115,6 +115,13 @@ export function getVisibleRowSelectionRange(
   return orderedIndexes.slice(start, end + 1)
 }
 
+export function getSelectedVisibleRows<T extends { index: number }>(
+  rows: T[],
+  selectedRows: Set<number>
+): T[] {
+  return rows.filter((row) => selectedRows.has(row.index))
+}
+
 const TRUNCATE_LEN = 100
 
 /** Cell value display — truncated with expand-on-click */
@@ -589,8 +596,7 @@ export function ResultsTable({
   }
 
   function handleDeleteSelected(rows: { index: number; original: Record<string, unknown> }[]) {
-    const sqls = rows
-      .filter((r) => selectedRows.has(r.index))
+    const sqls = getSelectedVisibleRows(rows, selectedRows)
       .map((r) => buildDeleteSqlForRow(r.original))
       .filter((s): s is string => s !== null)
     if (sqls.length === 0) {
@@ -624,7 +630,7 @@ export function ResultsTable({
   }
 
   function copyRowsData(rows: { index: number; original: Record<string, unknown> }[]) {
-    const selected = rows.filter((r) => selectedRows.has(r.index)).map((r) => r.original)
+    const selected = getSelectedVisibleRows(rows, selectedRows).map((r) => r.original)
     if (selected.length === 0) return
     const headers = result.columns.map((c) => c.name)
     const lines = selected.map((row) => headers.map((h) => formatCell(row[h])).join('\t'))
@@ -746,7 +752,8 @@ export function ResultsTable({
   const filteredCount = table.getFilteredRowModel().rows.length
   const isSingleRow = result.rows.length === 1
   const filteredRows = table.getRowModel().rows
-  const selCount = selectedRows.size
+  const selectedVisibleRows = useMemo(() => getSelectedVisibleRows(filteredRows, selectedRows), [filteredRows, selectedRows])
+  const selCount = selectedVisibleRows.length
 
   // ── Row Selection (Feature 2) ─────────────────────────────────
   const handleRowClick = useCallback((e: React.MouseEvent, rowIdx: number) => {
@@ -933,7 +940,7 @@ export function ResultsTable({
                       type="checkbox"
                       className="row-checkbox"
                       title="Select all visible rows"
-                      checked={filteredRows.length > 0 && filteredRows.every((r) => selectedRows.has(r.index))}
+                      checked={filteredRows.length > 0 && selectedVisibleRows.length === filteredRows.length}
                       onChange={(e) => {
                         if (e.target.checked) {
                           setSelectedRows(new Set(filteredRows.map((r) => r.index)))

@@ -3,6 +3,7 @@ import type { ConnectionConfig } from '../src/renderer/src/types'
 import {
   buildInlineUpdateSql,
   buildDeleteSql,
+  getSelectedVisibleRows,
   getVisibleRowSelectionRange,
   quoteIdentifierForDb,
   quoteValueForDb
@@ -180,5 +181,15 @@ describe('SQL and status formatting helpers', () => {
     expect(getVisibleRowSelectionRange(visibleRows, 4, 7)).toEqual([4, 1, 7])
     expect(getVisibleRowSelectionRange(visibleRows, 7, 4)).toEqual([4, 1, 7])
     expect(getVisibleRowSelectionRange(visibleRows, 99, 1)).toEqual([1])
+  })
+
+  it('limits copy/delete selections to rows still visible after filtering', () => {
+    const visibleRows = [
+      { index: 7, original: { id: 7, name: 'visible-a' } },
+      { index: 2, original: { id: 2, name: 'visible-b' } }
+    ]
+    const selectedRows = new Set([2, 5, 7])
+
+    expect(getSelectedVisibleRows(visibleRows, selectedRows)).toEqual(visibleRows)
   })
 })
