@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.1...v1.13.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* localization not applied to UI; add matrix and cyberpunk themes ([#47](https://github.com/kobenguyent/KobeanSQL/issues/47)) ([89ab3e6](https://github.com/kobenguyent/KobeanSQL/commit/89ab3e640ffe70d713c22963afee65fa6b46dc8d))
+
 ## [1.13.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.0...v1.13.1) (2026-05-27)
 
 
