@@ -99,6 +99,22 @@ export function buildDeleteSql(
   return `DELETE FROM ${tableRef}\nWHERE ${whereCl};`
 }
 
+export function getVisibleRowSelectionRange(
+  rows: Array<{ index: number }>,
+  anchorRowIdx: number,
+  targetRowIdx: number
+): number[] {
+  const orderedIndexes = rows.map((row) => row.index)
+  const anchorPos = orderedIndexes.indexOf(anchorRowIdx)
+  const targetPos = orderedIndexes.indexOf(targetRowIdx)
+
+  if (targetPos === -1) return []
+  if (anchorPos === -1) return [targetRowIdx]
+
+  const [start, end] = anchorPos < targetPos ? [anchorPos, targetPos] : [targetPos, anchorPos]
+  return orderedIndexes.slice(start, end + 1)
+}
+
 const TRUNCATE_LEN = 100
 
 /** Cell value display — truncated with expand-on-click */
@@ -568,42 +584,6 @@ export function ResultsTable({
     }
   }
 
-  // ── Row Selection (Feature 2) ─────────────────────────────────
-  const handleRowClick = useCallback((e: React.MouseEvent, rowIdx: number) => {
-    // Don't interfere with cell editing or cell expansion clicks
-    if ((e.target as HTMLElement).closest('.cell-edit-wrap, .cell-edit-input')) return
-    if (e.shiftKey && lastSelectedRow !== null) {
-      const min = Math.min(lastSelectedRow, rowIdx)
-      const max = Math.max(lastSelectedRow, rowIdx)
-      setSelectedRows((prev) => {
-        const next = new Set(prev)
-        for (let i = min; i <= max; i++) next.add(i)
-        return next
-      })
-    } else if (e.metaKey || e.ctrlKey) {
-      setSelectedRows((prev) => {
-        const next = new Set(prev)
-        if (next.has(rowIdx)) next.delete(rowIdx)
-        else next.add(rowIdx)
-        return next
-      })
-      setLastSelectedRow(rowIdx)
-    } else {
-      setSelectedRows(new Set([rowIdx]))
-      setLastSelectedRow(rowIdx)
-    }
-  }, [lastSelectedRow])
-
-  const handleContextMenu = useCallback((e: React.MouseEvent, rowIdx: number) => {
-    e.preventDefault()
-    // If right-clicked row is not already selected, select it exclusively
-    if (!selectedRows.has(rowIdx)) {
-      setSelectedRows(new Set([rowIdx]))
-      setLastSelectedRow(rowIdx)
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY })
-  }, [selectedRows])
-
   function buildDeleteSqlForRow(row: Record<string, unknown>): string | null {
     return buildDeleteSql(row, pkColumns, tableName!, database, schema, conn?.type)
   }
@@ -767,6 +747,41 @@ export function ResultsTable({
   const isSingleRow = result.rows.length === 1
   const filteredRows = table.getRowModel().rows
   const selCount = selectedRows.size
+
+  // ── Row Selection (Feature 2) ─────────────────────────────────
+  const handleRowClick = useCallback((e: React.MouseEvent, rowIdx: number) => {
+    // Don't interfere with cell editing or cell expansion clicks
+    if ((e.target as HTMLElement).closest('.cell-edit-wrap, .cell-edit-input')) return
+    if (e.shiftKey && lastSelectedRow !== null) {
+      const range = getVisibleRowSelectionRange(filteredRows, lastSelectedRow, rowIdx)
+      setSelectedRows((prev) => {
+        const next = new Set(prev)
+        range.forEach((idx) => next.add(idx))
+        return next
+      })
+    } else if (e.metaKey || e.ctrlKey) {
+      setSelectedRows((prev) => {
+        const next = new Set(prev)
+        if (next.has(rowIdx)) next.delete(rowIdx)
+        else next.add(rowIdx)
+        return next
+      })
+      setLastSelectedRow(rowIdx)
+    } else {
+      setSelectedRows(new Set([rowIdx]))
+      setLastSelectedRow(rowIdx)
+    }
+  }, [filteredRows, lastSelectedRow])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, rowIdx: number) => {
+    e.preventDefault()
+    // If right-clicked row is not already selected, select it exclusively
+    if (!selectedRows.has(rowIdx)) {
+      setSelectedRows(new Set([rowIdx]))
+      setLastSelectedRow(rowIdx)
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [selectedRows])
 
   return (
     <div className="results-pane" style={{ height: '100%' }}>
@@ -998,11 +1013,15 @@ export function ResultsTable({
                       />
                       <span className="row-num-label">{idx + 1}</span>
                     </td>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className={editingCell?.rowIdx === row.index && editingCell?.col === cell.column.id ? 'td-editing' : undefined}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isEditingCell = editingCell?.rowIdx === row.index && editingCell?.col === cell.column.id
+                      const isDirtyCell = isEditingCell && isValueDirty(editValue, editingCell?.original)
+                      return (
+                        <td key={cell.id} className={isDirtyCell ? 'td-editing' : undefined}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}

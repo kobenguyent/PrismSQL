@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig } from '../src/renderer/src/types'
-import { buildInlineUpdateSql, buildDeleteSql, quoteIdentifierForDb, quoteValueForDb } from '../src/renderer/src/components/ResultsTable'
+import {
+  buildInlineUpdateSql,
+  buildDeleteSql,
+  getVisibleRowSelectionRange,
+  quoteIdentifierForDb,
+  quoteValueForDb
+} from '../src/renderer/src/components/ResultsTable'
 import { formatServerVersion } from '../src/renderer/src/utils/version'
 
 type DbApi = NonNullable<(typeof globalThis & { window?: { db?: unknown } })['window']>['db']
@@ -166,5 +172,13 @@ describe('SQL and status formatting helpers', () => {
       'postgres'
     )
     expect(sql).toBeNull()
+  })
+
+  it('builds shift-selection ranges from the current visible row order', () => {
+    const visibleRows = [{ index: 4 }, { index: 1 }, { index: 7 }]
+
+    expect(getVisibleRowSelectionRange(visibleRows, 4, 7)).toEqual([4, 1, 7])
+    expect(getVisibleRowSelectionRange(visibleRows, 7, 4)).toEqual([4, 1, 7])
+    expect(getVisibleRowSelectionRange(visibleRows, 99, 1)).toEqual([1])
   })
 })
