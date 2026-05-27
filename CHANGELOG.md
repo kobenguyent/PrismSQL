@@ -1,3 +1,10 @@
+## [1.13.6](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.5...v1.13.6) (2026-05-27)
+
+
+### Bug Fixes
+
+* **table:** remove fixed layout and td overflow clipping to expose full cell content ([#50](https://github.com/kobenguyent/KobeanSQL/issues/50)) ([b7ee058](https://github.com/kobenguyent/KobeanSQL/commit/b7ee0586ebf8950b4a75311fc28b3374815a74c9))
+
 ## [1.13.5](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.4...v1.13.5) (2026-05-27)
 
 
