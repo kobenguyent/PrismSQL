@@ -1,3 +1,10 @@
+## [1.13.5](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.4...v1.13.5) (2026-05-27)
+
+
+### Bug Fixes
+
+* Adjust min-width for results and data tables ([69628fb](https://github.com/kobenguyent/KobeanSQL/commit/69628fbb2ffe008bd26340c1001419afa83f7f5d))
+
 ## [1.13.4](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.3...v1.13.4) (2026-05-27)
 
 
