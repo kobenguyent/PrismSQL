@@ -12,7 +12,7 @@ export interface TableNodeData extends Record<string, unknown> {
 export type TableNodeType = Node<TableNodeData, 'tableNode'>
 
 const TableNode = memo(function TableNode({ data }: NodeProps<TableNodeType>) {
-  const { table, collapsed } = data as TableNodeData
+  const { table, collapsed } = data
 
   return (
     <div className="schema-table-node">
