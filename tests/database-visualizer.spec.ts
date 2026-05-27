@@ -45,10 +45,9 @@ async function runSql(page: Page, sql: string, expectsRows = true): Promise<void
   await page.locator('.run-btn').click()
   if (expectsRows) {
     await expect(page.locator('.results-pane .data-table')).toBeVisible()
-    return
+  } else {
+    await expect(page.getByText(/query executed successfully — no rows returned/i)).toBeVisible()
   }
-
-  await expect(page.getByText(/query executed successfully — no rows returned/i)).toBeVisible()
 }
 
 function ensureElectronBinaryInstalled(): void {
