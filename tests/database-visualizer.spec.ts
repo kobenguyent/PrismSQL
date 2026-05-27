@@ -36,14 +36,19 @@ async function launchApp(homeDir: string): Promise<{ app: ElectronApplication; p
   return { app, page }
 }
 
-async function runSql(page: Page, sql: string): Promise<void> {
+async function runSql(page: Page, sql: string, expectsRows = true): Promise<void> {
   const editor = page.locator('.cm-content').first()
   await expect(editor).toBeVisible()
   await editor.click()
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
   await page.keyboard.type(sql)
   await page.locator('.run-btn').click()
-  await expect(page.locator('.results-pane .data-table')).toBeVisible()
+  if (expectsRows) {
+    await expect(page.locator('.results-pane .data-table')).toBeVisible()
+    return
+  }
+
+  await expect(page.getByText(/query executed successfully — no rows returned/i)).toBeVisible()
 }
 
 function ensureElectronBinaryInstalled(): void {
@@ -122,15 +127,15 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryDataFlow })
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditor })
 
-    await runSql(page, "INSERT INTO users (email, display_name) VALUES ('charlie@example.com', 'Charlie');")
+    await runSql(page, "INSERT INTO users (email, display_name) VALUES ('charlie@example.com', 'Charlie');", false)
     await runSql(page, "SELECT display_name FROM users WHERE email = 'charlie@example.com';")
     await expect(page.locator('.results-pane .data-table')).toContainText('Charlie')
 
-    await runSql(page, "UPDATE users SET display_name = 'Charles' WHERE email = 'charlie@example.com';")
+    await runSql(page, "UPDATE users SET display_name = 'Charles' WHERE email = 'charlie@example.com';", false)
     await runSql(page, "SELECT display_name FROM users WHERE email = 'charlie@example.com';")
     await expect(page.locator('.results-pane .data-table')).toContainText('Charles')
 
-    await runSql(page, "DELETE FROM users WHERE email = 'charlie@example.com';")
+    await runSql(page, "DELETE FROM users WHERE email = 'charlie@example.com';", false)
     await runSql(page, 'SELECT COUNT(*) AS remaining_users FROM users;')
     await expect(page.locator('.results-pane .data-table')).toContainText('remaining_users')
     await expect(page.locator('.results-pane .data-table')).toContainText('2')
