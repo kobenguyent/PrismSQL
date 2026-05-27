@@ -124,6 +124,10 @@ export function getSelectedVisibleRows<T extends { index: number }>(
 
 const TRUNCATE_LEN = 100
 
+/**
+ * Long or multiline values should expose an explicit preview control so the
+ * full cell content remains reachable even when the visible column is clipped.
+ */
 export function canPreviewCellValue(value: unknown): boolean {
   const str = formatCell(value)
   return str.length > TRUNCATE_LEN || str.includes('\n')
@@ -147,7 +151,7 @@ function CellDisplay({
   return (
     <span className="cell-display cell-display-expandable">
       <span
-        className={`cell-display-text ${cellClass(value)}`.trim()}
+        className={`cell-display-text ${cellClass(value)}`}
         title="Click preview to view full value"
       >
         {display}
