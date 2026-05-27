@@ -7,7 +7,7 @@ interface Props {
   onClose: () => void
 }
 
-export function SettingsModal({ onClose }: Props): JSX.Element {
+export function SettingsModal({ onClose }: Props): React.JSX.Element {
   const { settings, updateSettings } = useAppStore()
   const { t } = useTranslation()
   const [queryLimit, setQueryLimit] = useState(String(settings.queryLimit))

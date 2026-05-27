@@ -52,10 +52,10 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
   ): void => {
     ipcMain.handle(channel, async (event, ...args: TArgs) => {
       try {
-        if (!isTrustedRendererUrl(event.senderFrame.url)) {
+        if (!event.senderFrame || !isTrustedRendererUrl(event.senderFrame.url)) {
           appLogger.warn('Blocked IPC call from untrusted sender', {
             channel,
-            senderUrl: event.senderFrame.url
+            senderUrl: event.senderFrame?.url
           })
           throw new UntrustedRendererContextError()
         }
@@ -306,7 +306,7 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
       return { success: false, canceled: true }
     }
     try {
-      const count = exportConnectionsToPath(result.filePath, includePasswords)
+      const count = exportConnectionsToPath(result.filePath, includePasswords as boolean)
       appLogger.info('Connections exported', { filePath: result.filePath, count, includePasswords })
       return { success: true, count, path: result.filePath }
     } catch (error) {

@@ -29,13 +29,13 @@ export class MySQLAdapter implements DatabaseAdapter {
     const conn = await this.pool.getConnection()
     conn.release()
     this._connected = true
-    this.pool.on('error', this._onPoolError)
+    ;(this.pool as unknown as NodeJS.EventEmitter).on('error', this._onPoolError)
   }
 
   async disconnect(): Promise<void> {
     this._connected = false
     if (this.pool) {
-      this.pool.off('error', this._onPoolError)
+      (this.pool as unknown as NodeJS.EventEmitter).off('error', this._onPoolError)
       await this.pool.end()
       this.pool = null
     }
@@ -49,7 +49,7 @@ export class MySQLAdapter implements DatabaseAdapter {
     if (!this.pool) throw new Error('Not connected')
     const start = Date.now()
     try {
-      const [rows, fields] = await this.pool.execute<RowDataPacket[]>(sql, params)
+      const [rows, fields] = await this.pool.execute<RowDataPacket[]>(sql, params as mysql.ExecuteValues)
       const duration = Date.now() - start
       const resultRows = Array.isArray(rows) ? rows : []
       const rowCount = Array.isArray(rows)
@@ -60,8 +60,8 @@ export class MySQLAdapter implements DatabaseAdapter {
       const columns = (fields as FieldPacket[] || []).map((f) => ({
         name: f.name,
         type: f.type?.toString() || 'unknown',
-        nullable: !!(f.flags && (f.flags & 1) === 0),
-        primaryKey: !!(f.flags && (f.flags & 2) !== 0)
+        nullable: !!(f.flags && ((f.flags as number) & 1) === 0),
+        primaryKey: !!(f.flags && ((f.flags as number) & 2) !== 0)
       }))
       return {
         columns,

@@ -919,7 +919,7 @@ export const useAppStore = create<AppState>()(
     },
 
     downloadUpdate: async () => {
-      let pollTimer: ReturnType<typeof window.setInterval> | undefined
+      let pollTimer: number | undefined
       const stopPolling = () => {
         if (pollTimer !== undefined) {
           window.clearInterval(pollTimer)

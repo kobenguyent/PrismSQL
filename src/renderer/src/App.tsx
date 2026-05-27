@@ -20,7 +20,7 @@ import logoTitlebarLight from './assets/brand/kobeansql-logo-titlebar-light.svg'
 const APP_VERSION = __APP_VERSION__
 const UPDATE_STATUS_POLL_MS = 5 * 60 * 1000
 
-function KobeanLogo({ className, src = logoMarkLight }: { className: string; src?: string }): JSX.Element {
+function KobeanLogo({ className, src = logoMarkLight }: { className: string; src?: string }): React.JSX.Element {
   return (
     <span className={`brand-logo ${className}`} aria-hidden="true">
       <img className="brand-logo-img" src={src} alt="" />
@@ -28,7 +28,7 @@ function KobeanLogo({ className, src = logoMarkLight }: { className: string; src
   )
 }
 
-export default function App(): JSX.Element {
+export default function App(): React.JSX.Element {
   const { t } = useTranslation()
   const {
     tabs,

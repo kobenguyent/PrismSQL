@@ -13,7 +13,7 @@ interface Props {
   tab: QueryTab
 }
 
-export function QueryEditor({ tab }: Props): JSX.Element {
+export function QueryEditor({ tab }: Props): React.JSX.Element {
   type SqlFormatterLanguage = 'mysql' | 'postgresql' | 'sqlite' | 'transactsql' | 'sql'
 
   const {

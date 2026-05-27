@@ -140,7 +140,7 @@ function CellDisplay({
 }: {
   value: unknown
   onExpand: (val: unknown) => void
-}): JSX.Element {
+}): React.JSX.Element {
   const str = formatCell(value)
   const isLong = canPreviewCellValue(value)
   const display = isLong ? str.slice(0, TRUNCATE_LEN).replace(/\n/g, '↵') + '…' : str
@@ -176,7 +176,7 @@ function CellViewerModal({
 }: {
   value: unknown
   onClose: () => void
-}): JSX.Element {
+}): React.JSX.Element {
   const str = formatCell(value)
   const [copied, setCopied] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
@@ -243,7 +243,7 @@ function EditConfirmModal({
   onCancel: () => void
   error: string | null
   isUpdating: boolean
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580 }}>
@@ -309,7 +309,7 @@ function ContextMenu({
   onDelete: () => void
   onCopy: () => void
   onClose: () => void
-}): JSX.Element {
+}): React.JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Reposition if the menu would overflow the viewport
@@ -369,7 +369,7 @@ function DeleteConfirmModal({
   onCancel: () => void
   error: string | null
   isDeleting: boolean
-}): JSX.Element {
+}): React.JSX.Element {
   const preview = sqls.slice(0, 3).join('\n')
   const hasMore = sqls.length > 3
   return (
@@ -428,7 +428,7 @@ export function ResultsTable({
   database,
   schema,
   onRefresh
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const { connections } = useAppStore()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
