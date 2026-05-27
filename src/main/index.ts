@@ -6,6 +6,7 @@ import { is } from '@electron-toolkit/utils'
 import { appLogger, setupLogger } from './logger'
 import { isSafeExternalUrl, isTrustedRendererUrl } from './security'
 import { createUpdateService } from './update/service'
+import { localStore } from './local-store'
 
 // Configure logger
 setupLogger()
@@ -77,8 +78,9 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   appLogger.info('Application ready')
+  await localStore.open(app.getPath('userData'))
   registerIpcHandlers(manager, updateService)
   createWindow()
   updateService.initialize()
@@ -93,6 +95,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', async () => {
   appLogger.info('All windows closed, disconnecting all connections')
   await manager.disconnectAll()
+  localStore.close()
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -101,4 +104,5 @@ app.on('window-all-closed', async () => {
 app.on('before-quit', async () => {
   appLogger.info('App before-quit, disconnecting all connections')
   await manager.disconnectAll()
+  localStore.close()
 })

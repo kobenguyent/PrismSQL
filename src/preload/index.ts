@@ -14,6 +14,34 @@ export interface SavedQueryRecord {
   category?: string
 }
 
+export interface ConnectionLogEntry {
+  id: string
+  connectionId: string
+  connectionName: string
+  /** 'connected' | 'disconnected' | 'failed' */
+  event: string
+  timestamp: number
+  error?: string
+}
+
+export interface PersistedQueryHistoryEntry {
+  id: string
+  sql: string
+  connectionId: string | null
+  connectionName: string
+  timestamp: number
+  duration: number
+  rowCount: number
+  error?: string
+}
+
+export interface SchemaCacheEntry {
+  connectionId: string
+  databaseName: string
+  schemaJson: string
+  cachedAt: number
+}
+
 export type AITaskType = 'generate' | 'explain' | 'optimize'
 
 export interface AIRequest {
@@ -152,7 +180,31 @@ const dbAPI = {
     const handler = (_event: Electron.IpcRendererEvent, connectionId: string): void => callback(connectionId)
     ipcRenderer.on('db:connection-lost', handler)
     return () => ipcRenderer.off('db:connection-lost', handler)
-  }
+  },
+
+  // Connection logs
+  addConnectionLog: (entry: ConnectionLogEntry): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('logs:add-connection-log', entry),
+  getConnectionLogs: (connectionId?: string, limit?: number): Promise<ConnectionLogEntry[]> =>
+    ipcRenderer.invoke('logs:get-connection-logs', connectionId, limit),
+  clearConnectionLogs: (connectionId?: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('logs:clear-connection-logs', connectionId),
+
+  // Persistent query history
+  addToPersistedHistory: (entry: PersistedQueryHistoryEntry): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('history:add', entry),
+  getPersistedHistory: (limit?: number): Promise<PersistedQueryHistoryEntry[]> =>
+    ipcRenderer.invoke('history:get', limit),
+  clearPersistedHistory: (): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('history:clear'),
+
+  // Schema cache
+  setSchemaCache: (connectionId: string, databaseName: string, schemaJson: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('schema-cache:set', connectionId, databaseName, schemaJson),
+  getSchemaCache: (connectionId: string, databaseName: string): Promise<SchemaCacheEntry | null> =>
+    ipcRenderer.invoke('schema-cache:get', connectionId, databaseName),
+  clearSchemaCache: (connectionId?: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('schema-cache:clear', connectionId)
 }
 
 if (process.contextIsolated) {

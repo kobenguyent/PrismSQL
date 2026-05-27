@@ -33,6 +33,16 @@ function createDbMock(overrides: Partial<Record<string, unknown>> = {}): DbApi {
     getServerVersion: vi.fn().mockResolvedValue({ version: 'Unknown' }),
     getSettings: vi.fn().mockResolvedValue({ queryLimit: 100 }),
     saveSettings: vi.fn().mockResolvedValue({ success: true }),
+    // Local-store backed APIs
+    addConnectionLog: vi.fn().mockResolvedValue({ success: true }),
+    getConnectionLogs: vi.fn().mockResolvedValue([]),
+    clearConnectionLogs: vi.fn().mockResolvedValue({ success: true }),
+    addToPersistedHistory: vi.fn().mockResolvedValue({ success: true }),
+    getPersistedHistory: vi.fn().mockResolvedValue([]),
+    clearPersistedHistory: vi.fn().mockResolvedValue({ success: true }),
+    setSchemaCache: vi.fn().mockResolvedValue({ success: true }),
+    getSchemaCache: vi.fn().mockResolvedValue(null),
+    clearSchemaCache: vi.fn().mockResolvedValue({ success: true }),
     ...(overrides as DbApi)
   }
 }

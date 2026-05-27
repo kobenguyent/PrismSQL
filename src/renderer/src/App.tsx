@@ -46,6 +46,7 @@ export default function App(): React.JSX.Element {
     loadConnections,
     loadSavedQueries,
     loadSettings,
+    loadHistory,
     loadUpdateStatus,
     newTab,
     runQuery,
@@ -85,8 +86,9 @@ export default function App(): React.JSX.Element {
     loadConnections()
     loadSavedQueries()
     loadSettings()
+    loadHistory()
     loadUpdateStatus()
-  }, [loadConnections, loadSavedQueries, loadSettings, loadUpdateStatus])
+  }, [loadConnections, loadSavedQueries, loadSettings, loadHistory, loadUpdateStatus])
 
   useEffect(() => {
     if (!settings.updates.autoCheckEnabled) return
