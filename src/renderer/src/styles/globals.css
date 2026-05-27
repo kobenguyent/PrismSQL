@@ -1053,11 +1053,11 @@ html, body, #root {
 .results-table-wrap {
   flex: 1;
   overflow: auto;
+  min-width: 0;   /* already needed for the flex-column parent */
 }
 
 /* Data table */
 .data-table {
-  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
   font-family: var(--font-mono);
