@@ -70,7 +70,7 @@ const SQL_TEMPLATES = [
   }
 ]
 
-export function Sidebar({ onNewConnection, onEditConnection }: Props): JSX.Element {
+export function Sidebar({ onNewConnection, onEditConnection }: Props): React.JSX.Element {
   const {
     connections,
     connectedIds,

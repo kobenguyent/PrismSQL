@@ -18,7 +18,7 @@ type SQLiteDatabaseCtor = new (filename: string) => {
     all: (...params: unknown[]) => unknown[]
     get: (...params: unknown[]) => unknown
     run: (...params: unknown[]) => { changes: number }
-    columns: () => Array<{ column?: string; name?: string; type?: string }>
+    columns?: () => Array<{ column?: string; name?: string; type?: string }>
   }
 }
 
@@ -296,7 +296,8 @@ vi.mock('../src/main/db/adapters/sqlite', async () => {
         const isRead = trimmed.startsWith('select') || trimmed.startsWith('with') || trimmed.startsWith('pragma')
         if (isRead) {
           const rows = stmt.all(...params) as Record<string, unknown>[]
-          const metadataColumns = stmt.columns().map((col) => ({
+          const columnMetadata = typeof stmt.columns === 'function' ? stmt.columns() : []
+          const metadataColumns = columnMetadata.map((col) => ({
             name: String(col.column ?? col.name ?? ''),
             type: String(col.type ?? 'TEXT'),
             nullable: true,

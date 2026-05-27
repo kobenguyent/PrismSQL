@@ -6,13 +6,13 @@ import type { QueryTab } from '../../types'
 const TAB_COLORS = ['#7c3aed', '#2563eb', '#0f766e', '#15803d', '#b45309', '#be123c']
 const GROUP_COLORS = ['#8b5cf6', '#3b82f6', '#14b8a6', '#22c55e', '#f59e0b', '#ec4899']
 
-function TabIcon({ tabType }: { tabType: 'query' | 'table' | 'procedure' | undefined }): JSX.Element {
+function TabIcon({ tabType }: { tabType: 'query' | 'table' | 'procedure' | undefined }): React.JSX.Element {
   if (tabType === 'table') return <Table size={11} style={{ flexShrink: 0, opacity: 0.8 }} />
   if (tabType === 'procedure') return <FunctionSquare size={11} style={{ flexShrink: 0, opacity: 0.8 }} />
   return <Code2 size={11} style={{ flexShrink: 0, opacity: 0.8 }} />
 }
 
-export function TabBar(): JSX.Element {
+export function TabBar(): React.JSX.Element {
   const {
     tabs,
     activeTabId,
@@ -83,7 +83,7 @@ export function TabBar(): JSX.Element {
     }
     return tabs.filter((tab) => {
       if (!tab.groupTitle) return true
-      if (!collapsedGroups.has(tab.groupTitle)) return true
+      if (!collapsedGroups.has(tab.groupTitle!)) return true
       return firstByGroup.get(tab.groupTitle) === tab.id
     })
   }, [tabs, collapsedGroups])
@@ -303,7 +303,7 @@ export function TabBar(): JSX.Element {
       <div className="tabbar">
         {visibleTabs.map((tab) => (
           (() => {
-            const isCollapsedGroupLeader = Boolean(tab.groupTitle && collapsedGroups.has(tab.groupTitle))
+            const isCollapsedGroupLeader = Boolean(tab.groupTitle && collapsedGroups.has(tab.groupTitle!))
             return (
           <div
             key={tab.id}
@@ -388,9 +388,9 @@ export function TabBar(): JSX.Element {
                     e.stopPropagation()
                     toggleGroupCollapsed(tab.groupTitle as string)
                   }}
-                  title={collapsedGroups.has(tab.groupTitle) ? 'Expand group' : 'Minimize group'}
+                  title={collapsedGroups.has(tab.groupTitle!) ? 'Expand group' : 'Minimize group'}
                 >
-                  {collapsedGroups.has(tab.groupTitle) ? <ChevronsDown size={10} /> : <ChevronsUp size={10} />}
+                  {collapsedGroups.has(tab.groupTitle!) ? <ChevronsDown size={10} /> : <ChevronsUp size={10} />}
                 </button>
                 <span
                   className="tab-group-chip-text"
@@ -433,9 +433,9 @@ export function TabBar(): JSX.Element {
                           e.stopPropagation()
                           toggleGroupCollapsed(tab.groupTitle as string)
                         }}
-                        title={collapsedGroups.has(tab.groupTitle) ? 'Expand group' : 'Minimize group'}
+                        title={collapsedGroups.has(tab.groupTitle!) ? 'Expand group' : 'Minimize group'}
                       >
-                        {collapsedGroups.has(tab.groupTitle) ? <ChevronsDown size={10} /> : <ChevronsUp size={10} />}
+                        {collapsedGroups.has(tab.groupTitle!) ? <ChevronsDown size={10} /> : <ChevronsUp size={10} />}
                       </button>
                       <span
                         className="tab-group-chip-text"
@@ -510,7 +510,7 @@ export function TabBar(): JSX.Element {
                   )}
                   {tab.groupTitle && (
                     <button className="tab-context-item" onClick={() => toggleGroupCollapsed(tab.groupTitle as string)}>
-                      {collapsedGroups.has(tab.groupTitle) ? 'Expand Group' : 'Minimize Group'}
+                      {collapsedGroups.has(tab.groupTitle!) ? 'Expand Group' : 'Minimize Group'}
                     </button>
                   )}
                   {tab.groupTitle && (

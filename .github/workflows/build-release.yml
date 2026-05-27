@@ -61,16 +61,15 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
-      # Skip postinstall to avoid compiling native modules against Node.js headers;
-      # electron-rebuild below recompiles them against the correct Electron headers.
+      # Skip postinstall to avoid compiling native modules against Node.js headers.
       - name: Install dependencies
         run: npm install --ignore-scripts
 
       - name: Rebuild native modules
-        run: npx electron-rebuild -f -w better-sqlite3
+        run: npm run rebuild:sqlite
 
       - name: Build and package
         run: npm run package

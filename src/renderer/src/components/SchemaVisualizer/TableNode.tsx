@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Handle, Position, NodeProps, Node } from '@xyflow/react'
 import { Key, Link, Table } from 'lucide-react'
 import type { SchemaTable } from '@renderer/types/schema'
 
@@ -8,7 +8,10 @@ export interface TableNodeData extends Record<string, unknown> {
   collapsed: boolean
 }
 
-const TableNode = memo(function TableNode({ data }: NodeProps<TableNodeData>) {
+// Full node type satisfying @xyflow/react's NodeProps constraint
+export type TableNodeType = Node<TableNodeData, 'tableNode'>
+
+const TableNode = memo(function TableNode({ data }: NodeProps<TableNodeType>) {
   const { table, collapsed } = data
 
   return (

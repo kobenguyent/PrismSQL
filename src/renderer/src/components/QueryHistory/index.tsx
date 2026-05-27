@@ -29,7 +29,7 @@ function truncateSql(sql: string, maxLen = SQL_PREVIEW_LEN): string {
   return single.length > maxLen ? single.slice(0, maxLen) + '…' : single
 }
 
-export function QueryHistoryPanel({ onClose }: Props): JSX.Element {
+export function QueryHistoryPanel({ onClose }: Props): React.JSX.Element {
   const { queryHistory, clearHistory, openHistoryEntry } = useAppStore()
   const [filter, setFilter] = useState('')
   const [selectedEntry, setSelectedEntry] = useState<QueryHistoryEntry | null>(null)

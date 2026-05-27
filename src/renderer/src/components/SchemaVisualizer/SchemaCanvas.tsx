@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
-import TableNode, { type TableNodeData } from './TableNode'
+import TableNode, { type TableNodeData, type TableNodeType } from './TableNode'
 import type { DatabaseSchema, SchemaViewMode } from '@renderer/types/schema'
 
 // ─── Dagre layout constants ──────────────────────────────────────────────────
@@ -24,7 +24,7 @@ const ROW_HEIGHT = 28    // per column row
 const COLLAPSED_THRESHOLD = 30 // tables above this count default to collapsed
 
 // ─── Node type registry ──────────────────────────────────────────────────────
-const nodeTypes: NodeTypes = { tableNode: TableNode }
+const nodeTypes: NodeTypes = { tableNode: TableNode as NodeTypes['tableNode'] }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function estimateNodeHeight(columnCount: number, collapsed: boolean): number {
@@ -37,7 +37,7 @@ function runDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 80, marginx: 20, marginy: 20 })
 
   nodes.forEach((n) => {
-    const data = n.data as TableNodeData
+    const data = n.data as unknown as TableNodeData
     const h = estimateNodeHeight(data.table.columns.length, data.collapsed)
     g.setNode(n.id, { width: NODE_WIDTH, height: h })
   })
@@ -47,7 +47,7 @@ function runDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
 
   return nodes.map((n) => {
     const { x, y } = g.node(n.id)
-    return { ...n, position: { x: x - NODE_WIDTH / 2, y: y - estimateNodeHeight((n.data as TableNodeData).table.columns.length, (n.data as TableNodeData).collapsed) / 2 } }
+    return { ...n, position: { x: x - NODE_WIDTH / 2, y: y - estimateNodeHeight((n.data as unknown as TableNodeData).table.columns.length, (n.data as unknown as TableNodeData).collapsed) / 2 } }
   })
 }
 
