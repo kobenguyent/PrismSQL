@@ -99,6 +99,38 @@ describe('E2E feature flows', () => {
     expect(sqlTabs).toContain('SELECT * FROM "appdb"."users" LIMIT 25;')
   })
 
+  it('stores SQL error in tab result when query returns an error (e.g. LIKE %pattern%)', async () => {
+    const db = createDbMock({
+      query: vi.fn()
+        .mockResolvedValueOnce({ columns: [{ name: 'id' }], rows: [{ id: 1 }], rowCount: 1, duration: 2 })
+        .mockResolvedValueOnce({ columns: [], rows: [], rowCount: 0, duration: 1, error: 'near "%": syntax error' })
+    })
+    const useAppStore = await loadStoreWithDb(db)
+    const config: ConnectionConfig = { id: 'c1', name: 'Local SQLite', type: 'sqlite', host: '' }
+    useAppStore.setState({
+      connections: [config],
+      connectedIds: new Set(['c1']),
+      tabs: [{ id: 't1', connectionId: 'c1', sql: 'SELECT * FROM users', title: 'Query', isRunning: false, result: null }]
+    })
+
+    // First query succeeds
+    await useAppStore.getState().runQuery('t1')
+    expect(useAppStore.getState().tabs[0].result?.error).toBeUndefined()
+    expect(useAppStore.getState().tabs[0].result?.rowCount).toBe(1)
+
+    // Second query has LIKE pattern without quotes — adapter returns an error result
+    useAppStore.setState((s) => {
+      s.tabs[0].sql = 'SELECT * FROM users WHERE username LIKE %something%'
+    })
+    await useAppStore.getState().runQuery('t1')
+
+    const result = useAppStore.getState().tabs[0].result
+    expect(result?.error).toBe('near "%": syntax error')
+    // History entry should record the error
+    const lastEntry = useAppStore.getState().queryHistory[0]
+    expect(lastEntry.error).toBe('near "%": syntax error')
+  })
+
   it('caps query history at 200 entries and keeps newest first', async () => {
     const db = createDbMock()
     const useAppStore = await loadStoreWithDb(db)
