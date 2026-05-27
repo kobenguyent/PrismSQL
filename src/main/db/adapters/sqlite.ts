@@ -19,6 +19,7 @@ type SQLiteDatabase = {
 
 export class SQLiteAdapter implements DatabaseAdapter {
   private db: SQLiteDatabase | null = null
+  private connected = false
 
   private applyPragma(sql: string): void {
     if (!this.db) return
@@ -35,15 +36,18 @@ export class SQLiteAdapter implements DatabaseAdapter {
       const BetterSqlite3 = module.default
       return new BetterSqlite3(filename, { readonly: false }) as SQLiteDatabase
     } catch {
-      const builtinSqlite = process.getBuiltinModule?.('node:sqlite') as
-        | {
-            DatabaseSync?: new (path: string) => SQLiteDatabase
-          }
-        | undefined
-      if (!builtinSqlite?.DatabaseSync) {
+      const builtinSqlite = process.getBuiltinModule?.('node:sqlite')
+      const DatabaseSync =
+        typeof builtinSqlite === 'object' &&
+        builtinSqlite !== null &&
+        'DatabaseSync' in builtinSqlite &&
+        typeof builtinSqlite.DatabaseSync === 'function'
+          ? (builtinSqlite.DatabaseSync as new (path: string) => SQLiteDatabase)
+          : undefined
+      if (!DatabaseSync) {
         throw new Error('SQLite driver unavailable: failed to load better-sqlite3 and node:sqlite')
       }
-      return new builtinSqlite.DatabaseSync(filename)
+      return new DatabaseSync(filename)
     }
   }
 
@@ -53,6 +57,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
     // Enable WAL mode for better performance
     this.applyPragma('journal_mode = WAL')
     this.applyPragma('foreign_keys = ON')
+    this.connected = true
   }
 
   async disconnect(): Promise<void> {
@@ -60,10 +65,11 @@ export class SQLiteAdapter implements DatabaseAdapter {
       this.db.close()
       this.db = null
     }
+    this.connected = false
   }
 
   isConnected(): boolean {
-    return this.db !== null && this.db.open !== false
+    return this.connected
   }
 
   async query(sql: string, params: unknown[] = []): Promise<QueryResult> {
@@ -118,7 +124,9 @@ export class SQLiteAdapter implements DatabaseAdapter {
       return result.map((r) => r.name)
     }
     const result = await this.query('PRAGMA database_list')
-    return result.rows.map((r) => String(r['name']))
+    return result.rows
+      .map((r) => r['name'])
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
   }
 
   async getTables(database?: string): Promise<TableInfo[]> {

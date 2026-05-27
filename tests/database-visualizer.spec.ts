@@ -122,15 +122,15 @@ test('renders users/posts/comments schema graph and captures docs screenshots', 
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryDataFlow })
     await contentPane.screenshot({ path: DOCS_SCREENSHOTS.queryEditor })
 
-    await runSql(page, "INSERT INTO users (id, email, display_name) VALUES (3, 'charlie@example.com', 'Charlie');")
-    await runSql(page, 'SELECT display_name FROM users WHERE id = 3;')
+    await runSql(page, "INSERT INTO users (email, display_name) VALUES ('charlie@example.com', 'Charlie');")
+    await runSql(page, "SELECT display_name FROM users WHERE email = 'charlie@example.com';")
     await expect(page.locator('.results-pane .data-table')).toContainText('Charlie')
 
-    await runSql(page, "UPDATE users SET display_name = 'Charles' WHERE id = 3;")
-    await runSql(page, 'SELECT display_name FROM users WHERE id = 3;')
+    await runSql(page, "UPDATE users SET display_name = 'Charles' WHERE email = 'charlie@example.com';")
+    await runSql(page, "SELECT display_name FROM users WHERE email = 'charlie@example.com';")
     await expect(page.locator('.results-pane .data-table')).toContainText('Charles')
 
-    await runSql(page, 'DELETE FROM users WHERE id = 3;')
+    await runSql(page, "DELETE FROM users WHERE email = 'charlie@example.com';")
     await runSql(page, 'SELECT COUNT(*) AS remaining_users FROM users;')
     await expect(page.locator('.results-pane .data-table')).toContainText('remaining_users')
     await expect(page.locator('.results-pane .data-table')).toContainText('2')
