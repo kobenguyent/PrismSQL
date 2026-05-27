@@ -355,6 +355,13 @@ export const useAppStore = create<AppState>()(
             s.schema[connectionId].loadingTables[database] = false
           }
         })
+        // Eagerly load columns for all tables in the background so that SQL
+        // autocomplete has field names available without the user needing to
+        // expand each table in the sidebar first.
+        for (const table of tables) {
+          const qualifiedTableName = table.schema ? `${table.schema}.${table.name}` : table.name
+          void get().loadColumns(connectionId, qualifiedTableName, database)
+        }
       } catch {
         set((s) => {
           if (s.schema[connectionId]) {
