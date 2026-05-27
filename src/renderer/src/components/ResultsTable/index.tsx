@@ -755,16 +755,6 @@ export function ResultsTable({
     if (showFilter) setColumnFilters([])
   }
 
-  if (result.error) {
-    return (
-      <div className="results-pane" style={{ minHeight: 80 }}>
-        <div className="error-message">
-          <strong>Error:</strong> {result.error}
-        </div>
-      </div>
-    )
-  }
-
   const filteredCount = table.getFilteredRowModel().rows.length
   const isSingleRow = result.rows.length === 1
   const filteredRows = table.getRowModel().rows
@@ -805,6 +795,16 @@ export function ResultsTable({
     }
     setContextMenu({ x: e.clientX, y: e.clientY })
   }, [selectedRows])
+
+  if (result.error) {
+    return (
+      <div className="results-pane" style={{ minHeight: 80 }}>
+        <div className="error-message">
+          <strong>Error:</strong> {result.error}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="results-pane" style={{ height: '100%' }}>
