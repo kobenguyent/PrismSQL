@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig } from '../src/renderer/src/types'
-import { buildInlineUpdateSql, quoteIdentifierForDb, quoteValueForDb } from '../src/renderer/src/components/ResultsTable'
+import { buildInlineUpdateSql, buildDeleteSql, quoteIdentifierForDb, quoteValueForDb } from '../src/renderer/src/components/ResultsTable'
 import { formatServerVersion } from '../src/renderer/src/utils/version'
 
 type DbApi = NonNullable<(typeof globalThis & { window?: { db?: unknown } })['window']>['db']
@@ -142,5 +142,29 @@ describe('SQL and status formatting helpers', () => {
     )
 
     expect(sql).toBe('UPDATE "tenant-a"."users"\nSET "name" = \'after\'\nWHERE "id" = 5;')
+  })
+
+  it('builds PK-scoped delete SQL using schema-qualified table names', () => {
+    const sql = buildDeleteSql(
+      { id: 7, name: 'to-delete' },
+      [{ name: 'id', type: 'int', nullable: false, primaryKey: true }],
+      'users',
+      'appdb',
+      'tenant-a',
+      'postgres'
+    )
+    expect(sql).toBe('DELETE FROM "tenant-a"."users"\nWHERE "id" = 7;')
+  })
+
+  it('returns null from buildDeleteSql when no PK columns provided', () => {
+    const sql = buildDeleteSql(
+      { id: 1 },
+      [],
+      'users',
+      undefined,
+      undefined,
+      'postgres'
+    )
+    expect(sql).toBeNull()
   })
 })

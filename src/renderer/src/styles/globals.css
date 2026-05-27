@@ -1483,6 +1483,178 @@ html, body, #root {
   min-width: 80px;
   box-shadow: 0 0 0 2px rgba(123, 123, 234, 0.18);
 }
+
+/* ── Cell Edit Wrap (Feature 1) ─────────────────────────────── */
+.cell-edit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cell-edit-wrap .cell-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+.cell-edit-wrap.cell-dirty .cell-edit-input {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.18);
+}
+.cell-action-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.cell-action-btn:hover { background: var(--glass-bg-hover); }
+.cell-action-save { color: var(--color-success); border-color: rgba(74, 222, 128, 0.35); }
+.cell-action-save:hover { background: rgba(74, 222, 128, 0.12); border-color: rgba(74, 222, 128, 0.6); }
+.cell-action-cancel { color: var(--text-tertiary); }
+.cell-action-cancel:hover { color: var(--color-error); border-color: rgba(248, 113, 113, 0.45); background: rgba(248, 113, 113, 0.08); }
+
+/* Editing cell highlight (dirty row indicator) */
+.td-editing {
+  background: rgba(251, 191, 36, 0.05) !important;
+  outline: 1px solid rgba(251, 191, 36, 0.2);
+  outline-offset: -1px;
+}
+
+/* ── Row Selection (Feature 2) ──────────────────────────────── */
+.data-table tr.row-selected td {
+  background: var(--accent-dim) !important;
+}
+.data-table tr.row-selected:hover td {
+  background: rgba(123, 123, 234, 0.22) !important;
+}
+
+.row-num-th {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+  padding: 0 8px !important;
+}
+.row-num-td {
+  width: 50px;
+  min-width: 50px;
+  text-align: right;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  user-select: none;
+  padding: 5px 8px !important;
+  position: relative;
+  cursor: pointer;
+}
+.row-num-label {
+  display: inline-block;
+  transition: opacity var(--transition-fast);
+}
+.row-num-td:hover .row-num-label { opacity: 0; }
+.row-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  vertical-align: middle;
+  position: relative;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+.row-checkbox:hover { border-color: var(--accent); }
+.row-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.row-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0px;
+  width: 5px;
+  height: 8px;
+  border: 1.5px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+/* Show checkbox only on hover or when selected; show row number otherwise */
+.row-num-td .row-checkbox {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.row-num-td:hover .row-checkbox,
+tr.row-selected .row-num-td .row-checkbox { opacity: 1; }
+tr.row-selected .row-num-td .row-num-label { opacity: 0; }
+
+/* Selection badge in results header */
+.selection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(123, 123, 234, 0.28);
+  border-radius: 20px;
+  padding: 2px 8px 2px 10px;
+  white-space: nowrap;
+}
+.icon-btn-danger { color: var(--color-error) !important; }
+.icon-btn-danger:hover { background: rgba(248, 113, 113, 0.12) !important; }
+
+/* ── Context Menu (Feature 2) ───────────────────────────────── */
+.ctx-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glass-shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  padding: 4px;
+  animation: fadeIn var(--transition-fast) ease;
+}
+.ctx-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.ctx-menu-item:hover { background: var(--glass-bg-hover); }
+.ctx-menu-item-danger { color: var(--color-error); }
+.ctx-menu-item-danger:hover { background: rgba(248, 113, 113, 0.1); }
+.ctx-menu-separator {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 3px 6px;
+}
 .welcome-card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
