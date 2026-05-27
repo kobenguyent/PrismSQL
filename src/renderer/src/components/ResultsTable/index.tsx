@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,7 +9,7 @@ import {
   type ColumnFiltersState,
   type ColumnSizingState
 } from '@tanstack/react-table'
-import { ArrowUp, ArrowDown, Download, Filter, Maximize2, RefreshCw, Edit2 } from 'lucide-react'
+import { ArrowUp, ArrowDown, Download, Filter, Maximize2, RefreshCw, Edit2, Check, X, Trash2, Copy } from 'lucide-react'
 import type { QueryResult, ColumnInfo, DatabaseType } from '../../types'
 import { useAppStore } from '../../store'
 
@@ -82,7 +82,56 @@ export function buildInlineUpdateSql(
   return `UPDATE ${tableRef}\nSET ${setCl}\nWHERE ${whereCl};`
 }
 
+export function buildDeleteSql(
+  row: Record<string, unknown>,
+  pkColumns: ColumnInfo[],
+  tableName: string,
+  database?: string,
+  schema?: string,
+  dbType?: DatabaseType
+): string | null {
+  if (pkColumns.length === 0) return null
+  const q = (name: string) => quoteIdentifierForDb(name, dbType)
+  const v = (value: unknown) => quoteValueForDb(value, dbType)
+  const qualifier = schema ?? database
+  const tableRef = qualifier ? `${q(qualifier)}.${q(tableName)}` : q(tableName)
+  const whereCl = pkColumns.map((pk) => `${q(pk.name)} = ${v(row[pk.name])}`).join(' AND ')
+  return `DELETE FROM ${tableRef}\nWHERE ${whereCl};`
+}
+
+export function getVisibleRowSelectionRange(
+  rows: Array<{ index: number }>,
+  anchorRowIdx: number,
+  targetRowIdx: number
+): number[] {
+  const orderedIndexes = rows.map((row) => row.index)
+  const anchorPos = orderedIndexes.indexOf(anchorRowIdx)
+  const targetPos = orderedIndexes.indexOf(targetRowIdx)
+
+  if (targetPos === -1) return []
+  if (anchorPos === -1) return [targetRowIdx]
+
+  const [start, end] = anchorPos < targetPos ? [anchorPos, targetPos] : [targetPos, anchorPos]
+  return orderedIndexes.slice(start, end + 1)
+}
+
+export function getSelectedVisibleRows<T extends { index: number }>(
+  rows: T[],
+  selectedRows: Set<number>
+): T[] {
+  return rows.filter((row) => selectedRows.has(row.index))
+}
+
 const TRUNCATE_LEN = 100
+
+/**
+ * Long or multiline values should expose an explicit preview control so the
+ * full cell content remains reachable even when the visible column is clipped.
+ */
+export function canPreviewCellValue(value: unknown): boolean {
+  const str = formatCell(value)
+  return str.length > TRUNCATE_LEN || str.includes('\n')
+}
 
 /** Cell value display — truncated with expand-on-click */
 function CellDisplay({
@@ -93,22 +142,29 @@ function CellDisplay({
   onExpand: (val: unknown) => void
 }): JSX.Element {
   const str = formatCell(value)
-  const isLong = str.length > TRUNCATE_LEN || str.includes('\n')
+  const isLong = canPreviewCellValue(value)
   const display = isLong ? str.slice(0, TRUNCATE_LEN).replace(/\n/g, '↵') + '…' : str
+  if (!isLong) {
+    return <span className={cellClass(value)}>{display}</span>
+  }
+
   return (
-    <span
-      className={cellClass(value)}
-      style={isLong ? { cursor: 'pointer' } : undefined}
-      title={isLong ? 'Click to expand' : undefined}
-      onClick={isLong ? (e) => { e.stopPropagation(); onExpand(value) } : undefined}
-    >
-      {display}
-      {isLong && (
-        <Maximize2
-          size={10}
-          style={{ marginLeft: 4, opacity: 0.5, display: 'inline', verticalAlign: 'middle' }}
-        />
-      )}
+    <span className="cell-display cell-display-expandable">
+      <span
+        className={`cell-display-text ${cellClass(value)}`}
+        title="Click preview to view full value"
+      >
+        {display}
+      </span>
+      <button
+        type="button"
+        className="cell-display-preview-btn"
+        title="Preview full value"
+        aria-label="Preview full value"
+        onClick={(e) => { e.stopPropagation(); onExpand(value) }}
+      >
+        <Maximize2 size={10} />
+      </button>
     </span>
   )
 }
@@ -236,6 +292,135 @@ function EditConfirmModal({
   )
 }
 
+/** Right-click context menu */
+function ContextMenu({
+  x,
+  y,
+  selectedCount,
+  canDelete,
+  onDelete,
+  onCopy,
+  onClose
+}: {
+  x: number
+  y: number
+  selectedCount: number
+  canDelete: boolean
+  onDelete: () => void
+  onCopy: () => void
+  onClose: () => void
+}): JSX.Element {
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Reposition if the menu would overflow the viewport
+  const style = useMemo(() => {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const menuW = 220
+    const menuH = 90
+    return {
+      left: x + menuW > vw ? x - menuW : x,
+      top: y + menuH > vh ? y - menuH : y
+    }
+  }, [x, y])
+
+  return (
+    <div
+      ref={menuRef}
+      className="ctx-menu"
+      style={style}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        className="ctx-menu-item"
+        onClick={() => { onCopy(); onClose() }}
+      >
+        <Copy size={12} />
+        <span>Copy Row Data{selectedCount > 1 ? ` (${selectedCount})` : ''}</span>
+      </button>
+      {canDelete && (
+        <>
+          <div className="ctx-menu-separator" />
+          <button
+            className="ctx-menu-item ctx-menu-item-danger"
+            onClick={() => { onDelete(); onClose() }}
+          >
+            <Trash2 size={12} />
+            <span>Delete Selected Row{selectedCount !== 1 ? 's' : ''} ({selectedCount})</span>
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Delete confirmation dialog */
+function DeleteConfirmModal({
+  sqls,
+  rowCount,
+  onConfirm,
+  onCancel,
+  error,
+  isDeleting
+}: {
+  sqls: string[]
+  rowCount: number
+  onConfirm: () => void
+  onCancel: () => void
+  error: string | null
+  isDeleting: boolean
+}): JSX.Element {
+  const preview = sqls.slice(0, 3).join('\n')
+  const hasMore = sqls.length > 3
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580 }}>
+        <div className="modal-header">
+          <span className="modal-title">Confirm Deletion</span>
+          <button className="icon-btn" onClick={onCancel}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+            The following SQL will be executed to permanently delete{' '}
+            <strong style={{ color: 'var(--color-error)' }}>{rowCount} row{rowCount !== 1 ? 's' : ''}</strong>.
+            This action cannot be undone.
+          </p>
+          <pre
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--text-primary)',
+              background: 'rgba(0,0,0,0.2)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 12px',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              margin: 0
+            }}
+          >
+            {preview}{hasMore ? `\n… and ${sqls.length - 3} more statement${sqls.length - 3 !== 1 ? 's' : ''}` : ''}
+          </pre>
+          {error && (
+            <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-warning)' }}>
+            ⚠ This operation directly deletes data from the database and cannot be automatically undone.
+          </p>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-danger" onClick={onConfirm} disabled={isDeleting}>
+            {isDeleting ? 'Deleting…' : `Delete ${rowCount} Row${rowCount !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ResultsTable({
   result,
   connectionId,
@@ -263,6 +448,27 @@ export function ResultsTable({
   const [isUpdating, setIsUpdating] = useState(false)
   const editInputRef = useRef<HTMLInputElement>(null)
 
+  // Row selection state (Feature 2)
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
+  const [lastSelectedRow, setLastSelectedRow] = useState<number | null>(null)
+
+  // Context menu state (Feature 2)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+
+  // Delete confirmation state (Feature 2)
+  const [pendingDelete, setPendingDelete] = useState<{ sqls: string[]; count: number } | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Transient inline error (auto-clears) for non-modal operation failures
+  const [tableError, setTableError] = useState<string | null>(null)
+  const tableErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function showTableError(msg: string) {
+    setTableError(msg)
+    if (tableErrorTimer.current) clearTimeout(tableErrorTimer.current)
+    tableErrorTimer.current = setTimeout(() => setTableError(null), 4000)
+  }
+
   const conn = connectionId ? connections.find((c) => c.id === connectionId) : null
   const canEdit = !!(connectionId && tableName && conn)
 
@@ -282,6 +488,19 @@ export function ResultsTable({
       editInputRef.current.select()
     }
   }, [editingCell])
+
+  // Close context menu on outside click or Escape
+  useEffect(() => {
+    if (!contextMenu) return
+    const handleClick = () => setContextMenu(null)
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setContextMenu(null) }
+    document.addEventListener('click', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [contextMenu])
 
   function buildUpdateSql(
     row: Record<string, unknown>,
@@ -324,8 +543,18 @@ export function ResultsTable({
     return editStr
   }
 
+  /**
+   * Returns true when the edit string differs from the original cell value's
+   * string representation — used for both the dirty indicator and no-op commit check.
+   */
+  function isValueDirty(editStr: string, original: unknown): boolean {
+    const originalStr = original === null || original === undefined ? '' : String(original)
+    return editStr !== originalStr
+  }
+
   function handleCellDoubleClick(rowIdx: number, col: string, value: unknown) {
     if (!canEdit) return
+    // Previous edit is implicitly replaced without saving
     setEditingCell({ rowIdx, col, original: value })
     setEditValue(value === null || value === undefined ? '' : String(value))
   }
@@ -342,6 +571,11 @@ export function ResultsTable({
   function commitEdit(row: Record<string, unknown>) {
     if (!editingCell) return
     const typedVal = coerceEditValue(editValue, editingCell.original)
+    // No-op if value string representation is unchanged
+    if (!isValueDirty(editValue, editingCell.original)) {
+      setEditingCell(null)
+      return
+    }
     const sql = buildUpdateSql(row, editingCell.col, typedVal)
     if (!sql) {
       setEditingCell(null)
@@ -373,6 +607,55 @@ export function ResultsTable({
     }
   }
 
+  function buildDeleteSqlForRow(row: Record<string, unknown>): string | null {
+    return buildDeleteSql(row, pkColumns, tableName!, database, schema, conn?.type)
+  }
+
+  function handleDeleteSelected(rows: { index: number; original: Record<string, unknown> }[]) {
+    const sqls = getSelectedVisibleRows(rows, selectedRows)
+      .map((r) => buildDeleteSqlForRow(r.original))
+      .filter((s): s is string => s !== null)
+    if (sqls.length === 0) {
+      showTableError('Cannot delete: table has no primary key columns, which are required to safely identify rows for deletion.')
+      return
+    }
+    setPendingDelete({ sqls, count: sqls.length })
+  }
+
+  async function executeDelete() {
+    if (!pendingDelete || !connectionId || isDeleting) return
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      for (const sql of pendingDelete.sqls) {
+        const res = await window.db.query(connectionId, sql)
+        if (res.error) {
+          setDeleteError(res.error)
+          setIsDeleting(false)
+          return
+        }
+      }
+      setPendingDelete(null)
+      setIsDeleting(false)
+      setSelectedRows(new Set())
+      onRefresh?.()
+    } catch (err) {
+      setDeleteError((err as Error).message)
+      setIsDeleting(false)
+    }
+  }
+
+  function copyRowsData(rows: { index: number; original: Record<string, unknown> }[]) {
+    const selected = getSelectedVisibleRows(rows, selectedRows).map((r) => r.original)
+    if (selected.length === 0) return
+    const headers = result.columns.map((c) => c.name)
+    const lines = selected.map((row) => headers.map((h) => formatCell(row[h])).join('\t'))
+    const text = [headers.join('\t'), ...lines].join('\n')
+    navigator.clipboard.writeText(text).catch((err: Error) => {
+      showTableError(`Copy failed: ${err.message || 'clipboard unavailable'}`)
+    })
+  }
+
   const columns = useMemo(
     () =>
       result.columns.map((col) => ({
@@ -387,17 +670,35 @@ export function ResultsTable({
           const v = info.getValue()
           const rowIdx = info.row.index
           const isEditing = editingCell?.rowIdx === rowIdx && editingCell?.col === col.name
+          const isDirty = isEditing && isValueDirty(editValue, editingCell?.original)
           if (isEditing) {
             return (
-              <input
-                ref={editInputRef}
-                className="cell-edit-input"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onKeyDown={(e) => handleEditKeyDown(e, info.row.original)}
-                onBlur={() => commitEdit(info.row.original)}
-                onClick={(e) => e.stopPropagation()}
-              />
+              <div className={`cell-edit-wrap${isDirty ? ' cell-dirty' : ''}`}>
+                <input
+                  ref={editInputRef}
+                  className="cell-edit-input"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => handleEditKeyDown(e, info.row.original)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  className="cell-action-btn cell-action-save"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => { e.stopPropagation(); commitEdit(info.row.original) }}
+                  title="Save (Enter)"
+                >
+                  <Check size={10} />
+                </button>
+                <button
+                  className="cell-action-btn cell-action-cancel"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => { e.stopPropagation(); setEditingCell(null) }}
+                  title="Cancel (Esc)"
+                >
+                  <X size={10} />
+                </button>
+              </div>
             )
           }
           return (
@@ -466,6 +767,44 @@ export function ResultsTable({
 
   const filteredCount = table.getFilteredRowModel().rows.length
   const isSingleRow = result.rows.length === 1
+  const filteredRows = table.getRowModel().rows
+  const selectedVisibleRows = useMemo(() => getSelectedVisibleRows(filteredRows, selectedRows), [filteredRows, selectedRows])
+  const selCount = selectedVisibleRows.length
+
+  // ── Row Selection (Feature 2) ─────────────────────────────────
+  const handleRowClick = useCallback((e: React.MouseEvent, rowIdx: number) => {
+    // Don't interfere with cell editing or cell expansion clicks
+    if ((e.target as HTMLElement).closest('.cell-edit-wrap, .cell-edit-input')) return
+    if (e.shiftKey && lastSelectedRow !== null) {
+      const range = getVisibleRowSelectionRange(filteredRows, lastSelectedRow, rowIdx)
+      setSelectedRows((prev) => {
+        const next = new Set(prev)
+        range.forEach((idx) => next.add(idx))
+        return next
+      })
+    } else if (e.metaKey || e.ctrlKey) {
+      setSelectedRows((prev) => {
+        const next = new Set(prev)
+        if (next.has(rowIdx)) next.delete(rowIdx)
+        else next.add(rowIdx)
+        return next
+      })
+      setLastSelectedRow(rowIdx)
+    } else {
+      setSelectedRows(new Set([rowIdx]))
+      setLastSelectedRow(rowIdx)
+    }
+  }, [filteredRows, lastSelectedRow])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, rowIdx: number) => {
+    e.preventDefault()
+    // If right-clicked row is not already selected, select it exclusively
+    if (!selectedRows.has(rowIdx)) {
+      setSelectedRows(new Set([rowIdx]))
+      setLastSelectedRow(rowIdx)
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [selectedRows])
 
   return (
     <div className="results-pane" style={{ height: '100%' }}>
@@ -483,12 +822,67 @@ export function ResultsTable({
               · horizontal view
             </span>
           )}
-          {canEdit && (
+          {canEdit && !selCount && (
             <span style={{ marginLeft: 6, color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)' }}>
               · <Edit2 size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> double-click to edit
             </span>
           )}
         </span>
+
+        {/* Inline operation error (auto-clears) */}
+        {tableError && (
+          <span
+            style={{
+              fontSize: 'var(--font-size-xs)',
+              color: 'var(--color-error)',
+              background: 'rgba(248,113,113,0.1)',
+              border: '1px solid rgba(248,113,113,0.25)',
+              borderRadius: 20,
+              padding: '2px 10px',
+              whiteSpace: 'nowrap',
+              flexShrink: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 280
+            }}
+            title={tableError}
+          >
+            ⚠ {tableError}
+          </span>
+        )}
+
+        {/* Selection count + bulk actions */}
+        {selCount > 0 && (
+          <span className="selection-badge">
+            {selCount} selected
+            {canEdit && (
+              <button
+                className="icon-btn icon-btn-danger"
+                style={{ marginLeft: 6 }}
+                title={`Delete ${selCount} row${selCount !== 1 ? 's' : ''}`}
+                onClick={() => handleDeleteSelected(filteredRows)}
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+            <button
+              className="icon-btn"
+              style={{ marginLeft: 2 }}
+              title="Copy row data"
+              onClick={() => copyRowsData(filteredRows)}
+            >
+              <Copy size={11} />
+            </button>
+            <button
+              className="icon-btn"
+              style={{ marginLeft: 2 }}
+              title="Clear selection"
+              onClick={() => setSelectedRows(new Set())}
+            >
+              <X size={11} />
+            </button>
+          </span>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
           {onRefresh && (
@@ -557,7 +951,21 @@ export function ResultsTable({
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
-                  <th style={{ width: 50, minWidth: 50, color: 'var(--text-tertiary)', textAlign: 'right' }}>#</th>
+                  <th className="row-num-th">
+                    <input
+                      type="checkbox"
+                      className="row-checkbox"
+                      title="Select all visible rows"
+                      checked={filteredRows.length > 0 && selectedVisibleRows.length === filteredRows.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRows(new Set(filteredRows.map((r) => r.index)))
+                        } else {
+                          setSelectedRows(new Set())
+                        }
+                      }}
+                    />
+                  </th>
                   {hg.headers.map((header) => (
                     <th
                       key={header.id}
@@ -601,25 +1009,45 @@ export function ResultsTable({
               )}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map((row, idx) => (
-                <tr key={row.id}>
-                  <td style={{
-                    textAlign: 'right',
-                    color: 'var(--text-tertiary)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 11,
-                    width: 50,
-                    userSelect: 'none'
-                  }}>
-                    {idx + 1}
-                  </td>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              {filteredRows.map((row, idx) => {
+                const isSelected = selectedRows.has(row.index)
+                return (
+                  <tr
+                    key={row.id}
+                    className={isSelected ? 'row-selected' : undefined}
+                    onClick={(e) => handleRowClick(e, row.index)}
+                    onContextMenu={(e) => handleContextMenu(e, row.index)}
+                  >
+                    <td className="row-num-td" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="row-checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          setSelectedRows((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(row.index)) next.delete(row.index)
+                            else next.add(row.index)
+                            return next
+                          })
+                          setLastSelectedRow(row.index)
+                        }}
+                      />
+                      <span className="row-num-label">{idx + 1}</span>
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isEditingCell = editingCell?.rowIdx === row.index && editingCell?.col === cell.column.id
+                      const isDirtyCell = isEditingCell && isValueDirty(editValue, editingCell?.original)
+                      return (
+                        <td key={cell.id} className={isDirtyCell ? 'td-editing' : undefined}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
@@ -641,6 +1069,31 @@ export function ResultsTable({
           onCancel={() => { setPendingUpdate(null); setUpdateError(null) }}
           error={updateError}
           isUpdating={isUpdating}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {pendingDelete && (
+        <DeleteConfirmModal
+          sqls={pendingDelete.sqls}
+          rowCount={pendingDelete.count}
+          onConfirm={executeDelete}
+          onCancel={() => { setPendingDelete(null); setDeleteError(null) }}
+          error={deleteError}
+          isDeleting={isDeleting}
+        />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          selectedCount={selCount}
+          canDelete={canEdit && pkColumns.length > 0}
+          onDelete={() => handleDeleteSelected(filteredRows)}
+          onCopy={() => copyRowsData(filteredRows)}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>
