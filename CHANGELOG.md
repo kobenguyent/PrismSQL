@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.0...v1.13.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* quit app after installer handoff to eliminate dual-instance on update ([#46](https://github.com/kobenguyent/KobeanSQL/issues/46)) ([ca8e01c](https://github.com/kobenguyent/KobeanSQL/commit/ca8e01c85bfb7010e9bb9a2fbe3aca9c312967ca))
+
 # [1.13.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.12.3...v1.13.0) (2026-05-27)
 
 
