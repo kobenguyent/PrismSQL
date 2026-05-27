@@ -124,6 +124,11 @@ export function getSelectedVisibleRows<T extends { index: number }>(
 
 const TRUNCATE_LEN = 100
 
+export function canPreviewCellValue(value: unknown): boolean {
+  const str = formatCell(value)
+  return str.length > TRUNCATE_LEN || str.includes('\n')
+}
+
 /** Cell value display — truncated with expand-on-click */
 function CellDisplay({
   value,
@@ -133,22 +138,29 @@ function CellDisplay({
   onExpand: (val: unknown) => void
 }): JSX.Element {
   const str = formatCell(value)
-  const isLong = str.length > TRUNCATE_LEN || str.includes('\n')
+  const isLong = canPreviewCellValue(value)
   const display = isLong ? str.slice(0, TRUNCATE_LEN).replace(/\n/g, '↵') + '…' : str
+  if (!isLong) {
+    return <span className={cellClass(value)}>{display}</span>
+  }
+
   return (
-    <span
-      className={cellClass(value)}
-      style={isLong ? { cursor: 'pointer' } : undefined}
-      title={isLong ? 'Click to expand' : undefined}
-      onClick={isLong ? (e) => { e.stopPropagation(); onExpand(value) } : undefined}
-    >
-      {display}
-      {isLong && (
-        <Maximize2
-          size={10}
-          style={{ marginLeft: 4, opacity: 0.5, display: 'inline', verticalAlign: 'middle' }}
-        />
-      )}
+    <span className="cell-display cell-display-expandable">
+      <span
+        className={`cell-display-text ${cellClass(value)}`.trim()}
+        title="Click preview to view full value"
+      >
+        {display}
+      </span>
+      <button
+        type="button"
+        className="cell-display-preview-btn"
+        title="Preview full value"
+        aria-label="Preview full value"
+        onClick={(e) => { e.stopPropagation(); onExpand(value) }}
+      >
+        <Maximize2 size={10} />
+      </button>
     </span>
   )
 }

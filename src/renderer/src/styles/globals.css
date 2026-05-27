@@ -1470,6 +1470,44 @@ html, body, #root {
 }
 
 /* ── Cell Edit Input ────────────────────────────────────────── */
+.cell-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+.cell-display-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cell-display-expandable {
+  width: 100%;
+}
+.cell-display-preview-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.cell-display-preview-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+  border-color: var(--glass-border-active);
+}
+
+/* ── Cell Edit Input ────────────────────────────────────────── */
 .cell-edit-input {
   background: var(--form-bg);
   border: 1px solid var(--glass-border-active);

@@ -3,6 +3,7 @@ import type { ConnectionConfig } from '../src/renderer/src/types'
 import {
   buildInlineUpdateSql,
   buildDeleteSql,
+  canPreviewCellValue,
   getSelectedVisibleRows,
   getVisibleRowSelectionRange,
   quoteIdentifierForDb,
@@ -173,6 +174,12 @@ describe('SQL and status formatting helpers', () => {
       'postgres'
     )
     expect(sql).toBeNull()
+  })
+
+  it('marks multiline or very long values as previewable cell content', () => {
+    expect(canPreviewCellValue('short text')).toBe(false)
+    expect(canPreviewCellValue(`line 1\nline 2`)).toBe(true)
+    expect(canPreviewCellValue('x'.repeat(101))).toBe(true)
   })
 
   it('builds shift-selection ranges from the current visible row order', () => {
