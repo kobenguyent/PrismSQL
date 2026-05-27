@@ -1,3 +1,10 @@
+## [1.13.4](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.3...v1.13.4) (2026-05-27)
+
+
+### Bug Fixes
+
+* result table last-column clipping, SQL autocomplete fields, and auto-update install ([#49](https://github.com/kobenguyent/KobeanSQL/issues/49)) ([1100d24](https://github.com/kobenguyent/KobeanSQL/commit/1100d241a8081a6d32f5f1b0bb36165b8f3c869d))
+
 ## [1.13.3](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.2...v1.13.3) (2026-05-27)
 
 
