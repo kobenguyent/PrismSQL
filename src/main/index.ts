@@ -7,6 +7,7 @@ import { appLogger, setupLogger } from './logger'
 import { isSafeExternalUrl, isTrustedRendererUrl } from './security'
 import { createUpdateService } from './update/service'
 import { localStore } from './local-store'
+import {performMigrations} from "./store";
 
 // Configure logger
 setupLogger()
@@ -80,6 +81,7 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(async () => {
   appLogger.info('Application ready')
+  await performMigrations()
   await localStore.open(app.getPath('userData'))
   registerIpcHandlers(manager, updateService)
   createWindow()

@@ -10,7 +10,8 @@ import {
   sanitizeSettings,
   saveSettings,
   saveConnections,
-  writeSavedQueries
+  writeSavedQueries,
+  deleteSavedQuery
 } from '../store'
 import { ConnectionConfig } from '../db/types'
 import { appLogger } from '../logger'
@@ -232,8 +233,7 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
   )
 
   handleWithLogging('queries:delete', async (_event: IpcMainInvokeEvent, id: string) => {
-    const queries = loadSavedQueries().filter((q) => q.id !== id)
-    writeSavedQueries(queries)
+    deleteSavedQuery(id)
     return { success: true }
   })
 

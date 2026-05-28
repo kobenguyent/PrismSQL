@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '../../store'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getSupportedLocales, setLocale, getLocale } from '../../i18n'
+import {createPortal} from "react-dom";
 
 interface Props {
   onClose: () => void
@@ -103,7 +104,7 @@ export function SettingsModal({ onClose }: Props): React.JSX.Element {
     onClose()
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">

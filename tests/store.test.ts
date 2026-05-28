@@ -25,6 +25,14 @@ vi.mock('electron', () => ({
   }
 }))
 
+vi.mock('../src/main/local-store', () => ({
+  localStore: {
+    getSavedQueries: vi.fn(() => []),
+    addSavedQuery: vi.fn(),
+    deleteSavedQuery: vi.fn()
+  }
+}))
+
 describe('Connection Store (persistence)', () => {
   const storePath = path.join(os.tmpdir(), 'connections.json')
   const importPath = path.join(os.tmpdir(), 'connections-import.json')
@@ -40,6 +48,7 @@ describe('Connection Store (persistence)', () => {
   }
 
   beforeEach(() => {
+    vi.clearAllMocks()
     // Clean up any leftover file
     if (fs.existsSync(storePath)) fs.unlinkSync(storePath)
     if (fs.existsSync(importPath)) fs.unlinkSync(importPath)
@@ -87,8 +96,8 @@ describe('Connection Store (persistence)', () => {
       }
     ])
 
-    const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as Array<Record<string, unknown>>
-    expect(raw[0]).toHaveProperty('password', 'super-secret')
+    const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as { connections: Array<Record<string, unknown>> }
+    expect(raw.connections[0]).toHaveProperty('password', 'super-secret')
   })
 
   it('saveConnections encrypts passwords when safeStorage is available and loadConnections decrypts them', async () => {
@@ -106,9 +115,9 @@ describe('Connection Store (persistence)', () => {
     const { loadConnections, saveConnections } = await import('../src/main/store')
     saveConnections([{ id: 'c1', name: 'Enc', type: 'postgres', host: 'localhost', password: 'super-secret' }])
 
-    const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as Array<Record<string, unknown>>
+    const raw = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as { connections: Array<Record<string, unknown>> }
     // Stored password should carry the enc: prefix, not plaintext
-    expect(raw[0].password as string).toMatch(/^enc:/)
+    expect(raw.connections[0].password as string).toMatch(/^enc:/)
 
     // loadConnections should decrypt it back to the original value
     const loaded = loadConnections()
@@ -132,7 +141,10 @@ describe('Connection Store (persistence)', () => {
     })
     fs.writeFileSync(
       storePath,
-      JSON.stringify([{ id: 'c1', name: 'Broken', type: 'postgres', password: 'enc:invalid-base64' }], null, 2),
+      JSON.stringify({
+        version: 1,
+        connections: [{ id: 'c1', name: 'Broken', type: 'postgres', password: 'enc:invalid-base64' }]
+      }, null, 2),
       'utf-8'
     )
 

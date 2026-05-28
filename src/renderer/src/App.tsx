@@ -546,7 +546,7 @@ export default function App(): React.JSX.Element {
             ? connections.find((c) => connectedIds.has(c.id))
             : null
         if (!conn || !connectedIds.has(conn.id)) {
-          return (
+          return createPortal(
             <div className="modal-overlay" onClick={() => setShowSchemaVisualizer(false)}>
               <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400 }}>
                 <div className="modal-header">
@@ -562,7 +562,8 @@ export default function App(): React.JSX.Element {
                   <button className="btn btn-secondary" onClick={() => setShowSchemaVisualizer(false)}>Close</button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )
         }
         return (
@@ -576,7 +577,7 @@ export default function App(): React.JSX.Element {
       })()}
 
       {/* Privacy modal */}
-      {showPrivacy && (
+      {showPrivacy && createPortal(
         <div className="modal-overlay" onClick={() => setShowPrivacy(false)}>
           <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
@@ -617,7 +618,8 @@ export default function App(): React.JSX.Element {
               <button className="btn btn-secondary" onClick={() => setShowPrivacy(false)}>Close</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Trash2, ExternalLink, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { useAppStore } from '../../store'
 import type { QueryHistoryEntry } from '../../types'
+import {createPortal} from "react-dom";
 
 interface Props {
   onClose: () => void
@@ -46,7 +47,7 @@ export function QueryHistoryPanel({ onClose }: Props): React.JSX.Element {
     onClose()
   }
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         className="modal-panel"

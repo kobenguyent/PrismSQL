@@ -21,6 +21,7 @@
 import path from 'path'
 import fs from 'fs'
 import { appLogger } from '../logger'
+import {MigrationManager, MigrationStep} from "../migration";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,10 +114,10 @@ function applyPragma(db: SqliteDatabase, pragma: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Schema DDL
+// Schema DDL (Legacy / Initial)
 // ---------------------------------------------------------------------------
 
-const DDL = `
+const INITIAL_DDL = `
 CREATE TABLE IF NOT EXISTS connection_logs (
   id               TEXT    PRIMARY KEY,
   connection_id    TEXT    NOT NULL,
@@ -150,6 +151,17 @@ CREATE TABLE IF NOT EXISTS schema_cache (
   cached_at      INTEGER NOT NULL,
   PRIMARY KEY (connection_id, database_name)
 );
+
+CREATE TABLE IF NOT EXISTS saved_queries (
+  id          TEXT    PRIMARY KEY,
+  name        TEXT    NOT NULL,
+  sql         TEXT    NOT NULL,
+  category    TEXT,
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_queries_name
+  ON saved_queries (name);
 `
 
 // Maximum number of query history rows kept in the database
@@ -161,6 +173,7 @@ const MAX_HISTORY_ROWS = 500
 
 export class LocalStore {
   private db: SqliteDatabase | null = null
+  private migrationManager: MigrationManager | null = null
 
   /**
    * Open (or create) the local store database.
@@ -173,12 +186,55 @@ export class LocalStore {
       fs.mkdirSync(userDataDir, { recursive: true })
       const dbPath = path.join(userDataDir, 'kobeansql-storage.db')
       this.db = await openSqliteDatabase(dbPath)
+      this.migrationManager = new MigrationManager(userDataDir)
+
       applyPragma(this.db, 'journal_mode = WAL')
       applyPragma(this.db, 'foreign_keys = ON')
-      execSql(this.db, DDL)
-      appLogger.info('LocalStore opened', { dbPath })
+      
+      // Run initial DDL (safe because of IF NOT EXISTS)
+      execSql(this.db, INITIAL_DDL)
+
+      // Define migrations here
+      const migrations: MigrationStep[] = [
+        {
+          version: 1,
+          up: () => {
+            // Version 1 is the baseline schema created by INITIAL_DDL.
+          }
+        },
+        {
+          version: 2,
+          up: async () => {
+            const jsonPath = path.join(userDataDir, 'saved-queries.json')
+            if (fs.existsSync(jsonPath)) {
+              try {
+                const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+                const queries = Array.isArray(data) ? data : (data.queries ?? [])
+                for (const q of queries) {
+                  this.addSavedQuery({
+                    id: q.id,
+                    name: q.name,
+                    sql: q.sql,
+                    category: q.category,
+                    createdAt: q.createdAt || Date.now()
+                  })
+                }
+                appLogger.info(`Migrated ${queries.length} saved queries to SQLite`)
+                // We keep the JSON for now but it won't be used anymore.
+                // Optionally rename it: fs.renameSync(jsonPath, jsonPath + '.bak')
+              } catch (err) {
+                appLogger.error('Failed to migrate saved queries from JSON', { error: (err as Error).message })
+              }
+            }
+          }
+        }
+      ]
+
+      await this.migrationManager.migrateSqlite(this.db, migrations)
+      
+      appLogger.info('LocalStore opened and migrated', { dbPath })
     } catch (err) {
-      appLogger.error('LocalStore failed to open', { error: (err as Error).message })
+      appLogger.error('LocalStore failed to open or migrate', { error: (err as Error).message })
       // Non-fatal — the rest of the app can continue with degraded persistence.
       this.db = null
     }
@@ -363,6 +419,53 @@ export class LocalStore {
       }
     } catch (err) {
       appLogger.error('LocalStore.clearSchemaCache failed', { error: (err as Error).message })
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Saved queries
+  // -------------------------------------------------------------------------
+
+  addSavedQuery(query: { id: string; name: string; sql: string; category?: string; createdAt: number }): void {
+    if (!this.db) return
+    try {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO saved_queries
+             (id, name, sql, category, created_at)
+           VALUES (?, ?, ?, ?, ?)`
+        )
+        .run(query.id, query.name, query.sql, query.category ?? null, query.createdAt)
+    } catch (err) {
+      appLogger.error('LocalStore.addSavedQuery failed', { error: (err as Error).message })
+    }
+  }
+
+  getSavedQueries(): { id: string; name: string; sql: string; category?: string; createdAt: number }[] {
+    if (!this.db) return []
+    try {
+      const rows = this.db
+        .prepare('SELECT id, name, sql, category, created_at FROM saved_queries ORDER BY created_at DESC')
+        .all()
+      return rows.map((row) => ({
+        id: String(row['id']),
+        name: String(row['name']),
+        sql: String(row['sql']),
+        category: row['category'] ? String(row['category']) : undefined,
+        createdAt: Number(row['created_at'])
+      }))
+    } catch (err) {
+      appLogger.error('LocalStore.getSavedQueries failed', { error: (err as Error).message })
+      return []
+    }
+  }
+
+  deleteSavedQuery(id: string): void {
+    if (!this.db) return
+    try {
+      this.db.prepare('DELETE FROM saved_queries WHERE id = ?').run(id)
+    } catch (err) {
+      appLogger.error('LocalStore.deleteSavedQuery failed', { error: (err as Error).message })
     }
   }
 }
