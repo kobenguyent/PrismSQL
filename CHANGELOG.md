@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.6...v1.14.0) (2026-05-28)
+
+
+### Features
+
+* SQLite-backed local storage for connection logs, query history, and schema cache ([#51](https://github.com/kobenguyent/KobeanSQL/issues/51)) ([3b7761b](https://github.com/kobenguyent/KobeanSQL/commit/3b7761bfe3655af354268022df0f9775f7eb2afd))
+
 ## [1.13.6](https://github.com/kobenguyent/KobeanSQL/compare/v1.13.5...v1.13.6) (2026-05-27)
 
 
