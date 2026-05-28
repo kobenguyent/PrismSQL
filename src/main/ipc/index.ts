@@ -10,7 +10,8 @@ import {
   sanitizeSettings,
   saveSettings,
   saveConnections,
-  writeSavedQueries
+  writeSavedQueries,
+  deleteSavedQuery
 } from '../store'
 import { ConnectionConfig } from '../db/types'
 import { appLogger } from '../logger'
@@ -19,6 +20,7 @@ import { createLocalAIService } from '../ai/service'
 import { validateLocalBaseUrl } from '../ai/url-policy'
 import { isTrustedRendererUrl } from '../security'
 import type { UpdateService } from '../update/service'
+import { localStore, type ConnectionLogEntry, type PersistedQueryHistoryEntry } from '../local-store'
 
 class UntrustedRendererContextError extends Error {
   constructor() {
@@ -231,8 +233,7 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
   )
 
   handleWithLogging('queries:delete', async (_event: IpcMainInvokeEvent, id: string) => {
-    const queries = loadSavedQueries().filter((q) => q.id !== id)
-    writeSavedQueries(queries)
+    deleteSavedQuery(id)
     return { success: true }
   })
 
@@ -398,4 +399,84 @@ export function registerIpcHandlers(manager: ConnectionManager, updateService?: 
     if (!updateService) return { success: false, error: 'Update service unavailable' }
     return updateService.installUpdate()
   })
+
+  // -------------------------------------------------------------------------
+  // Connection logs
+  // -------------------------------------------------------------------------
+
+  handleWithLogging(
+    'logs:add-connection-log',
+    async (_event: IpcMainInvokeEvent, entry: ConnectionLogEntry) => {
+      localStore.addConnectionLog(entry)
+      return { success: true }
+    }
+  )
+
+  handleWithLogging(
+    'logs:get-connection-logs',
+    async (_event: IpcMainInvokeEvent, connectionId?: string, limit?: number) => {
+      return localStore.getConnectionLogs(connectionId, limit)
+    }
+  )
+
+  handleWithLogging(
+    'logs:clear-connection-logs',
+    async (_event: IpcMainInvokeEvent, connectionId?: string) => {
+      localStore.clearConnectionLogs(connectionId)
+      return { success: true }
+    }
+  )
+
+  // -------------------------------------------------------------------------
+  // Persistent query history
+  // -------------------------------------------------------------------------
+
+  handleWithLogging(
+    'history:add',
+    async (_event: IpcMainInvokeEvent, entry: PersistedQueryHistoryEntry) => {
+      localStore.addQueryHistory(entry)
+      return { success: true }
+    }
+  )
+
+  handleWithLogging('history:get', async (_event: IpcMainInvokeEvent, limit?: number) => {
+    return localStore.getQueryHistory(limit)
+  })
+
+  handleWithLogging('history:clear', async () => {
+    localStore.clearQueryHistory()
+    return { success: true }
+  })
+
+  // -------------------------------------------------------------------------
+  // Schema cache
+  // -------------------------------------------------------------------------
+
+  handleWithLogging(
+    'schema-cache:set',
+    async (
+      _event: IpcMainInvokeEvent,
+      connectionId: string,
+      databaseName: string,
+      schemaJson: string
+    ) => {
+      localStore.setSchemaCache(connectionId, databaseName, schemaJson)
+      return { success: true }
+    }
+  )
+
+  handleWithLogging(
+    'schema-cache:get',
+    async (_event: IpcMainInvokeEvent, connectionId: string, databaseName: string) => {
+      return localStore.getSchemaCache(connectionId, databaseName)
+    }
+  )
+
+  handleWithLogging(
+    'schema-cache:clear',
+    async (_event: IpcMainInvokeEvent, connectionId?: string) => {
+      localStore.clearSchemaCache(connectionId)
+      return { success: true }
+    }
+  )
 }

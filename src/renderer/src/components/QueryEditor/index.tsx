@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, StandardSQL } from '@codemirror/lang-sql'
 import { oneDark } from '@codemirror/theme-one-dark'
@@ -540,7 +541,7 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
         </div>
       )}
 
-      {showAIGenerateModal && (
+      {showAIGenerateModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowAIGenerateModal(false)}>
           <div className="modal-panel" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -581,7 +582,8 @@ export function QueryEditor({ tab }: Props): React.JSX.Element {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

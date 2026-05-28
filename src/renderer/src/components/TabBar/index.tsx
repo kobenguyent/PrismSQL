@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, X, Table, Code2, FunctionSquare, ChevronsDown, ChevronsUp } from 'lucide-react'
 import { useAppStore } from '../../store'
 import type { QueryTab } from '../../types'
@@ -560,7 +561,7 @@ export function TabBar(): React.JSX.Element {
           </div>
         </div>
       )}
-      {groupEditor && (
+      {groupEditor && createPortal(
         <div className="modal-overlay" onClick={() => setGroupEditor(null)}>
           <div className="modal-panel" style={{ width: 380, maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -588,7 +589,8 @@ export function TabBar(): React.JSX.Element {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {groupMembersEditor && (
         <div className="modal-overlay" onClick={() => setGroupMembersEditor(null)}>

@@ -99,6 +99,29 @@ declare global {
       downloadUpdate(): Promise<UpdateStatus | null>
       installUpdate(): Promise<{ success: boolean; error?: string }>
       onConnectionLost(callback: (connectionId: string) => void): () => void
+
+      // Connection logs
+      addConnectionLog(entry: {
+        id: string; connectionId: string; connectionName: string
+        event: string; timestamp: number; error?: string
+      }): Promise<{ success: boolean }>
+      getConnectionLogs(connectionId?: string, limit?: number): Promise<Array<{
+        id: string; connectionId: string; connectionName: string
+        event: string; timestamp: number; error?: string
+      }>>
+      clearConnectionLogs(connectionId?: string): Promise<{ success: boolean }>
+
+      // Persistent query history
+      addToPersistedHistory(entry: QueryHistoryEntry): Promise<{ success: boolean }>
+      getPersistedHistory(limit?: number): Promise<QueryHistoryEntry[]>
+      clearPersistedHistory(): Promise<{ success: boolean }>
+
+      // Schema cache
+      setSchemaCache(connectionId: string, databaseName: string, schemaJson: string): Promise<{ success: boolean }>
+      getSchemaCache(connectionId: string, databaseName: string): Promise<{
+        connectionId: string; databaseName: string; schemaJson: string; cachedAt: number
+      } | null>
+      clearSchemaCache(connectionId?: string): Promise<{ success: boolean }>
     }
   }
 }
@@ -199,8 +222,9 @@ interface AppState {
   openLogs(): Promise<void>
 
   // History actions
+  loadHistory(): Promise<void>
   addToHistory(entry: QueryHistoryEntry): void
-  clearHistory(): void
+  clearHistory(): Promise<void>
   openHistoryEntry(entry: QueryHistoryEntry): void
 
   // Settings actions
@@ -284,6 +308,13 @@ export const useAppStore = create<AppState>()(
           }
         })
         get().setStatus(`Connected to ${config.name}`, 'success')
+        void window.db.addConnectionLog({
+          id: genId(),
+          connectionId: config.id,
+          connectionName: config.name,
+          event: 'connected',
+          timestamp: Date.now()
+        }).catch(() => {/* ignore */})
         await get().loadDatabases(config.id)
         // Fetch server version in background
         window.db.getServerVersion(config.id).then(({ version }) => {
@@ -292,6 +323,15 @@ export const useAppStore = create<AppState>()(
               s.connectionVersions[config.id] = version
             }
           })
+        }).catch(() => {/* ignore */})
+      } else {
+        void window.db.addConnectionLog({
+          id: genId(),
+          connectionId: config.id,
+          connectionName: config.name,
+          event: 'failed',
+          timestamp: Date.now(),
+          error: result.error
         }).catch(() => {/* ignore */})
       }
       return result
@@ -306,6 +346,13 @@ export const useAppStore = create<AppState>()(
       })
       const conn = get().connections.find((c) => c.id === id)
       get().setStatus(`Disconnected from ${conn?.name}`, 'info')
+      void window.db.addConnectionLog({
+        id: genId(),
+        connectionId: id,
+        connectionName: conn?.name ?? id,
+        event: 'disconnected',
+        timestamp: Date.now()
+      }).catch(() => {/* ignore */})
     },
 
     handleConnectionLost: (id) => {
@@ -316,6 +363,14 @@ export const useAppStore = create<AppState>()(
       })
       const conn = get().connections.find((c) => c.id === id)
       get().setStatus(`Connection to ${conn?.name ?? id} was lost`, 'error')
+      void window.db.addConnectionLog({
+        id: genId(),
+        connectionId: id,
+        connectionName: conn?.name ?? id,
+        event: 'disconnected',
+        timestamp: Date.now(),
+        error: 'Connection lost unexpectedly'
+      }).catch(() => {/* ignore */})
     },
 
     loadDatabases: async (connectionId) => {
@@ -771,6 +826,15 @@ export const useAppStore = create<AppState>()(
       })
     },
 
+    loadHistory: async () => {
+      try {
+        const entries = await window.db.getPersistedHistory(MAX_QUERY_HISTORY)
+        set((s) => {
+          s.queryHistory = entries
+        })
+      } catch {/* ignore — degraded gracefully if local store is unavailable */}
+    },
+
     addToHistory: (entry) => {
       set((s) => {
         s.queryHistory.unshift(entry)
@@ -778,12 +842,17 @@ export const useAppStore = create<AppState>()(
           s.queryHistory.length = MAX_QUERY_HISTORY
         }
       })
+      // Persist asynchronously — failure is non-fatal
+      void window.db.addToPersistedHistory(entry).catch(() => {/* ignore */})
     },
 
-    clearHistory: () => {
+    clearHistory: async () => {
       set((s) => {
         s.queryHistory = []
       })
+      try {
+        await window.db.clearPersistedHistory()
+      } catch {/* ignore */}
     },
 
     openHistoryEntry: (entry) => {

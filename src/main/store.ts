@@ -4,6 +4,9 @@ import fs from 'fs'
 import { randomUUID } from 'crypto'
 import { ConnectionConfig, DatabaseType } from './db/types'
 import { appLogger } from './logger'
+import { MigrationManager } from './migration'
+import { localStore } from './local-store'
+
 
 export interface SavedQueryRecord {
   id: string
@@ -96,6 +99,31 @@ function decryptPassword(stored: string): string | undefined {
   return stored
 }
 
+export async function performMigrations(): Promise<void> {
+  const userDataPath = app.getPath('userData')
+  const migrationManager = new MigrationManager(userDataPath)
+
+  // Connections migration
+  await migrationManager.migrateJson('connections.json', [
+    {
+      version: 1,
+      up: () => {
+        // Version 1 is the baseline (array wrapped into object)
+      }
+    }
+  ])
+
+  // Settings migration
+  await migrationManager.migrateJson('settings.json', [
+    {
+      version: 1,
+      up: () => {
+        // Version 1 is the baseline
+      }
+    }
+  ])
+}
+
 export function loadConnections(): ConnectionConfig[] {
   try {
     const raw = loadPersistedConnectionsRaw()
@@ -116,31 +144,42 @@ export function saveConnections(connections: ConnectionConfig[]): void {
       ...c,
       password: c.password ? encryptPassword(c.password) : c.password
     }))
-    fs.writeFileSync(storePath, JSON.stringify(persisted, null, 2), 'utf-8')
+    const payload = {
+      version: 1,
+      connections: persisted
+    }
+    fs.writeFileSync(storePath, JSON.stringify(payload, null, 2), 'utf-8')
   } catch (err) {
     appLogger.error('Failed to save connections', { error: (err as Error).message })
   }
 }
 
 export function loadSavedQueries(): SavedQueryRecord[] {
-  try {
-    const p = getSavedQueriesPath()
-    if (!fs.existsSync(p)) return []
-    const data = fs.readFileSync(p, 'utf-8')
-    return JSON.parse(data) as SavedQueryRecord[]
-  } catch {
-    return []
-  }
+  return localStore.getSavedQueries()
 }
 
 export function writeSavedQueries(queries: SavedQueryRecord[]): void {
-  try {
-    const p = getSavedQueriesPath()
-    fs.mkdirSync(path.dirname(p), { recursive: true })
-    fs.writeFileSync(p, JSON.stringify(queries, null, 2), 'utf-8')
-  } catch (err) {
-    appLogger.error('Failed to save queries', { error: (err as Error).message })
+  // To keep SQLite in sync with the provided list (including deletions),
+  // we could either clear and re-insert, or implement a more surgical sync.
+  // For saved queries (usually < 1000 items), clear-and-reinsert is safest and fast.
+  const existing = localStore.getSavedQueries()
+  const incomingIds = new Set(queries.map(q => q.id))
+  
+  // Remove items not in the incoming list
+  for (const q of existing) {
+    if (!incomingIds.has(q.id)) {
+      localStore.deleteSavedQuery(q.id)
+    }
   }
+
+  // Insert or update incoming items
+  for (const q of queries) {
+    localStore.addSavedQuery(q)
+  }
+}
+
+export function deleteSavedQuery(id: string): void {
+  localStore.deleteSavedQuery(id)
 }
 
 export interface ImportConnectionsResult {
@@ -154,7 +193,9 @@ export function loadPersistedConnectionsRaw(): ConnectionConfig[] {
   const storePath = getStorePath()
   if (!fs.existsSync(storePath)) return []
   const data = fs.readFileSync(storePath, 'utf-8')
-  return JSON.parse(data) as ConnectionConfig[]
+  const parsed = JSON.parse(data)
+  if (Array.isArray(parsed)) return parsed as ConnectionConfig[]
+  return (parsed as { connections?: ConnectionConfig[] }).connections ?? []
 }
 
 export function exportConnectionsToPath(exportPath: string, includePasswords = false): number {
@@ -367,7 +408,11 @@ export function saveSettings(settings: AppSettings): void {
   try {
     const p = getSettingsPath()
     fs.mkdirSync(path.dirname(p), { recursive: true })
-    fs.writeFileSync(p, JSON.stringify(sanitizeSettings(settings), null, 2), 'utf-8')
+    const payload = {
+      version: 1,
+      ...sanitizeSettings(settings)
+    }
+    fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf-8')
   } catch (err) {
     console.error('Failed to save settings:', err)
   }

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   useReactTable,
   getCoreRowModel,
@@ -189,7 +190,7 @@ function CellViewerModal({
       setCopyError(err.message || 'Unable to copy to clipboard')
     })
   }
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
         <div className="modal-header">
@@ -226,7 +227,8 @@ function CellViewerModal({
           <button className="btn btn-primary" onClick={onClose}>Close</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -244,7 +246,7 @@ function EditConfirmModal({
   error: string | null
   isUpdating: boolean
 }): React.JSX.Element {
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580 }}>
         <div className="modal-header">
@@ -288,7 +290,8 @@ function EditConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -324,7 +327,7 @@ function ContextMenu({
     }
   }, [x, y])
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       className="ctx-menu"
@@ -350,7 +353,8 @@ function ContextMenu({
           </button>
         </>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -372,7 +376,7 @@ function DeleteConfirmModal({
 }): React.JSX.Element {
   const preview = sqls.slice(0, 3).join('\n')
   const hasMore = sqls.length > 3
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580 }}>
         <div className="modal-header">
@@ -417,7 +421,8 @@ function DeleteConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
