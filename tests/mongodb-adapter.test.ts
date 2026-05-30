@@ -8,6 +8,17 @@ const docs = [
 const findLimit = vi.fn()
 const findToArray = vi.fn()
 const aggregateToArray = vi.fn()
+const insertOne = vi.fn()
+const insertMany = vi.fn()
+const updateOne = vi.fn()
+const updateMany = vi.fn()
+const replaceOne = vi.fn()
+const deleteOne = vi.fn()
+const deleteMany = vi.fn()
+const findOneAndUpdate = vi.fn()
+const findOneAndDelete = vi.fn()
+const findOneAndReplace = vi.fn()
+const countDocuments = vi.fn()
 const connect = vi.fn()
 const close = vi.fn()
 const db = vi.fn()
@@ -31,6 +42,39 @@ describe('MongoDBAdapter', () => {
     findLimit.mockReturnThis()
     findToArray.mockResolvedValue(docs)
     aggregateToArray.mockResolvedValue([{ status: 'open', total: 2 }])
+    insertOne.mockResolvedValue({ acknowledged: true, insertedId: { toHexString: () => 'ins123' } })
+    insertMany.mockResolvedValue({
+      acknowledged: true,
+      insertedCount: 2,
+      insertedIds: { 0: { toHexString: () => 'i1' }, 1: { toHexString: () => 'i2' } }
+    })
+    updateOne.mockResolvedValue({
+      acknowledged: true,
+      matchedCount: 1,
+      modifiedCount: 1,
+      upsertedId: null,
+      upsertedCount: 0
+    })
+    updateMany.mockResolvedValue({
+      acknowledged: true,
+      matchedCount: 2,
+      modifiedCount: 2,
+      upsertedId: null,
+      upsertedCount: 0
+    })
+    replaceOne.mockResolvedValue({
+      acknowledged: true,
+      matchedCount: 1,
+      modifiedCount: 1,
+      upsertedId: null,
+      upsertedCount: 0
+    })
+    deleteOne.mockResolvedValue({ acknowledged: true, deletedCount: 1 })
+    deleteMany.mockResolvedValue({ acknowledged: true, deletedCount: 3 })
+    findOneAndUpdate.mockResolvedValue({ _id: { toHexString: () => 'abc123' }, name: 'Ada', active: false })
+    findOneAndDelete.mockResolvedValue({ _id: { toHexString: () => 'def456' }, name: 'Grace' })
+    findOneAndReplace.mockResolvedValue({ _id: { toHexString: () => 'abc123' }, name: 'Ada v2' })
+    countDocuments.mockResolvedValue(7)
     connect.mockResolvedValue(undefined)
     close.mockResolvedValue(undefined)
     command.mockResolvedValue({ ok: 1, version: '7.0.4' })
@@ -42,7 +86,18 @@ describe('MongoDBAdapter', () => {
       listCollections: () => ({ toArray: listCollectionsToArray }),
       collection: () => ({
         find: vi.fn(() => ({ limit: findLimit, toArray: findToArray })),
-        aggregate: vi.fn(() => ({ toArray: aggregateToArray }))
+        aggregate: vi.fn(() => ({ toArray: aggregateToArray })),
+        insertOne,
+        insertMany,
+        updateOne,
+        updateMany,
+        replaceOne,
+        deleteOne,
+        deleteMany,
+        findOneAndUpdate,
+        findOneAndDelete,
+        findOneAndReplace,
+        countDocuments
       })
     })
   })
@@ -105,7 +160,7 @@ describe('MongoDBAdapter', () => {
     ])
   })
 
-  it('runs read-only find and aggregate queries', async () => {
+  it('runs find and aggregate queries', async () => {
     const { MongoDBAdapter } = await import('../src/main/db/adapters/mongodb')
     const adapter = new MongoDBAdapter()
     await adapter.connect({ id: 'mongo-4', name: 'Mongo', type: 'mongodb', database: 'app' })
@@ -119,15 +174,32 @@ describe('MongoDBAdapter', () => {
     expect(aggregateResult.rows).toEqual([{ status: 'open', total: 2 }])
   })
 
-  it('rejects write commands without touching the driver', async () => {
+  it('executes write commands and returns metadata rows', async () => {
     const { MongoDBAdapter } = await import('../src/main/db/adapters/mongodb')
     const adapter = new MongoDBAdapter()
     await adapter.connect({ id: 'mongo-5', name: 'Mongo', type: 'mongodb', database: 'app' })
 
-    const result = await adapter.query('db.users.insertOne({"name":"Ada"})')
+    const insertResult = await adapter.query('db.users.insertOne({"name":"Ada"})')
+    expect(insertOne).toHaveBeenCalledWith({ name: 'Ada' })
+    expect(insertResult.rows[0]).toMatchObject({ acknowledged: true, insertedId: 'ins123' })
 
-    expect(result.error).toBe('MongoDB read-only mode: write/admin commands are not allowed')
-    expect(findToArray).not.toHaveBeenCalled()
+    const updateResult = await adapter.query('db.users.updateOne({"active":true},{"$set":{"active":false}})')
+    expect(updateOne).toHaveBeenCalledWith({ active: true }, { $set: { active: false } }, undefined)
+    expect(updateResult.rows[0]).toMatchObject({ matchedCount: 1, modifiedCount: 1 })
+
+    const deleteResult = await adapter.query('db.users.deleteMany({"active":false})')
+    expect(deleteMany).toHaveBeenCalledWith({ active: false }, undefined)
+    expect(deleteResult.rows[0]).toMatchObject({ deletedCount: 3 })
+
+    const findOneUpdateResult = await adapter.query(
+      'db.users.findOneAndUpdate({"name":"Ada"},{"$set":{"active":false}})'
+    )
+    expect(findOneAndUpdate).toHaveBeenCalled()
+    expect(findOneUpdateResult.rows[0]).toMatchObject({ _id: 'abc123', name: 'Ada', active: false })
+
+    const runCommandResult = await adapter.query('db.runCommand({"ping":1})')
+    expect(command).toHaveBeenCalledWith({ ping: 1 })
+    expect(runCommandResult.rows[0]).toMatchObject({ ok: 1, version: '7.0.4' })
   })
 
   it('disconnects the Mongo client', async () => {

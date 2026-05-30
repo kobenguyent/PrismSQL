@@ -326,6 +326,13 @@ html, body, #root {
   margin-left: auto;
 }
 
+/* Electron drag regions can still swallow clicks on nested controls unless
+   descendants are explicitly marked as no-drag as well. */
+.titlebar-actions,
+.titlebar-actions * {
+  -webkit-app-region: no-drag;
+}
+
 /* ── Main Layout ────────────────────────────────────────────── */
 .main-layout {
   display: flex;
