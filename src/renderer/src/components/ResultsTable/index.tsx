@@ -475,7 +475,7 @@ export function ResultsTable({
   }
 
   const conn = connectionId ? connections.find((c) => c.id === connectionId) : null
-  const canEdit = !!(connectionId && tableName && conn)
+  const canEdit = !!(connectionId && tableName && conn && conn.type !== 'mongodb')
 
   // Load PK columns when in table mode
   useEffect(() => {

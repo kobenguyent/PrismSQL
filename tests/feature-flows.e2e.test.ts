@@ -94,19 +94,22 @@ describe('E2E feature flows', () => {
     const useAppStore = await loadStoreWithDb(db)
     useAppStore.setState({
       settings: { queryLimit: 25 },
-      connectedIds: new Set(['mssql-1', 'pg-1']),
+      connectedIds: new Set(['mssql-1', 'pg-1', 'mongo-1']),
       connections: [
         { id: 'mssql-1', name: 'SQL Server', type: 'mssql' },
-        { id: 'pg-1', name: 'PG', type: 'postgres' }
+        { id: 'pg-1', name: 'PG', type: 'postgres' },
+        { id: 'mongo-1', name: 'Mongo', type: 'mongodb' }
       ] as ConnectionConfig[]
     })
 
     await useAppStore.getState().openTableInTab('mssql-1', 'Orders', 'salesdb', 'reporting')
     await useAppStore.getState().openTableInTab('pg-1', 'users', 'appdb')
+    await useAppStore.getState().openTableInTab('mongo-1', 'users', 'app')
 
     const sqlTabs = useAppStore.getState().tabs.map((t) => t.sql)
     expect(sqlTabs).toContain('SELECT TOP 25 * FROM [reporting].[Orders];')
     expect(sqlTabs).toContain('SELECT * FROM "appdb"."users" LIMIT 25;')
+    expect(sqlTabs).toContain('db.users.find({}).limit(25)')
   })
 
   it('stores SQL error in tab result when query returns an error (e.g. LIKE %pattern%)', async () => {
