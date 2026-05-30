@@ -312,7 +312,7 @@ export function ConnectionModal({ onClose, editConfig }: Props): React.JSX.Eleme
                       : config.type === 'mssql'
                         ? 'mssql://user:pass@host:1433/db'
                         : config.type === 'mongodb'
-                          ? 'mongodb://user:pass@host:27017/db'
+                          ? 'mongodb://user:pass@host:27017/db' // betterleaks:allow - placeholder URI
                           : 'mysql://user:pass@host:3306/db'
                   }
                 />

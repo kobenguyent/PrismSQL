@@ -20,7 +20,7 @@ describe('connection URI preview parsing', () => {
   })
 
   it('returns parsed preview for mongodb+srv uri', () => {
-    const result = parseConnectionUriPreview('mongodb', 'mongodb+srv://alice:secret@cluster.example.com/app')
+    const result = parseConnectionUriPreview('mongodb', 'mongodb+srv://alice:secret@cluster.example.com/app') // betterleaks:allow - test fixture
 
     expect(result.error).toBeUndefined()
     expect(result.parsed).toMatchObject({

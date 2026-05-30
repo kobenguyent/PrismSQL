@@ -42,7 +42,7 @@ describe('connection URI parsing', () => {
   })
 
   it('parses mongodb URI', () => {
-    const parsed = parseConnectionUri('mongodb', 'mongodb://root:pass@localhost:27017/app?ssl=true')
+    const parsed = parseConnectionUri('mongodb', 'mongodb://root:pass@localhost:27017/app?ssl=true') // betterleaks:allow - test fixture
 
     expect(parsed).toEqual({
       host: 'localhost',
@@ -55,7 +55,7 @@ describe('connection URI parsing', () => {
   })
 
   it('parses mongodb+srv URI', () => {
-    const parsed = parseConnectionUri('mongodb', 'mongodb+srv://alice:secret@cluster.example.com/app')
+    const parsed = parseConnectionUri('mongodb', 'mongodb+srv://alice:secret@cluster.example.com/app') // betterleaks:allow - test fixture
 
     expect(parsed).toEqual({
       host: 'cluster.example.com',

@@ -56,10 +56,10 @@ describe('MongoDBAdapter', () => {
       id: 'mongo-1',
       name: 'Atlas',
       type: 'mongodb',
-      connectionUri: 'mongodb+srv://user:pass@example.mongodb.net/app'
+      connectionUri: 'mongodb+srv://user:pass@example.mongodb.net/app' // betterleaks:allow - test fixture
     })
 
-    expect(MongoClient).toHaveBeenCalledWith('mongodb+srv://user:pass@example.mongodb.net/app', {
+    expect(MongoClient).toHaveBeenCalledWith('mongodb+srv://user:pass@example.mongodb.net/app', { // betterleaks:allow - test fixture
       serverSelectionTimeoutMS: 10000
     })
     expect(adapter.isConnected()).toBe(true)
@@ -80,7 +80,7 @@ describe('MongoDBAdapter', () => {
       password: 'secret'
     })
 
-    expect(MongoClient).toHaveBeenCalledWith('mongodb://root:secret@localhost:27018/admin', {
+    expect(MongoClient).toHaveBeenCalledWith('mongodb://root:secret@localhost:27018/admin', { // betterleaks:allow - test fixture
       serverSelectionTimeoutMS: 10000
     })
   })
